@@ -1,0 +1,46 @@
+# Allowlist catalog bài tập (D6): chỉ các bài liệt kê ở đây được nạp từ free-exercise-db.
+# BẢN NHÁP: tên và alias tiếng Việt do AI soạn, cần founder rà soát trước khi dùng thật.
+# Thêm bài = thêm một dòng `id` (lấy từ apps/api/prisma/seed/data/exercises.json).
+# metricType là tuỳ chọn; mặc định weight_reps (cardio/stretching mặc định duration).
+- { id: Barbell_Squat, nameVi: Squat tạ đòn, aliases: [squat, gánh tạ] }
+- { id: Barbell_Bench_Press_-_Medium_Grip, nameVi: Đẩy ngực ngang tạ đòn, aliases: [bench press, bench, đẩy ngực] }
+- { id: Barbell_Deadlift, nameVi: Deadlift tạ đòn, aliases: [deadlift, kéo đất] }
+- { id: Standing_Military_Press, nameVi: Đẩy vai đứng tạ đòn, aliases: [overhead press, ohp, military press, đẩy vai] }
+- { id: Bent_Over_Barbell_Row, nameVi: Kéo tạ đòn cúi người, aliases: [barbell row, chèo tạ đòn] }
+- { id: Pullups, nameVi: Kéo xà, aliases: [pull up, pull-up, hít xà], metricType: reps }
+- { id: Chin-Up, nameVi: Kéo xà ngửa tay, aliases: [chin up, chinup], metricType: reps }
+- { id: Wide-Grip_Lat_Pulldown, nameVi: Kéo xô rộng tay, aliases: [lat pulldown, kéo xô] }
+- { id: Dips_-_Triceps_Version, nameVi: Dip tay sau, aliases: [dips, dip, chống xà kép], metricType: reps }
+- { id: Pushups, nameVi: Hít đất, aliases: [push up, pushup, chống đẩy], metricType: reps }
+- { id: Barbell_Curl, nameVi: Cuốn tạ đòn tay trước, aliases: [barbell curl, curl tạ đòn] }
+- { id: Dumbbell_Bicep_Curl, nameVi: Cuốn tạ đơn tay trước, aliases: [dumbbell curl, bicep curl, curl tạ đơn] }
+- { id: Hammer_Curls, nameVi: Cuốn tạ đơn kiểu búa, aliases: [hammer curl] }
+- { id: Incline_Dumbbell_Press, nameVi: Đẩy ngực trên tạ đơn, aliases: [incline dumbbell press, đẩy ngực trên] }
+- { id: Dumbbell_Bench_Press, nameVi: Đẩy ngực ngang tạ đơn, aliases: [dumbbell bench press] }
+- { id: Barbell_Incline_Bench_Press_-_Medium_Grip, nameVi: Đẩy ngực trên tạ đòn, aliases: [incline bench press, incline bench] }
+- { id: Dumbbell_Flyes, nameVi: Ép ngực tạ đơn, aliases: [dumbbell fly, fly, ép ngực] }
+- { id: Cable_Crossover, nameVi: Ép ngực cáp, aliases: [cable crossover, cable fly] }
+- { id: Romanian_Deadlift, nameVi: Deadlift kiểu Romania, aliases: [rdl, romanian deadlift] }
+- { id: Leg_Press, nameVi: Đạp đùi máy, aliases: [leg press, đạp đùi] }
+- { id: Leg_Extensions, nameVi: Duỗi đùi trước máy, aliases: [leg extension] }
+- { id: Lying_Leg_Curls, nameVi: Gập đùi sau nằm máy, aliases: [leg curl, lying leg curl, gập đùi sau] }
+- { id: Standing_Calf_Raises, nameVi: Nhón bắp chân đứng máy, aliases: [calf raise, nhón bắp chân] }
+- { id: Seated_Calf_Raise, nameVi: Nhón bắp chân ngồi máy, aliases: [seated calf raise] }
+- { id: Plank, nameVi: Plank, aliases: [chống plank], metricType: duration }
+- { id: Crunches, nameVi: Cuốn bụng, aliases: [crunch, gập bụng], metricType: reps }
+- { id: Hanging_Leg_Raise, nameVi: Treo xà nâng chân, aliases: [hanging leg raise, nâng chân xà], metricType: reps }
+- { id: Side_Lateral_Raise, nameVi: Nâng tạ đơn sang ngang, aliases: [lateral raise, side raise, vai giữa] }
+- { id: Front_Dumbbell_Raise, nameVi: Nâng tạ đơn ra trước, aliases: [front raise] }
+- { id: Reverse_Flyes, nameVi: Ép vai sau tạ đơn, aliases: [reverse fly, rear delt fly, vai sau] }
+- { id: Triceps_Pushdown, nameVi: Đẩy cáp tay sau, aliases: [triceps pushdown, pushdown] }
+- { id: EZ-Bar_Skullcrusher, nameVi: Skullcrusher thanh EZ, aliases: [skullcrusher, skull crusher] }
+- { id: Close-Grip_Barbell_Bench_Press, nameVi: Đẩy ngực tay hẹp tạ đòn, aliases: [close grip bench press, close grip bench] }
+- { id: Seated_Cable_Rows, nameVi: Kéo cáp ngồi, aliases: [seated cable row, cable row] }
+- { id: One-Arm_Dumbbell_Row, nameVi: Kéo tạ đơn một tay, aliases: [one arm dumbbell row, dumbbell row, chèo tạ đơn] }
+- { id: Face_Pull, nameVi: Face pull kéo cáp về mặt, aliases: [face pull] }
+- { id: Barbell_Shrug, nameVi: Nhún vai tạ đòn, aliases: [shrug, barbell shrug, nhún vai] }
+- { id: Barbell_Hip_Thrust, nameVi: Hip thrust tạ đòn, aliases: [hip thrust, đẩy hông] }
+- { id: Dumbbell_Lunges, nameVi: Bước dài tạ đơn, aliases: [lunge, dumbbell lunge, chùng chân] }
+- { id: Goblet_Squat, nameVi: Squat ôm tạ, aliases: [goblet squat] }
+- { id: Dumbbell_Shoulder_Press, nameVi: Đẩy vai tạ đơn, aliases: [dumbbell shoulder press, shoulder press] }
+- { id: Running_Treadmill, nameVi: Chạy bộ máy, aliases: [treadmill, chạy bộ], metricType: duration }

@@ -1,0 +1,133 @@
+// Schema ban đầu (MVP). Các bảng còn lại của SDD 7.1 thêm dần theo từng tính năng.
+// Tên bảng/cột dùng snake_case khớp ERD (SDD 7.1) qua @@map/@map.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UnitPref {
+  kg
+  lb
+}
+
+enum DumbbellLoad {
+  per_dumbbell
+  total
+}
+
+enum Mechanic {
+  compound
+  isolation
+}
+
+enum MetricType {
+  weight_reps
+  reps
+  duration
+  distance
+}
+
+enum ExerciseSource {
+  free_exercise_db @map("free-exercise-db")
+  curated
+  user
+}
+
+enum MuscleRole {
+  primary
+  secondary
+}
+
+enum AliasLang {
+  vi
+  en
+}
+
+model User {
+  id                  String        @id @default(uuid()) @db.Uuid
+  email               String        @unique
+  authProvider        String        @map("auth_provider")
+  authSubject         String        @unique @map("auth_subject")
+  displayName         String?       @map("display_name")
+  unitPref            UnitPref      @default(kg) @map("unit_pref")
+  /// Ranh giới tuần cho streak (UC16)
+  timezone            String        @default("Asia/Ho_Chi_Minh")
+  rpeEnabled          Boolean       @default(false) @map("rpe_enabled")
+  dumbbellLoadDefault DumbbellLoad? @map("dumbbell_load_default")
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt           DateTime?     @map("deleted_at") @db.Timestamptz(6)
+
+  exercises Exercise[]
+  aliases   ExerciseAlias[]
+
+  @@map("users")
+}
+
+model Muscle {
+  id          Int    @id @default(autoincrement())
+  /// Mã chuẩn hoá, vd "lats", "traps"
+  code        String @unique
+  nameVi      String @map("name_vi")
+  /// chest, back, legs...
+  muscleGroup String @map("muscle_group")
+
+  exercises ExerciseMuscle[]
+
+  @@map("muscles")
+}
+
+model Exercise {
+  id         String         @id @default(uuid()) @db.Uuid
+  /// null = catalog chung
+  ownerId    String?        @map("owner_id") @db.Uuid
+  nameEn     String         @map("name_en")
+  nameVi     String?        @map("name_vi")
+  equipment  String?
+  mechanic   Mechanic?
+  metricType MetricType     @default(weight_reps) @map("metric_type")
+  source     ExerciseSource
+  sourceRef  String?        @map("source_ref")
+  license    String?
+  isArchived Boolean        @default(false) @map("is_archived")
+
+  owner   User?            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  muscles ExerciseMuscle[]
+  aliases ExerciseAlias[]
+
+  @@unique([source, sourceRef])
+  @@map("exercises")
+}
+
+model ExerciseMuscle {
+  exerciseId String     @map("exercise_id") @db.Uuid
+  muscleId   Int        @map("muscle_id")
+  role       MuscleRole
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  muscle   Muscle   @relation(fields: [muscleId], references: [id])
+
+  @@id([exerciseId, muscleId])
+  @@map("exercise_muscles")
+}
+
+model ExerciseAlias {
+  id              String    @id @default(uuid()) @db.Uuid
+  exerciseId      String    @map("exercise_id") @db.Uuid
+  /// null = alias chung, có giá trị = alias user tự đặt
+  ownerId         String?   @map("owner_id") @db.Uuid
+  alias           String
+  /// Không dấu, chữ thường — dùng cho tìm kiếm (UC03)
+  aliasNormalized String    @map("alias_normalized")
+  lang            AliasLang
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  owner    User?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([aliasNormalized(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@map("exercise_aliases")
+}

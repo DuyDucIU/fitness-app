@@ -1,0 +1,37 @@
+{
+  "name": "fitness-app",
+  "version": "0.0.0",
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "dev:api": "npm run start:dev -w @fitness/api",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "npm run build && npm run typecheck && npm run lint && npm run test",
+    "dev:web": "npm run dev -w @fitness/web"
+  },
+  "private": true,
+  "workspaces": [
+    "packages/contract",
+    "packages/engine",
+    "packages/templates",
+    "apps/api",
+    "apps/web"
+  ],
+  "packageManager": "npm@11.19.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^24.19.2",
+    "eslint": "^9.39.5",
+    "prettier": "^3.10.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.2"
+  }
+}

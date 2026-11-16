@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: fitness
+          POSTGRES_PASSWORD: fitness
+          POSTGRES_DB: fitness
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fitness -d fitness"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Dùng cho migrate và test e2e của apps/api (Postgres thật, không mock).
+      DATABASE_URL: postgresql://fitness:fitness@localhost:5432/fitness?schema=public
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      # Prisma client nằm trong src/generated (không commit), phải sinh trước khi build/typecheck.
+      - run: npm run db:generate -w @fitness/api
+
+      # Thứ tự workspaces trong package.json: contract -> engine -> templates -> api -> web.
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+
+      - name: Integration test API (PostgreSQL thật)
+        run: |
+          npm run db:deploy -w @fitness/api
+          npm run test:e2e -w @fitness/api

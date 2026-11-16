@@ -1,0 +1,72 @@
+name: fitness-app
+
+# Mặc định (docker compose up -d): chỉ chạy postgres, API chạy bằng `npm run dev` trên máy.
+# Demo đầy đủ: docker compose --profile full up --build
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fitness}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fitness}
+      POSTGRES_DB: ${POSTGRES_DB:-fitness}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      # Postgres 18+: volume mount ở /var/lib/postgresql (không phải /var/lib/postgresql/data)
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---- Profile `full`: docker compose --profile full up --build ----
+  # Áp migration rồi thoát (chạy trên stage `build` vì cần Prisma CLI).
+  migrate:
+    profiles: [full]
+    build: &api-build
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: build
+    command: ['npx', 'prisma', 'migrate', 'deploy']
+    environment: &api-env
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fitness}:${POSTGRES_PASSWORD:-fitness}@postgres:5432/${POSTGRES_DB:-fitness}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    profiles: [full]
+    build:
+      <<: *api-build
+      target: runtime
+    command: ['node', 'dist/main.js']
+    # SUPABASE_URL / SUPABASE_JWT_SECRET lấy từ apps/api/.env; DATABASE_URL bị ghi đè để trỏ vào container postgres.
+    env_file:
+      - path: apps/api/.env
+        required: false
+    environment: *api-env
+    ports:
+      - '${API_PORT:-3000}:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    profiles: [full]
+    build:
+      <<: *api-build
+      target: runtime
+    command: ['node', 'dist/worker.js']
+    env_file:
+      - path: apps/api/.env
+        required: false
+    environment: *api-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

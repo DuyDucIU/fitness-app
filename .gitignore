@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+*.tsbuildinfo
+coverage/
+
+# environment (chỉ commit các file .env.example)
+.env
+.env.*
+!.env.example
+
+# Prisma client sinh ra từ schema (chạy `npm run db:generate -w @fitness/api`)
+apps/api/src/generated/
+
+# Web app
+dev-dist/
+
+# Playwright MCP (ảnh chụp/log khi kiểm tra bằng trình duyệt)
+.playwright-mcp/
+
+# editor / OS
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+# JetBrains (IntelliJ, WebStorm, Android Studio) — cấu hình IDE riêng từng máy
+.idea/

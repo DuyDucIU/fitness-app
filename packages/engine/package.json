@@ -1,0 +1,21 @@
+{
+  "name": "@fitness/engine",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test:watch": "vitest",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "lint": "eslint src"
+  },
+  "type": "commonjs",
+  "devDependencies": {
+    "vitest": "^5.1.0"
+  },
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ]
+}

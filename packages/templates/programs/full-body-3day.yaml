@@ -1,0 +1,25 @@
+# Chương trình mẫu — BẢN NHÁP, chờ founder duyệt qua PR.
+# `exercise` là id trong free-exercise-db (xem apps/api/prisma/seed).
+id: full-body-3day
+name: Full body 3 buổi/tuần
+experienceLevel: beginner
+daysPerWeek: 3
+equipmentAccess: gym
+goal: general
+draft: true
+days:
+  - name: Full body A
+    exercises:
+      - { exercise: Barbell_Squat, sets: 3, repMin: 5, repMax: 8 }
+      - {
+          exercise: Barbell_Bench_Press_-_Medium_Grip,
+          sets: 3,
+          repMin: 5,
+          repMax: 8,
+        }
+      - { exercise: Bent_Over_Barbell_Row, sets: 3, repMin: 6, repMax: 10 }
+  - name: Full body B
+    exercises:
+      - { exercise: Barbell_Deadlift, sets: 3, repMin: 3, repMax: 5 }
+      - { exercise: Standing_Military_Press, sets: 3, repMin: 5, repMax: 8 }
+      - { exercise: Pullups, sets: 3, repMin: 5, repMax: 10 }
