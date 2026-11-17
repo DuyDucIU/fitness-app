@@ -2,6 +2,8 @@
 
 Monorepo (npm workspaces) cho ứng dụng theo dõi tập luyện. Thiết kế nằm trong [docs/](docs/) (SRS, SDD). Phạm vi hiện tại: **MVP** — web app di động (PWA) cho Safari iOS và Chrome Android, backend chạy localhost (SDD D26). Các phần post-MVP (import LLM, Health Connect qua bản bọc Capacitor, video, beta công khai) chưa dựng.
 
+Thành viên mới: đọc [docs/ONBOARDING.md](docs/ONBOARDING.md) trước.
+
 | Thư mục              | Nội dung                                                                                                    |
 | -------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `apps/web`           | PWA: Vite + React + `vite-plugin-pwa`, Dexie (IndexedDB), React Router, TanStack Query, shadcn/ui, Supabase |
