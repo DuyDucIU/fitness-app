@@ -66,8 +66,28 @@ npm run dev:web         # Web: http://localhost:5173 (tự reload khi sửa code
 - Mở http://localhost:5173, bật chế độ thiết bị di động trong DevTools để xem giao diện mobile.
 - Ở chế độ dev **không có service worker**: app không chạy offline, không cài được, không có thông báo cập nhật. Muốn thử các phần đó, xem mục "Thử PWA" bên dưới.
 - Sau khi `git pull`:
-  - có migration mới → `npm run db:deploy -w @fitness/api`;
-  - có thay đổi ở `packages/contract` hoặc `packages/engine` → `npm run build` (API và `typecheck` đọc bản build trong `dist`; web dev server đọc thẳng mã nguồn nên không cần).
+  - có migration mới (thư mục `apps/api/prisma/migrations`) → `npm run db:deploy -w @fitness/api` rồi `npm run db:generate -w @fitness/api`;
+  - có thay đổi ở `packages/contract` hoặc `packages/engine` → `npm run build` (API đọc bản build trong `dist`; web đọc thẳng mã nguồn nên không cần).
+
+**Sửa schema database (Prisma):**
+
+```bash
+# 1. Sửa apps/api/prisma/schema.prisma
+npm run db:migrate -w @fitness/api -- --name them_bang_plans   # 2. tạo file migration mới + áp vào DB của bạn
+npm run db:generate -w @fitness/api                            # 3. sinh lại Prisma client (Prisma 7 không tự chạy)
+# 4. Commit cả schema.prisma lẫn thư mục migration mới sinh ra
+```
+
+| Lệnh          | Dùng khi                                                                                           |
+| ------------- | -------------------------------------------------------------------------------------------------- |
+| `db:migrate`  | **Bạn** sửa schema: tạo migration mới từ thay đổi và áp vào DB local (`prisma migrate dev`)        |
+| `db:deploy`   | **Người khác** đã tạo migration (pull về), hoặc khi deploy: chỉ áp migration có sẵn, không tạo mới |
+| `db:generate` | Sau mỗi lần schema đổi (do mình hay do pull) — cập nhật type/client trong `src/generated`          |
+| `db:seed`     | Nạp lại catalog bài tập (Prisma 7 không tự seed sau migrate)                                       |
+| `db:studio`   | Xem/sửa dữ liệu trong DB bằng giao diện web                                                        |
+
+- Không sửa tay file migration đã commit; cần đổi thì tạo migration mới.
+- Nếu `db:migrate` báo DB lệch (drift) và đề nghị reset: đồng ý chỉ khi chấp nhận mất dữ liệu local, sau đó chạy lại `db:seed`.
 
 **Web ↔ API:** web gọi API theo `VITE_API_URL` (`apps/web/.env`); API chỉ nhận request từ các origin trong `CORS_ORIGINS` (`apps/api/.env`, mặc định `http://localhost:5173,http://localhost:4173`). Port của Vite cố định (`strictPort`): nếu 5173 hoặc 4173 bị chiếm, Vite báo lỗi thay vì tự đổi port. Đổi port/URL của web thì phải sửa cả hai biến.
 
