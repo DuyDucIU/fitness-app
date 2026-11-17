@@ -87,6 +87,7 @@ npm run preview -w @fitness/web   # http://localhost:4173 (đã có sẵn trong 
 
 ## Ghi chú kỹ thuật
 
+- PostgreSQL của Docker mở ở **`127.0.0.1:5433`** (không phải 5432) để không đụng PostgreSQL cài sẵn trên máy (vd service `postgresql-x64-18` trên Windows). Đổi cổng bằng `POSTGRES_PORT` (`.env` gốc) và nhớ sửa `DATABASE_URL` trong `apps/api/.env` cho khớp.
 - Windows App Control trên máy dev có thể chặn binary native không ký (vd `turbo.exe`), nên repo **không dùng Turborepo**; thứ tự build theo thứ tự khai báo `workspaces` trong `package.json`.
 - Prisma dùng bản 7.x (tag `latest` trên npm hiện là 8 rc). NestJS dùng bản 11 vì `nestjs-zod` chưa hỗ trợ NestJS 12.
 - TypeScript ghim `~6.0.3` (TS 7 chưa tương thích với `@nestjs/swagger` và `typescript-eslint`). TS 6 không tự nạp `@types/*`, nên `tsconfig` khai báo `types` tường minh.

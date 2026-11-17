@@ -11,8 +11,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fitness}
       POSTGRES_DB: ${POSTGRES_DB:-fitness}
     # Chỉ mở trên máy này (127.0.0.1), không lộ ra LAN/Wi-Fi vì đang dùng mật khẩu mặc định.
+    # Cổng máy host mặc định 5433 (không phải 5432) để không đụng PostgreSQL cài sẵn trên máy dev.
     ports:
-      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+      - '127.0.0.1:${POSTGRES_PORT:-5433}:5432'
     volumes:
       # Postgres 18+: volume mount ở /var/lib/postgresql (không phải /var/lib/postgresql/data)
       - pgdata:/var/lib/postgresql
