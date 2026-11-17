@@ -20,7 +20,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@fitness/contract": ["../../packages/contract/src/index.ts"],
+      "@fitness/engine": ["../../packages/engine/src/index.ts"]
     },
 
     /* Linting */

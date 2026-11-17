@@ -1,7 +1,5 @@
 # SRS – Fitness Tracking and Training System
 
-Sep 18, 2026 · @Bùi Duy Đức
-
 ## 1. Giới thiệu
 
 ### 1.1 Mục đích

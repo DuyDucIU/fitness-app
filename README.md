@@ -30,6 +30,8 @@ npm run db:seed -w @fitness/api            # nạp catalog bài tập (42 bài, 
 npm run build                              # build contract/engine/templates/api/web (theo thứ tự)
 ```
 
+Sau đó điền thông tin Supabase vào các file `.env` (xem mục "Supabase Auth"). Chưa điền thì app vẫn chạy, nhưng mọi thao tác cần đăng nhập sẽ báo lỗi "Chưa cấu hình Supabase".
+
 ## Lệnh hay dùng
 
 | Lệnh                                       | Việc                                                  |

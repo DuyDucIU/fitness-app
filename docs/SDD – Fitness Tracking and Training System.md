@@ -573,7 +573,7 @@ MVP: xoá trong app. Trang web xoá tài khoản độc lập (bắt buộc theo
 | D9 | Import: một pipeline chung cho text/ảnh/khung hình video, cascade OCR máy → LLM text → vision LLM khi cần | Chốt · post-MVP |
 | D17 | Backend là modular monolith: NestJS + 1 worker, chạy trên một máy (localhost ở MVP) | Đề xuất |
 | D18 | Hàng đợi import dùng chính bảng `IMPORT_JOBS` (`FOR UPDATE SKIP LOCKED`), chưa cần queue riêng | Đề xuất · post-MVP |
-| D19 | Monorepo: `apps/web`, `apps/api`, `packages/engine` (TS), `packages/contract` (schema Zod dùng chung cho web app và backend; Swagger sinh từ schema khi dev) | Chốt |
+| D19 | Monorepo: `apps/web`, `apps/api`, `packages/engine` (TS), `packages/templates` (YAML), `packages/contract` (schema Zod dùng chung cho web app và backend; Swagger sinh từ schema khi dev) | Chốt |
 | D20 | Hosting beta đặt tại VN, Docker Compose (API, worker, PostgreSQL, auth, storage) — tránh thủ tục chuyển dữ liệu cá nhân xuyên biên giới (Nghị định 356/2025) | Post-MVP — chỉ cần khi lên beta |
 | D22 | Chia 2 nhóm user bằng bộ cài đặt mặc định từ onboarding, không tách 2 chế độ riêng | Chốt |
 
@@ -607,7 +607,7 @@ Worker đã tách tiến trình riêng từ đầu (dù chạy chung server) —
 
 ### 11.5 Migration schema \[Đề xuất\]
 
-- **PostgreSQL:** mỗi thay đổi schema là một migration có đánh số (dùng công cụ migration của ORM chọn cho NestJS, ví dụ Prisma Migrate hoặc Drizzle Kit — chưa chốt), chạy tự động khi deploy.
+- **PostgreSQL:** mỗi thay đổi schema là một migration có đánh số (Prisma Migrate — ORM đã chốt là Prisma, xem D7), chạy tự động khi deploy.
 - **IndexedDB trên web app:** schema khai báo bằng `db.version(n).stores(...)` của Dexie, mỗi thay đổi tăng `n` và có hàm `upgrade` nếu cần chuyển dữ liệu; Dexie chạy upgrade khi mở database, **trước** khi outbox được đọc. Migration không được xoá hay làm mất dữ liệu chưa sync.
 
 ### 11.6 Versioning API \[Đề xuất\]
@@ -631,7 +631,7 @@ Worker đã tách tiến trình riêng từ đầu (dù chạy chung server) —
 
 - **Cách chạy demo cuối kỳ (D26):** chưa chốt giữa (a) Chrome desktop, (b) frontend public + tunnel, (c) deploy cả hai — tuỳ tiến độ, ưu tiên (c) nếu kịp (xem 4.4).
 - **OCR trên máy cho import (post-MVP):** ML Kit không có trên web — cần chọn lại (3.5).
-- **D7:** cần thử nghiệm thực tế xác nhận tự host được trước beta, trước khi cam kết mốc chuyển Supabase Auth từ bản cloud sang tự host. Ngôn ngữ backend đã chốt NestJS; còn mở: chọn ORM (Prisma / Drizzle / TypeORM), cần chạy được raw SQL cho pg\_trgm và FOR UPDATE SKIP LOCKED.
+- **D7:** cần thử nghiệm thực tế xác nhận tự host được trước beta, trước khi cam kết mốc chuyển Supabase Auth từ bản cloud sang tự host. Ngôn ngữ backend đã chốt NestJS, ORM đã chốt Prisma (truy vấn pg\_trgm và FOR UPDATE SKIP LOCKED viết bằng raw SQL qua `$queryRaw`).
 - **D20:** hosting VN qua Docker Compose là post-MVP (đi cùng beta), không còn chặn MVP vì MVP chạy localhost.
 - **API spec chi tiết:** schema Zod trong `packages/contract` mới có `/health`, `/me`; các endpoint còn lại sẽ làm theo hướng contract-first cùng lúc với code, dựa trên nhóm endpoint ở mục 8.2.
 - **Chia vai trong team (D14):** chờ biết thế mạnh của 2 thành viên còn lại, việc ai có Mac hay không đã rõ (không ai có) — đây là quyết định tổ chức, không thuộc phạm vi kỹ thuật của SDD.

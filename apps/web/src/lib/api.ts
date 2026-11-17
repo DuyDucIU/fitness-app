@@ -6,7 +6,7 @@ import {
 } from '@fitness/contract';
 
 import { env } from './env';
-import { supabase } from './supabase';
+import { getSupabase } from './supabase';
 
 /** Gọi API với JWT của phiên hiện tại và validate response bằng schema dùng chung. */
 async function request<T>(
@@ -16,7 +16,7 @@ async function request<T>(
 ): Promise<T> {
   const headers: Record<string, string> = {};
   if (options.auth) {
-    const { data } = await supabase.auth.getSession();
+    const { data } = await getSupabase().auth.getSession();
     if (!data.session) throw new Error('Chưa đăng nhập');
     headers.Authorization = `Bearer ${data.session.access_token}`;
   }

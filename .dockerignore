@@ -1,7 +1,17 @@
 **/node_modules
 **/dist
+**/dev-dist
+**/coverage
+**/*.tsbuildinfo
+**/*.log
 .git
+docs
+
+# Không đưa secret vào image: mọi .env và biến thể (.env.local, .env.production…), trừ file mẫu.
 .env
 **/.env
-docs
-**/*.log
+**/.env.*
+!**/.env.example
+
+# Prisma client được sinh lại trong image (db:generate).
+apps/api/src/generated
