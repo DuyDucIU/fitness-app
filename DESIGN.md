@@ -12,6 +12,7 @@ colors:
   blue: "#1F5BD8"
   green: "#1E9E5A"
   on-signal: "#FFFFFF"
+  danger: "#B42318"
 typography:
   bib:
     fontFamily: "Barlow Condensed, sans-serif"
@@ -143,6 +144,99 @@ components:
     backgroundColor: "{colors.tyvek}"
     textColor: "{colors.ink}"
     rounded: "{rounded.sheet}"
+  button-danger:
+    backgroundColor: "{colors.danger}"
+    textColor: "{colors.on-signal}"
+    typography: "{typography.body}"
+    rounded: "{rounded.sm}"
+    padding: "0 16px"
+    height: "44px"
+  chip-selected:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.tyvek}"
+  segment-stack:
+    backgroundColor: "{colors.tyvek}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.sm}"
+    padding: "8px 14px"
+    height: "56px"
+  segment-stack-selected:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.tyvek}"
+  subtab:
+    backgroundColor: "{colors.tyvek}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.sm}"
+    height: "40px"
+  subtab-selected:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.tyvek}"
+  input:
+    backgroundColor: "{colors.on-signal}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.sm}"
+    padding: "0 12px"
+    height: "48px"
+  select:
+    backgroundColor: "{colors.on-signal}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.sm}"
+    padding: "0 40px 0 12px"
+    height: "48px"
+  list-row:
+    backgroundColor: "{colors.tyvek}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    padding: "8px 12px 8px 16px"
+    height: "52px"
+  tab-bar:
+    backgroundColor: "{colors.ground}"
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+  tab:
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+    height: "52px"
+  week-cell:
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
+    width: "32px"
+    height: "38px"
+  week-cell-done:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.tyvek}"
+  resume-bar:
+    backgroundColor: "{colors.orange}"
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    padding: "6px 8px 6px 16px"
+    height: "56px"
+  banner:
+    backgroundColor: "{colors.tyvek}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.md}"
+    padding: "12px 8px 12px 14px"
+  alert:
+    backgroundColor: "{colors.tyvek}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.md}"
+    padding: "14px 16px"
+  toast:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.tyvek}"
+    typography: "{typography.body}"
+    rounded: "{rounded.sm}"
+    padding: "10px 14px"
+  skeleton:
+    backgroundColor: "{colors.rule-soft}"
 ---
 
 # Design System: Fitness App
@@ -156,6 +250,8 @@ Mỗi set là một tấm số áo vận động viên: con số sắp nâng in 
 Mật độ cao nhưng chỉ có một thứ to: con số của set hiện tại. Mọi thứ bậc còn lại dựa vào độ đậm, chữ hoa giãn và nền đảo (đen trên trắng thành trắng trên đen), không dựa vào thêm cỡ chữ. Bề mặt phẳng, không gradient, không bóng đổ trang trí. Trạng thái được vẽ bằng nền, viền inset và lớp phủ cắt theo thời gian.
 
 Thế giới này từ chối bố cục mặc định của ngành: bảng set nhiều cột (SET | LẦN TRƯỚC | KG | REPS | ✓) cuộn dài trên nền tối với một màu neon.
+
+Ngoài buổi tập, cùng thế giới được mở rộng sang các màn gốc (Today, Plans, History, Progress, Me) và màn bắt đầu, dựng trong `prototypes/shared/` (`base.css`, `kit.js`, `chart.js`) cùng các slice `prototypes/home|plans|history|progress|me|start/`. Kế hoạch là một ví số áo: mỗi ngày tập là một tấm số áo vuốt ngang, ngày kế tiếp nằm giữa và cách nút Bắt đầu một chạm; mọi thứ khác nằm sau thanh tab đáy năm mục. Các giá trị bổ sung dưới đây lấy từ code đã dựng đó.
 
 **Key Characteristics:**
 - Ba cỡ chữ cộng một cỡ số phụ: số áo (132px trở xuống), số phụ 28px, chữ đọc 16px, nhãn 12px chữ hoa.
@@ -178,6 +274,9 @@ Bảng màu như vật liệu in số áo: giấy Tyvek, mực đen, và ba màu
 ### Tertiary
 - **Xanh Đã Xong** (`green`): chỉ cho "đã xong" và "đã đồng bộ". Dấu ✓ tròn 28px của hàng set, chấm trạng thái của chip đồng bộ, biểu tượng trong hộp đồng bộ ở trang tóm tắt.
 
+### Danger
+- **Đỏ Xoá** (`danger`): chỉ cho hành động phá huỷ và lỗi. Chữ của hàng menu và hàng danh sách "Xoá / Gỡ", nền nút nguy hiểm (chữ `on-signal`), viền inset 2px của khối cảnh báo lỗi và biểu tượng trong đó, chữ lỗi dưới trường nhập, viền ô nhập không hợp lệ. Không bao giờ dùng làm điểm nhấn hay chuỗi dữ liệu.
+
 ### Neutral
 - **Xám Tyvek** (`ground`): nền trang, nền vùng đáy, nền khuyết tròn của đường răng cưa.
 - **Trắng Tyvek** (`tyvek`): mặt tấm số áo, khối hàng set, chip bài, sheet. Cũng là màu chữ trên nền mực.
@@ -190,6 +289,8 @@ Bảng màu như vật liệu in số áo: giấy Tyvek, mực đen, và ba màu
 **The Một Màu Một Nghĩa Rule.** Cam là "đang diễn ra / bấm được", lam là "đang nghỉ", xanh là "đã xong / đã đồng bộ". Không màu nào mượn nghĩa của màu khác; một nút phụ không bao giờ màu xanh, một thông báo không bao giờ màu lam.
 
 **The Số Liệu Đen Rule.** Số đã ghi và số dự kiến luôn bằng mực đen. "Lần trước" khác biệt bằng cỡ (số phụ 28px) và vị trí (cuống dưới răng cưa), không bằng màu xám. Chỉ chữ giữ chỗ "–" của ô trống và chấm tiến độ chưa xong mới mang màu `rule`.
+
+**The Mực Là Chọn Rule.** Trạng thái "đã chọn" luôn là nền mực chữ Trắng Tyvek: chip lọc, nhóm chọn, lựa chọn xếp chồng, tab con. Viền cam chỉ dành cho "hiện tại / hôm nay" (ô hôm nay trên dòng tuần, chip bài hiện tại trong buổi), không bao giờ cho lựa chọn.
 
 ## Typography
 
@@ -210,6 +311,8 @@ Bảng màu như vật liệu in số áo: giấy Tyvek, mực đen, và ba màu
 
 **The Dấu Phẩy Việt Rule.** Mọi số hiển thị đi qua định dạng `vi-VN`: 77,5 kg, 2,5 kg. Ô nhập chấp nhận cả dấu phẩy lẫn dấu chấm khi gõ.
 
+**Chưa giải quyết (drift, ghi nhận, chưa sửa):** các prototype hiện dùng chữ tiếng Anh và số kiểu en-US (77.5) để khớp với `prototypes/workout-log/index.html` đã commit, trong khi rule trên và PRODUCT.md quy định tiếng Việt và `vi-VN`. Rule giữ nguyên; việc chọn ngôn ngữ và định dạng số cho bản dựng thật còn bỏ ngỏ.
+
 ## Layout
 
 Một cột điện thoại rộng tối đa 440px, cao `100dvh`, chia bốn tầng cố định: thanh trên (tên buổi, đồng hồ, chip đồng bộ, nút Kết thúc), dải chip bài cuộn ngang, vùng cuộn giữa (tấm số áo rồi khối hàng set), vùng đáy cố định (điều khiển nghỉ, nút chính). Lề hai bên 16px cho thanh trên và chip, 12px cho vùng cuộn và vùng đáy. Vùng an toàn iOS được cộng vào đỉnh và đáy (`env(safe-area-inset-*)`).
@@ -217,6 +320,10 @@ Một cột điện thoại rộng tối đa 440px, cao `100dvh`, chia bốn t�
 Nhịp khoảng cách theo bước 4px: 4, 8, 12, 16, 24px. Khoảng giữa các khối là 12px. Chiều cao chạm tối thiểu 44px; hàng set 52px; dải số áo 56px; nút điều khiển nghỉ 48px; nút chính 64px.
 
 Mặt số áo là lưới ba cột `1fr auto 1fr`: số tạ, dấu ×, số reps. Mỗi số có hàng −/nhãn/+ ngay bên dưới. Khi màn hình thấp hơn 700px, mặt số bớt khoảng đệm trên.
+
+**Màn gốc ngoài buổi tập** dùng cùng cột 440px, chia ba tầng: thanh trên cao tối thiểu 64px (tiêu đề 16px 700, dòng phụ 12px, chip đồng bộ bên phải), vùng cuộn giữa (lề 12px, khối cách nhau 12px, tiêu đề nhóm 16px 700), và vùng đáy gồm nút chính 64px nằm trên thanh tab 5 mục. Thanh tiếp tục buổi (resume) và banner nằm giữa thanh trên và vùng cuộn, lề ngang 12px. Màn đi sâu (chi tiết) trượt đè từ phải sang (`translateX(100%)` về 0, 0,28s) trên nền Xám Tyvek, có nút quay lại và không có tab.
+
+**Today:** dòng tuần bảy ô 32×38px cách nhau 5px, lề 16px, bên phải là số buổi tuần / chuỗi tuần (numeral trên dòng 12px). Bên dưới là ví số áo: ray cuộn ngang `scroll-snap-type: x mandatory`, đệm hai bên 28px, khoảng giữa các tấm 10px, mỗi tấm rộng `100% - 4px` và căn giữa khi dừng, nên hai tấm bên cạnh ló ra ở hai mép. Tấm không ở giữa mờ còn 82%. Chấm phân trang nằm ngay dưới ví, trên nút Bắt đầu.
 
 ## Elevation & Depth
 
@@ -226,6 +333,10 @@ Hệ thống phẳng. Không có bóng đổ ra ngoài; chiều sâu đến từ
 - **Viền trạng thái** (`box-shadow: inset 0 0 0 2px <màu>`): dải khi nghỉ (lam), dải khởi động (mực).
 - **Viền đôi sửa set** (`box-shadow: inset 0 0 0 2px ink, inset 0 0 0 5px tyvek, inset 0 0 0 6px ink`): dải khi đang sửa một set đã ghi.
 - **Viền chip hiện tại** (`box-shadow: inset 0 0 0 1.5px orange` cộng viền 1.5px cam): làm dày viền chip bài hiện tại.
+- **Viền ô hôm nay** (`box-shadow: inset 0 0 0 1.5px orange` cộng viền 1.5px cam; 2px khi ô hôm nay đã xong và đã tô mực): ô hôm nay trên dòng tuần.
+- **Viền banner** (`box-shadow: inset 0 0 0 1.5px ink`): banner thông tin (cài app trên iOS, có bản cập nhật) trên nền Trắng Tyvek.
+- **Viền cảnh báo lỗi** (`box-shadow: inset 0 0 0 2px danger`): khối alert khi tải hoặc lưu thất bại.
+- **Viền focus ô nhập** (`box-shadow: inset 0 0 0 1.5px ink`, cộng với viền 1.5px thành 3px): ô nhập đang focus; `danger` thay mực khi không hợp lệ.
 
 ### Named Rules
 **The Mực Không Bóng Rule.** Không bóng đổ trang trí, không gradient. Viền inset là thiết bị của thế giới này để nói trạng thái, không phải để nâng khối lên.
@@ -238,6 +349,8 @@ Viền là ngôn ngữ chính: 1.5px mực cho nút viền và nút −/+, 1.5px
 
 **Đường răng cưa** là hình dạng riêng của thế giới: một nét đứt 2px màu `rule` chạy ngang, hai đầu là hai khuyết tròn 18px màu nền cắt vào mép tấm số áo. Nó tách mặt số khỏi cuống "Lần trước".
 
+Trên các màn gốc, răng cưa cũng tách phần kế hoạch của một tấm ngày tập khỏi cuống gợi ý. Vạch chỉ tab hiện tại là thanh mực 3px, góc dưới bo 3px. Đầu cột biểu đồ bo 4px, chân cột vuông. Chấm phân trang hiện tại kéo dài từ chấm tròn 6px thành viên thuốc 14×6px.
+
 ## Components
 
 ### Buttons
@@ -248,12 +361,16 @@ Dứt khoát, chữ đậm, không hiệu ứng hover trang trí.
 - **Nút viền:** trong suốt, viền 1.5px mực. Dùng cho lựa chọn thay thế ("Giữ 80 kg", "Tập tiếp", "Bỏ qua khởi động").
 - **Nút −/+:** 48×44px, viền 1.5px mực, biểu tượng 20px; khi nhấn đảo sang nền mực.
 - **Nhấn / Focus:** nút chính lún 1px khi nhấn. Focus là viền 3px mực cách 2px, chuyển sang Trắng Tyvek trên nền tối hoặc trên dải.
+- **Nút nguy hiểm (`button-danger`):** nền `danger`, chữ trắng, cùng hình nút 44px. Chỉ cho xác nhận xoá trong sheet; ở danh sách và menu, hành động xoá là hàng chữ `danger`, không phải nút đặc.
+- **Nút cam nhỏ và nút chữ:** nút 44px nền cam chữ mực cho hành động bấm được thứ cấp; nút chữ gạch chân (đệm 8px) cho lối phụ như "Show as table". Nút bị khoá mờ 40%; nút đang chờ hiện vòng quay 16px viền `currentColor`.
+- **Nút Bắt đầu (Today):** `button-go` 64px trên thanh tab. Nhãn đổi theo tấm đang ở giữa ví ("Start Push A"); cam khi đó là ngày kế tiếp, mực (`button-go-ink`) khi người tập vuốt sang ngày khác.
 
 ### Chips
 - **Chip bài:** nền Trắng Tyvek, viền 1.5px `rule`, cao 44px, số thứ tự 800 + tên bài 600 + chấm tiến độ 6px (mực khi set đã xong, `rule` khi chưa).
 - **Hiện tại:** viền cam dày 3px (viền + inset). **Xong:** nền trong suốt, dấu ✓ xanh thay cho chấm.
 - **Nhóm superset:** các chip cao 36px nằm trong ngoặc viền đứt 1.5px mực, góc 11px, chú thích "SUPERSET" nằm vắt trên mép.
 - **Chip đồng bộ:** viên thuốc cao 32px, viền 1.5px mực, chữ 12px 600. Chấm xanh khi đã đồng bộ, chấm rỗng khi có set chờ, nền mực kèm biểu tượng mất sóng khi offline.
+- **Chip lọc / lựa chọn (`chip-selected`):** cùng chip 44px viền `rule`; khi được chọn (`aria-pressed`) đảo sang nền mực chữ Trắng Tyvek, viền mực. Chip viền đứt mực nghĩa là "thêm / mở". Dải chip cuộn ngang, ẩn thanh cuộn.
 
 ### Cards / Containers
 - **Corner Style:** 10px (`rounded.md`).
@@ -262,15 +379,35 @@ Dứt khoát, chữ đậm, không hiệu ứng hover trang trí.
 - **Border:** không viền; khối tách nhau bằng khoảng 12px và độ chênh vật liệu.
 - **Internal Padding:** 16px. Khối PR ở tóm tắt dùng nền mực với số cam.
 
+### Lists / Rows
+- **Hàng danh sách (`list-row`):** trong khối Trắng Tyvek, cao tối thiểu 52px, đệm `8px 12px 8px 16px`, ngăn bằng 1px `rule-soft`. Tên 16px 600 có dòng phụ 12px 400; bên phải là giá trị numeral hoặc chữ trạng thái 12px chữ hoa, rồi mũi tên chevron 20px khi hàng dẫn sang màn khác. Nhấn: nền `rule-soft`.
+- **Biến thể:** hàng "Thêm" căn giữa, viền trên đứt `rule`; hàng hiện tại nền Cam Nhạt; hàng kỷ lục nền mực, chữ cuối cam; hàng xoá chữ `danger`.
+- **Kéo để sắp xếp:** mọi danh sách sắp xếp được (ngày trong routine, bài trong ngày, bài trong buổi đang tập) dùng tay nắm 6 chấm 44×44px ở đầu hàng; không dùng nút mũi tên lên/xuống. Hàng đang kéo nổi theo ngón tay với viền inset 2px mực (không bóng đổ), tay nắm đảo sang nền mực, các hàng khác trượt nhường chỗ 0,18s. Bàn phím: Space nhấc/thả, ↑/↓ di chuyển, Esc huỷ; hàng đang nhấc có viền đôi. Kéo một bài ra khỏi nhóm superset thì bài đó rời nhóm và có toast báo. Dưới danh sách có một dòng gợi ý 12px kèm biểu tượng tay nắm.
+- **Xoá:** không đặt nút thùng rác trên từng hàng. Xoá nằm một tầng bên trong (sheet của bài, cuối màn sửa ngày, cuối màn sửa routine) dưới dạng hàng chữ `danger`, và luôn có toast "Hoàn tác" 5 giây thay cho hộp xác nhận; riêng xoá cả routine và xoá tài khoản vẫn có bước xác nhận.
+
+### Banners & Feedback
+- **Thanh tiếp tục buổi (`resume-bar`):** khi còn buổi tập đang mở, thanh cam 56px góc 10px nằm dưới thanh trên của mọi màn gốc: tên buổi (nhãn chữ hoa, dòng phụ 16px 600 thường), thời gian đã tập ở numeral, nút mực "Resume" 40px. Cả thanh là một liên kết về buổi tập.
+- **Banner (`banner`):** nền Trắng Tyvek, viền inset 1.5px mực, góc 10px; câu 16px với dòng đầu đậm, nút × 44px bên phải. Cho gợi ý cài app iOS và thông báo có bản cập nhật.
+- **Cảnh báo lỗi (`alert`):** nền Trắng Tyvek, viền inset 2px `danger`, biểu tượng `danger`, tiêu đề đậm và câu giải thích, đệm `14px 16px`.
+- **Toast:** nền mực chữ Trắng Tyvek, góc 8px, đệm `10px 14px`, chữ 600; nút hành động (Hoàn tác) màu cam. Nằm trên vùng đáy (cách đáy 104px), trượt lên 12px trong 0,26s.
+- **Skeleton:** khối `rule-soft` góc 6px, nhịp mờ 55% chu kỳ 1,2s; giữ đúng hình của nội dung sắp tải.
+- **Khối trống:** căn giữa, câu tối đa 30ch, có thể kèm một số cỡ bib và một nút.
+
 ### Inputs / Fields
 - **Ô số áo:** không viền, nền trong suốt, chữ cỡ bib, căn giữa, con trỏ cam. Khi focus: nền Cam Nhạt, không viền. Nội dung được chọn hết khi vào ô; khi rời ô, giá trị được định dạng lại theo `vi-VN`.
 - **Ô tìm kiếm:** cao 48px, viền 1.5px mực, góc 8px, biểu tượng kính lúp bên trái.
+- **Ô nhập chữ (`input`):** cao 48px, viền 1.5px mực, góc 8px, nền trắng tinh (`on-signal`) để tách khỏi Trắng Tyvek của khối, đệm ngang 12px, chữ 16px, con trỏ cam. Focus: viền dày lên 3px bằng inset 1.5px mực, không glow. Không hợp lệ: viền và inset `danger`, dòng lỗi 12px 700 `danger` kèm biểu tượng 16px dưới ô. Nhãn trường là nhãn 12px chữ hoa phía trên (cách 8px), dòng trợ giúp 12px 600 phía dưới. Ô số ngắn dùng numeral 28px căn giữa, rộng 96px.
+- **Danh sách chọn (`select`):** cùng hình ô nhập, mũi tên chevron 20px mực bên phải (đệm phải 40px).
 - **Nhóm chọn (segmented):** các nút 44px viền 1.5px `rule`; nút được chọn đảo sang nền mực chữ Trắng Tyvek.
+- **Lựa chọn xếp chồng (`segment-stack`):** nhóm chọn xếp dọc, mỗi lựa chọn cao tối thiểu 56px, căn trái, tên 16px 600 và dòng giải thích 12px 400; được chọn thì nền mực chữ Trắng Tyvek.
+- **Tab con (`subtab`):** hàng nút chia đều cao 40px, viền 1.5px `rule`, nền Trắng Tyvek, cách nhau 6px (Sessions | PRs, khoảng thời gian của biểu đồ); tab hiện tại nền mực chữ Trắng Tyvek.
 - **Công tắc:** 52×32px, nền `rule` khi tắt, nền mực khi bật, núm trắng 26px trượt 20px.
 - **Bước nhảy (stepper):** hai nút 44px viền mực kẹp số phụ 28px.
 
 ### Navigation
-Không có thanh điều hướng tab. Điều hướng trong buổi là dải chip bài cuộn ngang (tự cuộn chip hiện tại vào tầm nhìn) cùng chip "Cả buổi" mở sheet sắp xếp. Sheet trượt từ đáy, nền Trắng Tyvek, góc trên 16px, có tay nắm 36×4px, cao tối đa 88%, đóng bằng nút ×, chạm lớp phủ hoặc Esc. Hàng menu cao 52px, ngăn bằng `rule-soft`.
+**Ngoài buổi tập:** mỗi màn gốc có thanh tab đáy năm mục theo thứ tự Today / Plans / History / Progress / Me. Mỗi tab là vùng chạm cao 52px chia đều chiều ngang, biểu tượng nét 22px trên nhãn 12px (600; 700 khi hiện tại). Tab hiện tại (`aria-current="page"`) có vạch mực 3px ở mép trên, rộng 40% tab, góc dưới bo 3px; không dùng màu cam hay nền. Nhấn: nền `rule-soft`. Thanh nằm trên nền Xám Tyvek dưới đường kẻ `rule-soft`; nút chính 64px của màn (nếu có) nằm ngay trên thanh, cách 6px. **Trong buổi tập không có thanh tab.** Màn đi sâu (chi tiết buổi, sửa ngày tập, chi tiết bài) có nút quay lại 44px ở thanh trên và không có tab.
+
+**Trong buổi tập:** điều hướng là dải chip bài cuộn ngang (tự cuộn chip hiện tại vào tầm nhìn) cùng chip "Cả buổi" mở sheet sắp xếp. Sheet trượt từ đáy, nền Trắng Tyvek, góc trên 16px, có tay nắm 36×4px, cao tối đa 88%, đóng bằng nút ×, chạm lớp phủ hoặc Esc. Hàng menu cao 52px, ngăn bằng `rule-soft`.
 
 ### Tấm số áo (Signature Component)
 Tấm Trắng Tyvek góc 10px gồm bốn phần: dải, mặt số, răng cưa, cuống.
@@ -287,7 +424,26 @@ Tấm Trắng Tyvek góc 10px gồm bốn phần: dải, mặt số, răng cưa,
 
 **Hàng set** (52px) nằm trong khối Trắng Tyvek bên dưới: nhãn cột 12px ("SET 1", "KĐ"), giá trị numeral (800 khi đã ghi, 600 khi dự kiến), trạng thái bên phải. Hàng đang tập nền Cam Nhạt; hàng PR nền mực, chữ trạng thái cam. Các set khởi động đã xong gộp thành một hàng "KĐ 40 · 55 · 67,5".
 
+**Hai khu set:** set khởi động và working set nằm ở hai khối tách nhau, cách 8px, mỗi khối có dòng đầu 44px (tiêu đề 16px 700 + dòng phụ 12px: "0/3 · không tính" / "2/4 · 6–8 reps"). Khối khởi động là vật liệu "mở": không nền, viền inset 1,5px `rule`, như dải khởi động viền rỗng; có nút chữ "Bỏ qua" ở góc phải. Khối working set là khối Trắng Tyvek đặc, chứa hàng "Thêm set". Số liệu trong cả hai khối vẫn mực đen.
+
 **Điều khiển nghỉ** nằm trong vùng đáy, ngay trên nút chính: hai nút cao 48px, viền 2px lam, chữ lam, khi nhấn đảo sang nền lam chữ trắng.
+
+### Ví số áo (Signature Component, Today)
+Các ngày trong kế hoạch xếp thành một ray tấm số áo vuốt ngang, mỗi lần dừng đúng một tấm ở giữa (xem Layout). Mỗi tấm: dải đầu, danh sách bài đánh số (số thứ tự numeral, tên 16px 600, "sets × range" nhãn 12px), chú thích "SUPERSET" cho nhóm, dòng meta 12px (số phụ Barlow 16px), răng cưa, rồi cuống gợi ý (khối Cam Nhạt có lý do và nút trả lời) hoặc cuống "Before you start".
+- **Ngày kế tiếp:** dải cam chữ mực, "<TÊN NGÀY> · NEXT UP" bên trái, "DAY n" numeral bên phải.
+- **Các ngày khác:** dải viền rỗng 2px mực trên Trắng Tyvek, cùng bố cục.
+- **Chấm phân trang:** một chấm 6px `rule` cho mỗi tấm trong vùng chạm 24px; chấm hiện tại là viên mực 14×6px.
+- **Nút Bắt đầu đi theo ví:** khi tấm ở giữa đổi, nút đổi nhãn sang tên ngày đó; cam cho ngày kế tiếp, mực cho ngày khác.
+
+### Charts
+Một chuỗi dữ liệu, một điểm nhấn.
+- **Chuỗi:** đường 2px mực (khớp tròn) hoặc cột mực. Cột rộng tối đa 24px, đầu cột bo 4px, chân vuông. Tuần deload là cột `rule`.
+- **Điểm hiện tại / mới nhất:** đúng một điểm màu cam (chấm 5px viền Trắng Tyvek 2px, hoặc cột cam), luôn có nhãn giá trị Barlow 800 16px mực, vì cam chỉ đạt 2,98:1 trên Trắng Tyvek. Các chấm khác 4px mực.
+- **Lưới và trục:** đường lưới ngang 1px `rule-soft`, khoảng 3–4 vạch tròn số; nhãn trục 12px 600 mực, số đều cột.
+- **Tương tác:** chạm hoặc rê hiện đường dóng mực mờ 35% và hộp mực chữ Trắng Tyvek (giá trị Barlow 16px). Mỗi biểu đồ có nút chữ "Show as table" chuyển sang bảng (đầu bảng nhãn 12px chữ hoa, gạch dưới 1.5px mực; hàng ngăn `rule-soft`; cột giá trị căn phải).
+- **Trống:** khối trống căn giữa với một câu.
+
+**The Một Chuỗi Mực Rule.** Biểu đồ chỉ dùng mực, một điểm cam và `rule`. Lam và xanh không bao giờ là chuỗi dữ liệu; chúng giữ nghĩa nghỉ và đã xong.
 
 **Chuyển động:** easing chung `cubic-bezier(.16,1,.3,1)`, chỉ trượt dọc, không nảy. Set vừa ghi trượt vào hàng (14px, 0,32s); mặt số mới trượt lên (16px, 0,26s); sheet 0,28s; trang tóm tắt 0,34s; lớp phủ nghỉ cắt tuyến tính 0,25s mỗi nhịp. Khi bật `prefers-reduced-motion`, mọi chuyển động gần như tức thời.
 
@@ -301,6 +457,9 @@ Tấm Trắng Tyvek góc 10px gồm bốn phần: dải, mặt số, răng cưa,
 - **Do** định dạng mọi số theo `vi-VN` (77,5) và ngăn các set bằng chấm giữa.
 - **Do** vẽ trạng thái bằng nền, viền inset và đảo nền; giữ thay đổi sáng tới khi người tập thấy, và cho hàng trượt vào chứ không biến mất.
 - **Do** dùng biểu tượng nét 2px kiểu lucide, 20px, `currentColor`.
+- **Do** đặt thanh tab 5 mục (Today / Plans / History / Progress / Me) trên mọi màn gốc ngoài buổi tập, với nút chính 64px của màn ngay trên nó; biểu tượng tab là ngoại lệ 22px.
+- **Do** vẽ lựa chọn bằng nền mực chữ Trắng Tyvek; để viền cam cho "hiện tại / hôm nay".
+- **Do** cho mỗi biểu đồ một chuỗi mực, đúng một điểm cam có nhãn giá trị, và nút "Show as table".
 
 ### Don't:
 - **Don't** dựng bảng set nhiều cột (SET | LẦN TRƯỚC | KG | REPS | ✓) cuộn dài trên nền tối với một màu neon.
@@ -310,3 +469,7 @@ Tấm Trắng Tyvek góc 10px gồm bốn phần: dải, mặt số, răng cưa,
 - **Don't** dùng bóng đổ ra ngoài, gradient hay hiệu ứng nảy.
 - **Don't** dùng nhãn chữ hoa 12px làm dòng tiêu đề nhỏ trang trí phía trên tiêu đề; nhãn chỉ đặt tên cho dữ liệu và trường nhập.
 - **Don't** thêm vòng tiến độ, huy hiệu hay gamification.
+- **Don't** hiện thanh tab trong buổi tập hoặc trên màn đi sâu; đừng giấu điều hướng sau menu hamburger.
+- **Don't** dùng viền cam cho trạng thái đã chọn.
+- **Don't** dùng lam hay xanh làm chuỗi dữ liệu trong biểu đồ, và đừng để điểm cam không có nhãn giá trị.
+- **Don't** dùng `danger` cho gì ngoài xoá và lỗi.

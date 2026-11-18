@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E6E6E1">
+<title>Sign in and onboarding · prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap&subset=vietnamese" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<style>
+/* Slice: sign in (UC01) + onboarding (UC23). Sample data, not wired to Supabase. */
+.view{flex:1;display:flex;flex-direction:column;min-height:0}
+.view.enter .scroll>*{animation:viewin .26s var(--ease) both}
+@keyframes viewin{from{transform:translateY(16px);opacity:0}}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700}
+.brand img{width:28px;height:28px}
+.demo-face{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;padding:16px 8px 4px;text-align:center}
+.demo-face .num{font-size:104px;line-height:.9}
+.demo-face .x{font-size:40px;font-weight:600;padding:0 2px 24px}
+.demo-face .label{display:block;margin-top:6px}
+.or{display:flex;align-items:center;gap:12px;font-size:var(--t-label);font-weight:700;letter-spacing:.08em;margin:4px 0}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--rule)}
+.pw{position:relative}
+.pw .in{padding-right:52px}
+.pw .icon-btn{position:absolute;right:2px;top:2px}
+.qhead{display:flex;align-items:center;gap:8px}
+.qhead .num{font-size:var(--t-num);line-height:1}
+.qface{padding:20px 16px 20px}
+.qface h2{font-size:var(--t-read);font-weight:700;line-height:1.35;margin-bottom:4px}
+.qface .why{font-size:var(--t-label);font-weight:600;line-height:1.4;margin-bottom:14px}
+.count{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:8px 0 4px}
+.count .num{font-size:132px;line-height:.9;text-align:center}
+.count button{width:56px;height:56px;border-radius:var(--r-sm);border:1.5px solid var(--ink);display:grid;place-items:center}
+.count button:active{background:var(--ink);color:var(--tyvek)}
+.count button:disabled{opacity:.3}
+.count .cap{grid-column:1/-1;text-align:center}
+.ticks{display:flex;gap:4px;padding:0 16px 14px}
+.ticks i{flex:1;height:4px;border-radius:2px;background:var(--rule)}
+.ticks i.d{background:var(--ink)}
+.ticks i.c{background:var(--orange)}
+.defaults .row{min-height:64px}
+.branch{display:grid;gap:8px}
+.branch button{display:flex;align-items:center;gap:12px;min-height:72px;padding:12px 14px;border-radius:var(--r-sm);border:1.5px solid var(--rule);background:var(--tyvek);text-align:left;font-weight:700;line-height:1.3}
+.branch button small{display:block;font-weight:400;font-size:var(--t-label)}
+.branch button[aria-pressed=true]{border-color:var(--orange);box-shadow:inset 0 0 0 1.5px var(--orange)}
+.mailbig{display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:var(--ink);color:var(--tyvek);margin:8px auto 12px}
+.mailbig svg{width:32px;height:32px}
+.legal{font-size:var(--t-label);font-weight:600;line-height:1.45;text-align:center;padding:0 8px}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="demo-panel" aria-label="Prototype controls">
+    <h2>Prototype · sample data</h2>
+    <p>Sign in (UC01) and onboarding (UC23). Not wired to Supabase or the API; every account and answer here is invented for design review.</p>
+    <div class="demo-list" data-demo></div>
+  </aside>
+  <div class="app" id="app">
+    <div class="view" id="view"></div>
+  </div>
+</div>
+<script src="../shared/kit.js"></script>
+<script src="../shared/data.js"></script>
+<script>
+const {$, ic, esc, openSheet, closeSheet, toast, announce, demo, renderDemo, openDemo, shellMarkup, demoBtn, plural} = Kit;
+document.getElementById('app').insertAdjacentHTML('beforeend', shellMarkup);
+
+const QUESTIONS = [
+  {key:'experience', q:'How long have you been lifting?', why:'Sets how much the app explains. You can change it any time.', opts:[
+    ['new','Less than 6 months','Still learning the main lifts'], ['some','6 months to 2 years','Comfortable with sets and rep ranges'], ['exp','More than 2 years','You run your own program']]},
+  {key:'hasProgram', q:'Do you already have a routine?', why:'If you do, you’ll type it in next. If not, you’ll pick a ready-made program.', opts:[
+    ['yes','Yes, I have one','From a coach, a friend, or social media'], ['no','Not yet','Show me a program to start with']]},
+  {key:'perWeek', q:'How many days a week do you plan to train?', why:'Becomes your weekly goal and the bar for your streak. Weeks run Monday to Sunday.', count:{min:1, max:7}},
+  {key:'minutes', q:'How long is a typical session?', why:'Used to suggest programs that fit your time.', seg:[30,45,60,75,90], unit:'min'},
+  {key:'equipment', q:'Where do you train?', why:'Programs and exercise search lean toward what you have.', opts:[
+    ['gym','A gym','Barbells, machines, cables'], ['home','At home with dumbbells',''], ['body','Bodyweight only','']]},
+  {key:'goal', q:'What are you training for right now?', why:'Only used to filter programs. The app doesn’t coach nutrition or plan your training.', opts:[
+    ['strength','Getting stronger',''], ['muscle','Building muscle',''], ['general','General fitness','']]},
+];
+const S = {view:'signin', step:0, answers:{perWeek:3, minutes:60}, err:null, online:true, busy:false, email:'', mode:'signin', branch:null, defaults:null, enter:true};
+
+function defaultsFor(a){
+  const lvl = a.experience || 'some';
+  return {
+    guidance: lvl === 'new' ? 'detailed' : lvl === 'exp' ? 'brief' : 'standard',
+    warmup: true,
+    rpe: lvl === 'exp',
+    weekly: a.perWeek ?? 3,
+  };
+}
+const GUIDE = {detailed:'Detailed', standard:'Standard', brief:'Brief'};
+const GUIDE_TXT = {detailed:'Every suggestion explains the why in full. Good while you learn.', standard:'Short reasons with each suggestion.', brief:'Just the numbers and a one-line reason.'};
+
+/* ---------- views ---------- */
+function render(){
+  const v = $('#view');
+  v.className = 'view' + (S.enter && !Kit.reduce ? ' enter' : '');
+  S.enter = false;
+  v.innerHTML = ({signin:signinView, signup:signinView, verify:verifyView, q:questionView, defaults:defaultsView})[S.view]();
+  renderDemo();
+}
+function topBar(left = '', right = ''){ return `<header class="top">${left}<div class="right">${right}${demoBtn}</div></header>`; }
+
+function signinView(){
+  const up = S.view === 'signup';
+  const err = S.err ? `<div class="alert" role="alert">${ic('alert')}<p><b>${S.err.t}</b>${S.err.d}</p></div>` : '';
+  return `${topBar(`<div class="brand">Fitness</div>`)}
+  <main class="scroll">
+    ${up ? '' : `<section class="bib" aria-label="What the app does">
+      <div class="band"><span class="name">Example · Bench press</span><b class="setno num">SET 3/4</b></div>
+      <div class="demo-face" aria-hidden="true"><div><span class="num">80</span><span class="label">kg</span></div><span class="x num">×</span><div><span class="num">8</span><span class="label">reps</span></div></div>
+      <div class="perf"><i></i></div>
+      <div class="stub"><span class="label">Last time · Nov 12</span><p class="hint">Log a set in one tap and always see what you lifted last time.</p><b class="last num">80×8 · 8 · 8 · 7</b></div>
+    </section>`}
+    <h1 class="hdg">${up ? 'Create your account' : 'Sign in to keep your log'}</h1>
+    ${err}
+    <div class="block pad">
+      <button class="btn line wide" data-act="google" ${S.busy ? 'aria-disabled="true"' : ''}>${ic('google')}Continue with Google</button>
+      <div class="or" style="margin:14px 0 4px">OR</div>
+      <form id="authForm" novalidate>
+        <div class="field"><label class="label" for="em">Email</label><input class="in" id="em" type="email" autocomplete="email" inputmode="email" value="${esc(S.email)}" ${S.err?.field === 'email' ? 'aria-invalid="true" aria-describedby="emErr"' : ''} placeholder="you@example.com">
+          ${S.err?.field === 'email' ? `<p class="err" id="emErr">${ic('alert')}Enter an email like name@example.com.</p>` : ''}</div>
+        <div class="field"><label class="label" for="pw">Password</label><div class="pw"><input class="in" id="pw" type="password" autocomplete="${up ? 'new-password' : 'current-password'}" ${S.err?.field === 'pw' ? 'aria-invalid="true"' : ''}><button class="icon-btn" type="button" data-act="peek" aria-label="Show password">${ic('eye')}</button></div>
+          ${up ? '<p class="help">At least 8 characters.</p>' : ''}</div>
+        <button class="btn ink wide ${S.busy ? 'busy' : ''}" type="submit" style="margin-top:4px">${up ? 'Create account' : 'Sign in'}</button>
+      </form>
+      ${up ? '' : '<div style="text-align:center;margin-top:8px"><button class="btn text" data-act="forgot">Forgot password?</button></div>'}
+    </div>
+    <p class="legal">${up ? 'Already have an account? <button class="btn text" data-act="to-signin">Sign in</button>' : 'New here? <button class="btn text" data-act="to-signup">Create an account</button>'}</p>
+    ${!S.online ? `<div class="banner" style="margin:0">${ic('off')}<p><b>You’re offline</b>Signing in needs a connection the first time. After that, workouts log offline.</p></div>` : ''}
+  </main>`;
+}
+function verifyView(){
+  return `${topBar(`<button class="icon-btn back" data-act="to-signup" aria-label="Back">${ic('left')}</button><h1>Confirm your email</h1>`)}
+  <main class="scroll"><section class="block empty" style="margin-top:12px">
+    <span class="mailbig">${ic('mail')}</span>
+    <p><b>Check ${esc(S.email || 'your inbox')}</b></p>
+    <p>We sent a link to confirm your email. Open it on this phone, then come back here to sign in.</p>
+    <div class="acts" style="justify-content:center"><button class="btn ink" data-act="verified">I’ve confirmed it</button><button class="btn line" data-act="resend">Send again</button></div>
+  </section>
+  <p class="legal">Wrong address? <button class="btn text" data-act="to-signup">Change email</button></p></main>`;
+}
+function questionView(){
+  const q = QUESTIONS[S.step], a = S.answers[q.key];
+  const ticks = QUESTIONS.map((_, i) => `<i class="${i < S.step ? 'd' : i === S.step ? 'c' : ''}"></i>`).join('');
+  let body = '';
+  if (q.opts) body = `<div class="seg stack" role="radiogroup" aria-label="${esc(q.q)}">${q.opts.map(([v, t, s]) => `<button role="radio" aria-checked="${a === v}" aria-pressed="${a === v}" data-act="ans" data-v="${v}">${t}${s ? `<small>${s}</small>` : ''}</button>`).join('')}</div>`;
+  else if (q.count) body = `<div class="count"><button data-act="cnt" data-d="-1" aria-label="One day fewer" ${a <= q.count.min ? 'disabled' : ''}>${ic('minus')}</button><b class="num" aria-live="polite">${a}</b><button data-act="cnt" data-d="1" aria-label="One day more" ${a >= q.count.max ? 'disabled' : ''}>${ic('plus')}</button><span class="label cap">${a === 1 ? 'day' : 'days'} a week</span></div>`;
+  else body = `<div class="seg" role="radiogroup">${q.seg.map(v => `<button role="radio" aria-checked="${a === v}" aria-pressed="${a === v}" data-act="ans" data-v="${v}">${v === 90 ? '90+' : v} ${q.unit}</button>`).join('')}</div>`;
+  const ready = a != null;
+  return `${topBar(S.step ? `<button class="icon-btn back" data-act="qback" aria-label="Previous question">${ic('left')}</button>` : '', `<button class="btn text" data-act="skip">Skip setup</button>`)}
+  <main class="scroll">
+    <section class="bib">
+      <div class="band"><span class="name">Set up · question</span><b class="setno num">${S.step + 1}/${QUESTIONS.length}</b></div>
+      <div class="qface"><h2 id="qh">${q.q}</h2><p class="why">${q.why}</p>${body}</div>
+      <div class="ticks" aria-hidden="true">${ticks}</div>
+    </section>
+    <p class="note">We don’t ask your age. Everything here can be changed later in Settings.</p>
+  </main>
+  <div class="foot"><button class="go ${ready ? '' : 'ink'}" data-act="next">${S.step === QUESTIONS.length - 1 ? 'See my defaults' : ready ? 'Next' : 'Pick an answer'}</button></div>`;
+}
+function defaultsView(){
+  const d = S.defaults, a = S.answers;
+  const has = a.hasProgram === 'yes';
+  const skipped = S.skipped;
+  return `${topBar(skipped ? '' : `<button class="icon-btn back" data-act="qback" aria-label="Back to questions">${ic('left')}</button>`, '')}
+  <main class="scroll">
+    <section class="bib">
+      <div class="band ink"><span class="name">${skipped ? 'General defaults' : 'Your defaults'}</span><b class="setno num">${d.weekly}×/WK</b></div>
+      <div class="defaults">
+        <div class="row"><span class="nm">How much the app explains<small>${GUIDE_TXT[d.guidance]}</small></span>
+          <div class="seg" style="flex-wrap:nowrap">${Object.keys(GUIDE).map(k => `<button data-act="guide" data-v="${k}" aria-pressed="${d.guidance === k}" aria-label="${GUIDE[k]}">${GUIDE[k][0]}</button>`).join('')}</div></div>
+        <div class="row switch"><span class="nm">Warm-up suggestions<small>50% × 8, 70% × 5, 85% × 2 before your first working set.</small></span><button role="switch" data-act="sw" data-k="warmup" aria-checked="${d.warmup}" aria-label="Warm-up suggestions"></button></div>
+        <div class="row switch"><span class="nm">Log RPE<small>How hard a set felt, 1 to 10. Optional on every set.</small></span><button role="switch" data-act="sw" data-k="rpe" aria-checked="${d.rpe}" aria-label="Log RPE"></button></div>
+        <div class="row"><span class="nm">Weekly goal<small>Your streak grows each week you hit it. Deload weeks don’t count against you.</small></span>
+          <div class="stepper"><button data-act="wk" data-d="-1" aria-label="One fewer">${ic('minus')}</button><b class="num" style="min-width:36px">${d.weekly}</b><button data-act="wk" data-d="1" aria-label="One more">${ic('plus')}</button></div></div>
+      </div>
+    </section>
+    <h2 class="hdg">${skipped ? 'Where to start' : has ? 'Next, type in your routine' : 'Next, pick a program'}</h2>
+    <div class="branch">
+      <button data-act="branch" data-v="write" aria-pressed="${S.branch === 'write'}">${ic('edit')}<span>Write my routine<small>Days, exercises, sets and rep ranges. About 5 minutes.</small></span></button>
+      <button data-act="branch" data-v="pick" aria-pressed="${S.branch === 'pick'}">${ic('list')}<span>Pick a program<small>${a.perWeek ?? 3} days a week, ${a.equipment === 'home' ? 'at home' : a.equipment === 'body' ? 'bodyweight' : 'gym'}. Copy it and edit as you like.</small></span></button>
+      <button data-act="branch" data-v="free" aria-pressed="${S.branch === 'free'}">${ic('play')}<span>Just start logging<small>Freestyle session; add exercises as you go.</small></span></button>
+    </div>
+  </main>
+  <div class="foot"><button class="go" data-act="go">${S.branch === 'pick' ? 'See programs' : S.branch === 'free' ? 'Start freestyle' : S.branch === 'write' ? 'Write my routine' : 'Continue'}</button></div>`;
+}
+
+/* ---------- actions ---------- */
+function go(view, extra = {}){ Object.assign(S, extra, {view, enter:true}); render(); $('#view .scroll')?.scrollTo(0, 0); }
+function submitAuth(){
+  const em = $('#em').value.trim(), pw = $('#pw').value;
+  S.email = em;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ S.err = {field:'email', t:'Check your email', d:' That doesn’t look like an email address.'}; render(); $('#em').focus(); return; }
+  if (!S.online){ S.err = {t:'No connection', d:' Signing in needs the internet the first time. Try again when you’re connected.'}; render(); return; }
+  if (S.view === 'signup' && pw.length < 8){ S.err = {field:'pw', t:'Password too short', d:' Use at least 8 characters.'}; render(); $('#pw').focus(); return; }
+  if (S.view === 'signin' && S.forceWrong){ S.err = {field:'pw', t:'Wrong email or password', d:' Try again, or reset your password.'}; render(); $('#pw').focus(); return; }
+  S.err = null; S.busy = true; render();
+  setTimeout(() => { S.busy = false; if (S.view === 'signup') go('verify'); else go('q', {step:0}); announce('Signed in.'); }, 700);
+}
+document.addEventListener('submit', ev => { ev.preventDefault(); submitAuth(); });
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act;
+  const q = QUESTIONS[S.step];
+  switch (a){
+    case 'google': if (!S.online){ S.err = {t:'No connection', d:' Google sign-in opens a browser page and needs the internet.'}; render(); break; } toast('Opens Google sign-in in the browser, then returns here.'); setTimeout(() => go('q', {step:0}), 900); break;
+    case 'peek': { const p = $('#pw'); p.type = p.type === 'password' ? 'text' : 'password'; b.setAttribute('aria-label', p.type === 'password' ? 'Show password' : 'Hide password'); break; }
+    case 'forgot': toast('Sends a reset link to your email.'); break;
+    case 'to-signup': go('signup', {err:null}); break;
+    case 'to-signin': go('signin', {err:null}); break;
+    case 'resend': toast('Sent again. It can take a minute.'); break;
+    case 'verified': go('signin', {err:null}); toast('Email confirmed. Sign in to continue.'); break;
+    case 'ans': S.answers[q.key] = q.seg ? +b.dataset.v : b.dataset.v; render(); break;
+    case 'cnt': S.answers.perWeek = Math.min(q.count.max, Math.max(q.count.min, S.answers.perWeek + +b.dataset.d)); render(); break;
+    case 'next':
+      if (S.answers[q.key] == null){ toast('Pick one to continue, or skip setup.'); $('#view [role=radio]')?.focus(); break; }
+      if (S.step < QUESTIONS.length - 1) go('q', {step:S.step + 1});
+      else go('defaults', {defaults:defaultsFor(S.answers), skipped:false, branch:S.answers.hasProgram === 'yes' ? 'write' : 'pick'});
+      break;
+    case 'qback': if (S.view === 'defaults') go('q', {step:QUESTIONS.length - 1}); else go('q', {step:Math.max(0, S.step - 1)}); break;
+    case 'skip': go('defaults', {defaults:defaultsFor({}), skipped:true, branch:null}); break;
+    case 'guide': S.defaults.guidance = b.dataset.v; render(); break;
+    case 'sw': S.defaults[b.dataset.k] = !S.defaults[b.dataset.k]; render(); break;
+    case 'wk': S.defaults.weekly = Math.min(7, Math.max(1, S.defaults.weekly + +b.dataset.d)); render(); break;
+    case 'branch': S.branch = b.dataset.v; render(); break;
+    case 'go': {
+      const to = {write:'../plans/index.html#new', pick:'../plans/index.html#templates', free:'../workout-log/index.html'}[S.branch] || '../home/index.html';
+      toast(`Saved. Weekly goal: ${S.defaults.weekly} sessions. Opening ${S.branch === 'write' ? 'the routine editor' : S.branch === 'pick' ? 'programs' : S.branch === 'free' ? 'a freestyle session' : 'Home'}…`);
+      setTimeout(() => { location.href = to; }, 900); break;
+    }
+    case 'close': closeSheet(); break;
+    case 'demo': openDemo(); break;
+    case 'd-online': S.online = !S.online; render(); break;
+    case 'd-wrong': S.forceWrong = !S.forceWrong; go('signin', {err:null}); break;
+    case 'd-view': closeSheet(); go(b.dataset.v, {err:null, step:+(b.dataset.s || 0), defaults:S.defaults || defaultsFor(S.answers), skipped:b.dataset.skip === '1'}); break;
+    case 'd-persona': closeSheet(); S.answers = b.dataset.v === 'new' ? {experience:'new', hasProgram:'no', perWeek:3, minutes:45, equipment:'gym', goal:'general'} : {experience:'exp', hasProgram:'yes', perWeek:4, minutes:75, equipment:'gym', goal:'strength'}; go('defaults', {defaults:defaultsFor(S.answers), skipped:false, branch:S.answers.hasProgram === 'yes' ? 'write' : 'pick'}); break;
+  }
+});
+demo(() => `
+  <button data-act="d-online" aria-pressed="${!S.online}">${S.online ? 'Go offline' : 'Offline · reconnect'}</button>
+  <button data-act="d-wrong" aria-pressed="${!!S.forceWrong}">Next sign-in fails (wrong password)</button>
+  <span class="label grp">Screens</span>
+  <button data-act="d-view" data-v="signin">Sign in</button>
+  <button data-act="d-view" data-v="signup">Create account</button>
+  <button data-act="d-view" data-v="verify">Confirm your email</button>
+  <button data-act="d-view" data-v="q" data-s="0">Onboarding · question 1</button>
+  <button data-act="d-view" data-v="q" data-s="2">Onboarding · days a week</button>
+  <button data-act="d-persona" data-v="new">Defaults · new lifter, no routine</button>
+  <button data-act="d-persona" data-v="exp">Defaults · experienced, has a routine</button>
+  <button data-act="d-view" data-v="defaults" data-skip="1">Skipped setup · general defaults</button>
+  <span class="label grp">Other slices</span>
+  <a href="../index.html">All prototypes</a>`);
+render();
+</script>
+</body>
+</html>

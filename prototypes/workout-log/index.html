@@ -134,6 +134,18 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 
 /* Hàng set */
 .sets{margin-top:12px;background:var(--tyvek);border-radius:var(--r);overflow:hidden}
+/* Warm-up and working sets are two separate sections. Warm-ups are the "open" material (outlined, no fill), like the warm-up band;
+   working sets are the solid Tyvek block. Numbers stay ink in both. */
+.sets.wu{background:transparent;box-shadow:inset 0 0 0 1.5px var(--rule)}
+.sets.wu + .sets{margin-top:8px}
+.sec-hd{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 4px 0 16px}
+.sec-hd h3{font-size:var(--t-read);font-weight:700;line-height:1.2}
+.sec-hd .m{font-size:var(--t-label);font-weight:600}
+.sec-hd .r{margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:8px}
+.sec-hd .skip{min-height:44px;padding:0 10px;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.sets .sec-hd + .row{border-top:1px solid var(--rule-soft)}
+.sets.wu .row{border-top-color:var(--rule)}
+.sets.wu .row.cur{background:var(--orange-tint)}
 .row{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 12px 0 16px;border-top:1px solid var(--rule-soft);width:100%;text-align:left}
 .sets .row:first-child{border-top:0}
 .row .k{width:48px;flex:none;white-space:nowrap;font-size:var(--t-label);font-weight:700;letter-spacing:.06em}
@@ -196,6 +208,16 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .order .nm small{display:block;font-size:var(--t-label);font-weight:400}
 .order .ss{position:absolute;left:-10px;top:12px;bottom:-12px;width:6px;border:2px solid var(--ink);border-right:0;border-radius:4px 0 0 4px}
 .order button{width:44px;height:44px;display:grid;place-items:center;border-radius:var(--r-sm)}
+/* drag to reorder (shared/sortable.js): lifted row is outlined in ink, never shadowed */
+.order .grip{cursor:grab;touch-action:none;margin-left:-10px;flex:none}
+.order .grip svg{width:22px;height:22px}
+.order li.sort-item{background:var(--tyvek)}
+.order li.dragging{z-index:5;box-shadow:inset 0 0 0 2px var(--ink);border-radius:var(--r-sm);transition:none!important}
+.order li.dragging .grip{background:var(--ink);color:var(--tyvek)}
+.order li.held{box-shadow:inset 0 0 0 2px var(--ink),inset 0 0 0 4px var(--tyvek),inset 0 0 0 5px var(--ink)}
+.order.sorting{user-select:none;-webkit-user-select:none}
+.order .hint{display:flex;gap:6px;align-items:center;font-size:var(--t-label);font-weight:600;margin:4px 0 0}
+.order-hint svg{width:16px;height:16px}
 .order button[aria-pressed=true]{background:var(--ink);color:var(--tyvek)}
 .order button:disabled{opacity:.25}
 .order li.moved{animation:rowin .3s var(--ease)}
@@ -288,6 +310,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
   </div>
 </div>
 
+<script src="../shared/sortable.js"></script>
 <script>
 /* ---------- utilities ---------- */
 const LOCALE = 'en-US'; /* product will be bilingual EN/VI; number + date formatting follows the active locale */
@@ -310,6 +333,7 @@ const I = {
   trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>', search:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
   off:'<path d="M2 2l20 20M8.5 16.4a5 5 0 0 1 7 0M5 12.9a10 10 0 0 1 5.2-2.8M16.9 11.3a10 10 0 0 1 2.2 1.6M2 8.8a15 15 0 0 1 4.2-2.6M10.7 5a15 15 0 0 1 11.3 3.8M12 20h.01"/>',
   cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/><path d="m9.5 14 2 2 3.5-3.5"/>',
+  grip:'<circle cx="9" cy="6" r="1" fill="currentColor"/><circle cx="15" cy="6" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="18" r="1" fill="currentColor"/><circle cx="15" cy="18" r="1" fill="currentColor"/>',
   skip:'<path d="m5 4 10 8-10 8V4zM19 5v14"/>', plus30:'<path d="M12 8v4l2 2"/><circle cx="12" cy="12" r="9"/>', save:'<path d="M20 6 9 17l-5-5"/>'
 };
 const ic = (k, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[k]}</svg>`;
@@ -471,19 +495,27 @@ function renderMain(){
   const warms = e.sets.filter(s => s.kind === 'warmup');
   const foldWarm = warms.length && warms.every(s => s.done) && S.edit == null;
   const warmRow = foldWarm ? `<div class="row warm" aria-label="Warm-up done"><span class="k">WU</span><span class="v num">${warms.map(s => fmt(s.w)).join(' · ')}</span><span class="st"><span class="ok">${ic('check')}</span></span></div>` : '';
-  const rows = warmRow + e.sets.map((s, i) => {
-    if (foldWarm && s.kind === 'warmup') return '';
+  const rowHTML = (s, i) => {
     const lab = s.kind === 'warmup' ? `WU ${i + 1}` : `SET ${wList.indexOf(s) + 1}`;
     const isCur = i === idx;
     const pr = s.pr && !s.prSeen;
     const st = pr ? `PR · e1RM ${fmt(Math.round(s.pr * 10) / 10)} kg` : s.done ? `<span class="ok">${ic('check')}</span>` : isCur ? 'now' : '';
     return `<button class="row ${isCur ? 'cur' : ''} ${s.kind === 'warmup' ? 'warm' : ''} ${pr ? 'prrow' : ''} ${s.justDone ? 'enter' : ''}" data-act="${pr ? 'pr-seen' : s.done ? 'edit' : 'pick'}" data-i="${i}">
       <span class="k">${lab}</span><span class="v num ${s.done ? '' : 'plan'}">${s.w == null ? '–' : fmt(s.w)} × ${s.r ?? '–'}</span><span class="st">${st}</span></button>`;
-  }).join('');
+  };
+  const wuRows = foldWarm ? warmRow : e.sets.map((s, i) => s.kind === 'warmup' ? rowHTML(s, i) : '').join('');
+  const wkRows = e.sets.map((s, i) => s.kind === 'working' ? rowHTML(s, i) : '').join('');
+  const wDone = warms.filter(s => s.done).length, kDone = wList.filter(s => s.done).length;
+  const wuSection = warms.length ? `<section class="sets wu" aria-label="Warm-up sets for ${e.name}">
+      <div class="sec-hd"><h3>Warm-up</h3><span class="m">${foldWarm ? 'done' : `${wDone}/${warms.length} · not counted`}</span>
+        <span class="r">${!foldWarm && S.edit == null ? `<button class="skip" data-act="skipwarm">Skip</button>` : ''}</span></div>${wuRows}</section>` : '';
+  const wkSection = `<section class="sets" aria-label="Working sets for ${e.name}">
+      <div class="sec-hd"><h3>Working sets</h3><span class="m">${kDone}/${wList.length} · ${e.repMin}–${e.repMax} reps</span></div>
+      ${wkRows}<button class="row add" data-act="addset">${ic('plus')}Add set</button></section>`;
 
   m.innerHTML = `<section class="bib ${S.swapAnim ? 'swap' : ''}" aria-label="Current set">
       ${bandHTML}${face}<div class="perf"><i></i></div>${stub}</section>
-    <section class="sets" aria-label="Sets for ${e.name}">${rows}<button class="row add" data-act="addset">${ic('plus')}Add set</button></section>`;
+    ${wuSection}${wkSection}`;
   e.sets.forEach(s => delete s.justDone);
   S.swapAnim = false;
 }
@@ -639,13 +671,12 @@ function sessionSheet(moved){
   const items = S.exs.map((e, i) => {
     const w = working(e), d = w.filter(s => s.done).length;
     const inGroup = e.group && S.exs[i + 1]?.group === e.group;
-    return `<li class="${moved === i ? 'moved' : ''}">${inGroup ? '<span class="ss" aria-hidden="true"></span>' : ''}<span class="n num">${i + 1}</span>
+    return `<li class="sort-item ${moved === i ? 'moved' : ''}">${inGroup ? '<span class="ss" aria-hidden="true"></span>' : ''}<button class="grip" aria-label="Reorder ${e.name}" aria-pressed="false" aria-describedby="orderHint">${ic('grip')}</button><span class="n num">${i + 1}</span>
       <span class="nm">${e.name}<small>${d}/${sets(w.length)}${e.group ? ' · superset' : ''}${!e.planned ? ' · added today' : ''}</small></span>
-      <button data-act="mv" data-i="${i}" data-d="-1" aria-label="Move ${e.name} up" ${i === 0 ? 'disabled' : ''}>${ic('up')}</button>
-      <button data-act="mv" data-i="${i}" data-d="1" aria-label="Move ${e.name} down" ${i === S.exs.length - 1 ? 'disabled' : ''}>${ic('down')}</button>
       <button data-act="link" data-i="${i}" aria-pressed="${!!inGroup}" aria-label="Superset ${e.name} with the next exercise" ${i === S.exs.length - 1 ? 'disabled' : ''}>${ic('link')}</button></li>`;
   }).join('');
-  openSheet('Session · ' + S.name, `<ul class="order">${items}</ul>
+  openSheet('Session · ' + S.name, `<ul class="order" id="orderList">${items}</ul>
+    <p class="hint order-hint" id="orderHint" style="display:flex;gap:6px;align-items:center;font-size:12px;font-weight:600;margin-top:6px">${ic('grip')}Drag the handle to reorder. Logged sets stay with their exercise.</p>
     <div style="display:flex;gap:8px;margin-top:12px"><button class="btn ink" data-act="add">${ic('plus')}Add exercise</button></div>`);
 }
 function picker(mode){
@@ -747,7 +778,6 @@ document.addEventListener('click', ev => {
     case 'auto': e.autoRest = !e.autoRest; if (!e.autoRest) S.rest = null; exMenu(); render(); break;
     case 'restlen': e.rest = Math.max(30, e.rest + +b.dataset.v); exMenu(); break;
     case 'remove': S.exs.splice(S.cur, 1); S.cur = Math.max(0, Math.min(S.cur, S.exs.length - 1)); closeSheet(); render(); break;
-    case 'mv': { const j = i + +b.dataset.d; const cur = S.exs[S.cur]; [S.exs[i], S.exs[j]] = [S.exs[j], S.exs[i]]; S.cur = S.exs.indexOf(cur); render(); sessionSheet(j); break; }
     case 'link': { const x = S.exs[i], y = S.exs[i + 1]; if (x.group && y.group === x.group){ y.group = null; if (!S.exs.some((z, k) => k !== i && z.group === x.group)) x.group = null; } else { const g = x.group || 'G' + Date.now(); x.group = g; y.group = g; } render(); sessionSheet(); break; }
     case 'finish': finishSheet(); break;
     case 'finish-ok': showSummary(); break;
@@ -792,6 +822,25 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) tick
 async function wake(){ try { if ('wakeLock' in navigator && !document.hidden) await navigator.wakeLock.request('screen'); } catch {} }
 document.addEventListener('pointerdown', wake, {once:true});
 
+/* drag to reorder exercises in this session (UC09): only the session's order changes, never the routine */
+function normalizeGroups(list){
+  const seen = new Set();
+  list.forEach((e, i) => {
+    if (!e.group || list[i - 1]?.group === e.group) return;
+    if (seen.has(e.group)){ const old = e.group, g = 'G' + Date.now() + '-' + i; for (let k = i; list[k]?.group === old; k++) list[k].group = g; }
+    seen.add(e.group);
+  });
+  const n = {}; list.forEach(e => { if (e.group) n[e.group] = (n[e.group] || 0) + 1; });
+  list.forEach(e => { if (e.group && n[e.group] < 2) e.group = null; });
+}
+Sortable.attach('#orderList', {item:'.sort-item', handle:'.grip', announce, name:i => S.exs[i].name,
+  onMove(from, to){
+    const cur = S.exs[S.cur], had = S.exs[from].group;
+    const [x] = S.exs.splice(from, 1); S.exs.splice(to, 0, x);
+    normalizeGroups(S.exs); S.cur = S.exs.indexOf(cur);
+    render(); sessionSheet(to);
+    if (had && !S.exs[to].group) toast(`${S.exs[to].name} left its superset.`);
+  }});
 seed('mid'); render(); renderDemo(); tick(); setInterval(tick, 250);
 </script>
 </body>

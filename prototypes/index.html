@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E6E6E1">
+<title>Prototypes · vertical slices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap&subset=vietnamese" rel="stylesheet">
+<link rel="stylesheet" href="shared/base.css">
+<style>
+body{overflow-y:auto}
+.wrap{max-width:880px;margin:0 auto;padding:40px 16px 64px}
+h1{font-size:var(--t-read);font-weight:700;margin-bottom:4px}
+.lede{max-width:60ch;margin-bottom:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.grid .bib{display:flex;flex-direction:column;text-decoration:none}
+.grid .band .setno{font-size:var(--t-num)}
+.grid .body{padding:12px 16px 4px;flex:1}
+.grid .body p{margin-bottom:10px}
+.grid ul{list-style:none;padding:0 16px 14px}
+.grid li{font-size:var(--t-label);font-weight:600;padding:5px 0;border-top:1px solid var(--rule-soft);line-height:1.35}
+.grid li:first-child{border-top:0}
+.grid .uc{font-size:var(--t-label);font-weight:700;letter-spacing:.06em}
+.grid .bib:hover .band.open,.grid .bib:focus-visible .band.open{box-shadow:inset 0 0 0 3px var(--ink)}
+.order{margin-top:32px}
+.order ol{list-style:none;counter-reset:o;display:grid;gap:8px;max-width:60ch}
+.order li{display:flex;gap:12px;align-items:baseline}
+.order li::before{counter-increment:o;content:counter(o);font:800 var(--t-num)/1 'Barlow Condensed';width:24px;flex:none;text-align:right}
+.foot-note{margin-top:32px;font-size:var(--t-label);font-weight:600;max-width:70ch;line-height:1.5}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Fitness · prototypes for vertical slices</h1>
+  <p class="lede">One standalone prototype per slice, sharing tokens and components from <code>shared/</code>. Everything shown is sample data for design review. Open any slice on a phone or a 390px-wide window; on desktop a panel on the left switches states (offline, empty, errors, workout in progress).</p>
+  <div class="grid" id="grid"></div>
+  <section class="order">
+    <h2 class="hdg" style="padding-left:0">Suggested build order</h2>
+    <ol>
+      <li>Sign in + onboarding: auth, the profile and the weekly-frequency goal everything else reads.</li>
+      <li>Plans: routines and the exercise library feed both Today and the workout.</li>
+      <li>Today + the workout log: the core loop, offline first.</li>
+      <li>History: reads finished sessions, edit and delete recalculate PRs and streak.</li>
+      <li>Progress and Me: charts, body, goals and settings on top of the data above.</li>
+    </ol>
+  </section>
+  <p class="foot-note">Copy is English with en-US numbers to match the workout log prototype; PRODUCT.md and DESIGN.md still describe a Vietnamese UI. Outside a workout the app uses a bottom tab bar (Today, Plans, History, Progress, Me); inside a workout there is none.</p>
+</main>
+<script>
+const SLICES = [
+  {href:'start/index.html', name:'Sign in + onboarding', tag:'UC01 · UC23', next:false, p:'Email or Google sign-in, email confirmation, six setup questions, the defaults they set, and the branch to a routine or a program.', screens:['Sign in, create account, confirm email','Six questions, no age, skip path','Defaults: explanations, warm-ups, RPE, weekly goal','Branch: write a routine, pick a program, freestyle']},
+  {href:'home/index.html', name:'Today', tag:'UC06 · UC12 · UC16 · UC22', next:true, p:'This week’s line and streak, plan days as a swipeable bib wallet, suggestions before the session, deload, install and update prompts.', screens:['Week line, streak, next-up bib','Suggestions: go up (R1/R2), back from a break (R6), deload (R7)','Plan / end a deload, five modes','iPhone Add to Home Screen hint, update prompt']},
+  {href:'plans/index.html', name:'Plans and exercises', tag:'UC03 · UC04 · UC05 · UC14 · UC24', next:false, p:'Routines, days and exercises with sets, rep ranges, rest and supersets; programs to copy; exercise search, custom exercises and per-exercise settings.', screens:['Plans, routine editor, day editor','Exercise sheet: sets, range, start weight, warm-up, rest','Programs and program detail','Library search, new exercise, step / logging / bar']},
+  {href:'workout-log/index.html', name:'Workout log', tag:'UC07–UC10 · UC13 · UC17', next:false, existing:true, p:'The session itself: log a set, rest timer, back-off, warm-up, PR, swap, reorder, superset, finish and sync.', screens:['Warm-up and working sets in two sections','Session sheet: drag to reorder, superset links']},
+  {href:'history/index.html', name:'History and PRs', tag:'UC11 · UC17 · UC20', next:false, p:'Workouts by week, PRs by exercise, a workout’s sets with edit and delete, an exercise’s records and estimated 1RM.', screens:['Workouts grouped Monday to Sunday, filters','PRs, by exercise and type','Workout detail, edit sets, delete with undo','Exercise: e1RM chart, records, every session']},
+  {href:'progress/index.html', name:'Progress and body', tag:'UC18 · UC19', next:false, p:'Weekly sets per muscle group, workouts per week, estimated 1RM per exercise, and body measurements entered by hand.', screens:['Sets per muscle group vs 4-week average','Workouts per week, deload weeks marked','Estimated 1RM by exercise','Weight, waist, body fat: chart, entry, list']},
+  {href:'me/index.html', name:'Me: goals and settings', tag:'UC02 · UC15 · UC16 · UC21', next:false, p:'Weekly streak, goals and their progress, units and time zone, training defaults, sync status, sign out and account deletion.', screens:['Streak (paused during deload), goals, reached goals','New / edit / stop a goal','Units, time zone, defaults, data and sync','Account, sign out with unsynced warning, delete']},
+];
+document.getElementById('grid').innerHTML = SLICES.map((s, i) => `<a class="bib" href="${s.href}">
+  <div class="band ${s.existing ? 'ink' : 'open'}"><span class="name">${s.name}</span></div>
+  <div class="body"><p>${s.p}</p><span class="uc">${s.tag}</span></div>
+  <div class="perf"><i></i></div>
+  <ul>${s.screens.map(x => `<li>${x}</li>`).join('')}</ul></a>`).join('');
+</script>
+</body>
+</html>

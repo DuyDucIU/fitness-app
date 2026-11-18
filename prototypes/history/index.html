@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E6E6E1">
+<title>History and PRs · prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap&subset=vietnamese" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<style>
+/* Slice: history and PRs (UC20), edit/delete a past workout (UC11), an exercise's PR history + e1RM (UC17 tap target, UC19). */
+.view{flex:1;display:flex;flex-direction:column;min-height:0}
+.view.enter .scroll{animation:viewin .24s var(--ease) both}
+@keyframes viewin{from{transform:translateY(12px);opacity:0}}
+.wk{display:flex;align-items:baseline;gap:8px;padding:14px 4px 6px;font-size:var(--t-label);font-weight:700;letter-spacing:.06em}
+.wk .c{margin-left:auto;font-weight:600;letter-spacing:0}
+.wk .paused{font-weight:600;letter-spacing:0}
+.srow{align-items:center}
+.srow .d{width:44px;flex:none;text-align:center;line-height:1}
+.srow .d .num{font-size:var(--t-num);display:block}
+.srow .d .label{display:block;margin-top:2px}
+.srow .dur{display:block;height:4px;border-radius:2px;background:var(--ink);margin-top:6px;max-width:100%}
+.srow .dur.dl{background:var(--rule)}
+.srow .end .pr{background:var(--ink);color:var(--orange);border-radius:999px;padding:4px 8px;font-size:var(--t-label);letter-spacing:.06em}
+.filters{display:flex;gap:8px;align-items:center;padding:0 12px 8px;flex:none;overflow-x:auto;scrollbar-width:none}
+.filters .chip{height:40px}
+.filters .chip.on{border-color:var(--ink);background:var(--ink);color:var(--tyvek)}
+.filters .chip.on button{color:inherit;display:grid;place-items:center;width:24px;height:24px;margin-right:-6px}
+.sface{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:16px 16px 8px}
+.sface .num{font-size:var(--t-num);line-height:1;display:block}
+.sface .label{display:block;margin-top:4px}
+.exblock .hd{display:flex;align-items:center;gap:8px;padding:12px 8px 4px 16px}
+.exblock .hd a{flex:1;font-weight:700;text-decoration:none;line-height:1.3}
+.exblock .hd a small{display:block;font-weight:400;font-size:var(--t-label)}
+.edit-in{display:flex;align-items:center;gap:6px}
+.edit-in input{width:72px;height:44px}
+.edit-in .x{font:800 var(--t-num) 'Barlow Condensed'}
+.prrow .v{font-size:var(--t-num)}
+.prrow .end{color:var(--ink)}
+.tag-type{font-size:var(--t-label);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.bigline{display:flex;align-items:flex-end;gap:12px;padding:16px 16px 4px}
+.bigline .bigstat{font-size:104px}
+.bigline p{padding-bottom:10px;line-height:1.35}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="demo-panel" aria-label="Prototype controls">
+    <h2>Prototype · sample data</h2>
+    <p>History and PRs (UC20), editing or deleting a past workout (UC11), and one exercise’s PRs and e1RM (UC17, UC19). Twelve weeks of invented workouts; not wired to Dexie or the API.</p>
+    <div class="demo-list" data-demo></div>
+  </aside>
+  <div class="app" id="app"><div class="view" id="view"></div></div>
+</div>
+<script src="../shared/kit.js"></script>
+<script src="../shared/data.js"></script>
+<script src="../shared/chart.js"></script>
+<script>
+const {$, $$, ic, esc, fmt, parse, plural, norm, openSheet, closeSheet, toast, hideToast, announce, demo, renderDemo, openDemo, shellMarkup, demoBtn, navFoot, resumeBar, syncPill, shortDate, e1rm} = Kit;
+const D = DATA;
+document.getElementById('app').insertAdjacentHTML('beforeend', shellMarkup);
+const clone = o => JSON.parse(JSON.stringify(o), (k, v) => k === 'start' ? new Date(v) : v);
+const S = {sessions:clone(D.SESSIONS), online:true, pending:0, session:false, empty:false, exFilter:null, range:'all', edit:null, newPR:false, unit:'kg'};
+const ex = id => D.ex(id);
+const PRTYPE = {e1RM:'Estimated 1RM', weight_at_reps:'Heaviest at reps', max_reps:'Most reps', session_volume:'Most sets in a session'};
+const W = w => S.unit === 'kg' ? w : Math.round(w * Kit.LB * 2) / 2;
+
+/* PRs: provisional on the device, the server is the source of truth (it may quietly remove one). Sample adds non-e1RM types. */
+function prsFor(id){
+  const list = D.PRS.filter(p => p.ex === id).map(p => ({type:'e1RM', value:p.value, w:p.w, r:p.r, date:p.date, session:p.session}));
+  if (id === 'bench') list.unshift({type:'weight_at_reps', w:80, r:8, date:new Date(2026, 10, 12), session:S.sessions.find(s => s.dayId === 'pushA').id, value:80});
+  if (id === 'pullup') list.unshift({type:'max_reps', r:10, w:0, date:new Date(2026, 10, 14), value:10});
+  if (id === 'squat') list.unshift({type:'session_volume', value:5, date:new Date(2026, 10, 9)});
+  return list;
+}
+const prLabel = p => p.type === 'e1RM' ? `${fmt(W(p.value), 1)} ${S.unit}` : p.type === 'weight_at_reps' ? `${fmt(W(p.w))} × ${p.r}` : p.type === 'max_reps' ? `${p.r} reps` : plural(p.value, 'set');
+function prCountIn(s){ return D.PRS.filter(p => p.session === s.id).length; }
+
+const route = () => location.hash.replace(/^#\/?/, '').split('/');
+addEventListener('hashchange', () => { closeSheet(); S.edit = null; render(true); });
+function topBar({back, title, sub, right = ''}){
+  return `<header class="top">${back != null ? `<a class="icon-btn back" href="#${back}" aria-label="Back">${ic('left')}</a>` : ''}
+    <div class="ttl"><h1>${title}</h1>${sub ? `<div class="sub">${sub}</div>` : ''}</div>
+    <div class="right">${right}<div class="sync" id="sync" role="status"></div>${demoBtn}</div></header>
+    ${S.session ? resumeBar({name:'Push A', elapsed:'31:12', done:5}) : ''}`;
+}
+function render(enter){
+  const [r, a] = route();
+  const v = ({'':listView, prs:prsView, session:sessionView, exercise:exerciseView})[r] || listView;
+  const el = $('#view'); el.className = 'view' + (enter && !Kit.reduce ? ' enter' : ''); el.innerHTML = v(a);
+  syncPill($('#sync'), S); renderDemo();
+}
+const subtabs = cur => `<div class="subtabs" role="tablist"><a href="#" role="tab" aria-current="${cur === 'list'}">Workouts</a><a href="#prs" role="tab" aria-current="${cur === 'prs'}">PRs</a></div>`;
+
+/* ---------- Workouts list, grouped by week (Mon–Sun) ---------- */
+function filtered(){
+  const cut = S.range === '4w' ? new Date(2026, 9, 21) : S.range === '3m' ? new Date(2026, 7, 18) : null;
+  return S.sessions.filter(s => !s.deleted && (!cut || s.start >= cut) && (!S.exFilter || s.exs.some(e => e.id === S.exFilter)));
+}
+function listView(){
+  if (S.empty) return `${topBar({title:'History'})}${subtabs('list')}<main class="scroll"><section class="bib"><div class="band open"><span class="name">No workouts yet</span></div><div class="empty"><span class="bigstat num">0</span><p>Finished workouts land here, newest first. Your first one is a tap away.</p><a class="btn ink" href="../home/index.html">${ic('play')}Go to Today</a></div></section></main>${navFoot('history')}`;
+  const list = filtered();
+  const maxMin = Math.max(...S.sessions.map(s => s.minutes));
+  const groups = [];
+  list.forEach(s => { const k = D.weekStart(s.start).getTime(); let g = groups.find(x => x.k === k); if (!g) groups.push(g = {k, s:[]}); g.s.push(s); });
+  const goal = D.GOALS.find(g => g.type === 'weekly_frequency').target;
+  const filt = `<div class="filters" role="group" aria-label="Filters">
+    ${S.exFilter ? `<span class="chip on">${esc(ex(S.exFilter).name)}<button data-act="clear-ex" aria-label="Clear exercise filter">${ic('x')}</button></span>` : `<button class="chip" data-act="pick-ex">${ic('search')}Exercise</button>`}
+    ${[['4w','4 weeks'],['3m','3 months'],['all','All']].map(([k, l]) => `<button class="chip ${S.range === k ? 'on' : ''}" data-act="range" data-v="${k}" aria-pressed="${S.range === k}">${l}</button>`).join('')}</div>`;
+  return `${topBar({title:'History'})}${subtabs('list')}${filt}
+  <main class="scroll">${groups.length ? groups.map(g => {
+    const st = new Date(g.k), en = new Date(g.k); en.setDate(st.getDate() + 6);
+    const all = S.sessions.filter(s => !s.deleted && D.weekStart(s.start).getTime() === g.k);
+    const dl = all.some(s => s.deload);
+    return `<div class="wk"><span>${shortDate(st).toUpperCase()} – ${shortDate(en).toUpperCase()}</span><span class="c">${dl ? '<span class="paused">Deload · streak paused</span>' : `${all.length} of ${goal}${all.length >= goal ? ' · goal met' : ''}`}</span></div>
+      <div class="block">${g.s.map(s => `<a class="row srow" href="#session/${s.id}"><span class="d"><b class="num">${s.start.getDate()}</b><span class="label">${s.start.toLocaleDateString('en-US', {weekday:'short'})}</span></span>
+        <span class="nm">${esc(s.name)}${s.deload ? ' · deload' : ''}<small>${plural(s.sets, 'working set')} · ${s.minutes} min${s.unsynced ? ' · not synced yet' : ''}</small><span class="dur ${s.deload ? 'dl' : ''}" style="width:${Math.round(s.minutes / maxMin * 100)}%" aria-hidden="true"></span></span>
+        <span class="end">${prCountIn(s) ? `<span class="pr">${prCountIn(s)} PR</span>` : ''}${ic('right', 'chev')}</span></a>`).join('')}</div>`;
+  }).join('') : `<div class="block empty"><p>No workouts${S.exFilter ? ` with ${esc(ex(S.exFilter).name)}` : ''} in this range.</p><button class="btn line" data-act="range" data-v="all">Show all time</button></div>`}
+  </main>${navFoot('history')}`;
+}
+
+/* ---------- PRs, by exercise ---------- */
+function prsView(){
+  const ids = [...new Set(D.PRS.map(p => p.ex))];
+  if (S.newPR && !ids.includes('ohp')) ids.unshift('ohp');
+  return `${topBar({title:'History'})}${subtabs('prs')}
+  <main class="scroll">
+    <p class="note">Latest record per exercise. Records are compared only between sets logged the same way.</p>
+    <div class="block">${ids.map(id => {
+      const p = prsFor(id)[0], c = ex(id);
+      const fresh = S.newPR && id === 'ohp';
+      return `<a class="row prrow ${fresh ? 'inv' : ''}" href="#exercise/${id}"><span class="nm">${esc(c.name)}<small>${PRTYPE[p.type]} · ${shortDate(p.date)}${fresh ? ' · today, not synced yet' : ''}</small></span><b class="v num">${fresh ? '47.5 × 10' : prLabel(p)}</b>${ic('right', 'chev')}</a>`;
+    }).join('')}</div>
+  </main>${navFoot('history')}`;
+}
+
+/* ---------- One workout: view, edit (UC11), delete ---------- */
+function sessionView(id){
+  const s = S.sessions.find(x => x.id === id); if (!s || s.deleted) return listView();
+  const editing = S.edit === id;
+  const prs = D.PRS.filter(p => p.session === id);
+  return `${topBar({back:'', title:esc(s.name), sub:`${Kit.longDate(s.start)} · ${s.start.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})}`, right: editing ? '' : `<button class="icon-btn" data-act="menu" aria-label="Workout options">${ic('more')}</button>`})}
+  <main class="scroll">
+    <section class="bib"><div class="band ${editing ? 'edit' : 'ink'}"><span class="name">${editing ? 'Editing · ' : ''}${esc(s.name)} · ${shortDate(s.start)}</span>${prs.length && !editing ? `<b class="setno num hot">${prs.length} PR</b>` : ''}</div>
+      <div class="sface"><div><b class="num">${s.sets}</b><span class="label">working sets</span></div><div><b class="num">${s.minutes}</b><span class="label">minutes</span></div><div><b class="num">${s.exs.length}</b><span class="label">exercises</span></div></div>
+      ${s.deload ? '<p class="note" style="padding:0 16px 12px">Deload week: lighter on purpose. These sets don’t count toward PRs.</p>' : ''}
+    </section>
+    ${s.exs.map((e, ei) => {
+      const c = ex(e.id);
+      return `<section class="block exblock"><div class="hd"><a href="#exercise/${e.id}">${esc(c.name)}<small>${c.equip} · ${D.LOAD[c.load] || D.METRIC[c.metric]}</small></a>${editing ? '' : ic('right', 'chev')}</div>
+        ${(used => e.sets.map(([w, r], si) => {
+          const pr = prs.find(p => p.ex === e.id && p.w === w && p.r === r && !used.has(p) && used.add(p));
+          if (editing) return `<div class="row"><span class="k">SET ${si + 1}</span><span class="edit-in"><input class="in numin" inputmode="decimal" value="${fmt(w)}" data-e="${ei}" data-s="${si}" data-k="0" aria-label="${esc(c.name)} set ${si + 1} weight"><span class="x">×</span><input class="in numin" inputmode="numeric" value="${r}" data-e="${ei}" data-s="${si}" data-k="1" aria-label="${esc(c.name)} set ${si + 1} reps"></span><button class="icon-btn" data-act="set-del" data-e="${ei}" data-s="${si}" aria-label="Delete set ${si + 1}" style="margin-left:auto">${ic('trash')}</button></div>`;
+          return `<div class="row ${pr ? 'inv' : ''}"><span class="k">SET ${si + 1}</span><span class="v num">${fmt(W(w))} × ${r}</span><span class="end">${pr ? `PR · e1RM ${fmt(W(pr.value), 1)}` : ''}</span></div>`;
+        }).join(''))(new Set())}</section>`;
+    }).join('')}
+    ${editing ? '<p class="note">Saving recalculates PRs and your streak once it syncs.</p>' : ''}
+  </main>
+  ${editing ? `<div class="foot"><div class="dock"><button class="go line" data-act="edit-cancel" style="flex:0 0 33%">Cancel</button><button class="go ink" data-act="edit-save">Save changes</button></div></div>` : ''}`;
+}
+
+/* ---------- One exercise: e1RM over time + its PRs + sessions ---------- */
+function exerciseView(id){
+  const c = ex(id); if (!c) return prsView();
+  const hist = S.sessions.filter(s => !s.deleted && s.exs.some(e => e.id === id)).reverse();
+  const pts = hist.filter(s => !s.deload).map(s => { const e = s.exs.find(x => x.id === id); const best = e.sets.reduce((a, [w, r]) => Math.max(a, e1rm(w, r)), 0); const top = e.sets.reduce((a, b) => e1rm(b[0], b[1]) > e1rm(a[0], a[1]) ? b : a); return {x:shortDate(s.start), y:W(best), label:`${fmt(W(best), 1)} ${S.unit}`, sub:`best set ${fmt(W(top[0]))} × ${top[1]}`}; });
+  const prs = prsFor(id);
+  const wr = c.metric === 'weight_reps';
+  const multiLoad = id === 'incl';
+  return `${topBar({back:'prs', title:esc(c.name), sub:`${c.equip} · ${D.LOAD[c.load] || D.METRIC[c.metric]}`})}
+  <main class="scroll">
+    ${wr ? `<section class="block">
+      <div class="bigline"><b class="bigstat num">${fmt(pts.at(-1)?.y ?? 0, 0)}</b><p><b>${S.unit} estimated 1RM</b><br><span class="small">From your best set last time. Epley: weight × (1 + reps ÷ 30).</span></p></div>
+      ${multiLoad ? `<div class="seg" style="padding:0 16px 4px" role="group" aria-label="Logged as"><button aria-pressed="true">Per dumbbell</button><button aria-pressed="false" data-act="noop">Total (2 sessions)</button></div><p class="note" style="padding:4px 16px 0">You changed how this is logged on Sep 3. Each way gets its own chart.</p>` : ''}
+      ${Chart.chart(pts, {kind:'line', title:`${c.name} estimated 1RM`, yHead:'e1RM', yFmt:v => fmt(v, 0)})}
+      ${hist.some(s => s.deload) ? '<p class="note" style="padding:0 16px 12px">Deload sessions are left out of the chart.</p>' : ''}
+    </section>` : ''}
+    <h2 class="hdg">Records</h2>
+    <div class="block">${prs.length ? Object.keys(PRTYPE).map(t => { const p = prs.find(x => x.type === t); return p ? `<a class="row" href="#session/${p.session || hist.at(-1).id}"><span class="nm">${PRTYPE[t]}<small>${shortDate(p.date)}</small></span><b class="v num">${prLabel(p)}</b></a>` : ''; }).join('') : '<div class="row"><span class="nm">No records yet<small>Your first logged set sets the bar.</small></span></div>'}</div>
+    <h2 class="hdg">Every session</h2>
+    <div class="block">${[...hist].reverse().slice(0, 12).map(s => { const e = s.exs.find(x => x.id === id); return `<a class="row" href="#session/${s.id}"><span class="nm">${shortDate(s.start)}<small>${esc(s.name)}${s.deload ? ' · deload' : ''}</small></span><b class="v num" style="font-size:var(--t-read)">${fmt(W(e.sets[0][0]))} × ${e.sets.map(x => x[1]).join(' · ')}</b></a>`; }).join('')}</div>
+    <div class="acts"><a class="btn line" href="../plans/index.html#exercise/${id}">${ic('gear')}Exercise settings</a></div>
+  </main>`;
+}
+
+/* ---------- events ---------- */
+function queue(){ S.pending++; syncPill($('#sync'), S); if (S.online){ clearTimeout(S.qT); S.qT = setTimeout(() => { S.pending = 0; syncPill($('#sync'), S); }, 1300); } }
+document.addEventListener('input', ev => {
+  const t = ev.target; if (t.dataset.e == null) return;
+  const s = S.sessions.find(x => x.id === S.edit); const v = parse(t.value);
+  if (v != null) s.exs[+t.dataset.e].sets[+t.dataset.s][+t.dataset.k] = +t.dataset.k ? Math.round(v) : v;
+});
+document.addEventListener('focusin', ev => { if (ev.target.classList?.contains('numin')) setTimeout(() => ev.target.select(), 0); });
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act, sid = route()[1];
+  switch (a){
+    case 'range': S.range = b.dataset.v; render(); break;
+    case 'clear-ex': S.exFilter = null; render(); break;
+    case 'pick-ex': openSheet('Workouts with…', `<label class="search">${ic('search')}<input id="fq" autofocus placeholder="Exercise name or nickname" autocomplete="off" aria-label="Find exercise"></label><div id="fres" class="menu" style="margin-top:8px"></div>`); fx(''); break;
+    case 'fx': S.exFilter = b.dataset.id; closeSheet(); render(); break;
+    case 'menu': openSheet('This workout', `<div class="menu"><button data-act="edit">${ic('edit')}<span>Edit sets<small>Fix a weight or reps you mistyped.</small></span></button><button class="danger" data-act="del">${ic('trash')}<span>Delete workout<small>Removes it from history, PRs and your streak.</small></span></button></div>`); break;
+    case 'edit': S.backup = JSON.stringify(S.sessions.find(x => x.id === sid).exs); S.edit = sid; closeSheet(); render(); break;
+    case 'edit-cancel': S.sessions.find(x => x.id === sid).exs = JSON.parse(S.backup); S.edit = null; render(); break;
+    case 'edit-save': { const s = S.sessions.find(x => x.id === sid); s.sets = s.exs.reduce((a, e) => a + e.sets.length, 0); s.unsynced = true; S.edit = null; queue(); render(); toast(S.online ? 'Saved. PRs and streak update after sync.' : 'Saved on this device. It syncs when you’re back online.'); break; }
+    case 'set-del': { const s = S.sessions.find(x => x.id === sid); s.exs[+b.dataset.e].sets.splice(+b.dataset.s, 1); render(); break; }
+    case 'del': openSheet('Delete this workout?', `<p style="margin-bottom:16px">${esc(S.sessions.find(x => x.id === sid).name)} on ${shortDate(S.sessions.find(x => x.id === sid).start)} goes from your history. PRs and your streak are recalculated without it.</p>`, {foot:`<div class="acts" style="margin:0"><button class="btn danger" data-act="del-ok">Delete workout</button><button class="btn line" data-act="close">Keep it</button></div>`}); break;
+    case 'del-ok': { const s = S.sessions.find(x => x.id === sid); s.deleted = true; queue(); closeSheet(); location.hash = ''; toast(`Deleted ${esc(s.name)}. <button data-act="undo" data-id="${s.id}">Undo</button>`, 5000); break; }
+    case 'undo': { const s = S.sessions.find(x => x.id === b.dataset.id); s.deleted = false; hideToast(); render(); break; }
+    case 'close': closeSheet(); break;
+    case 'demo': openDemo(); break;
+    case 'd-online': S.online = !S.online; if (S.online && S.pending) queue(); render(); break;
+    case 'd-session': S.session = !S.session; render(); break;
+    case 'd-empty': S.empty = !S.empty; closeSheet(); location.hash = ''; render(); break;
+    case 'd-pr': S.newPR = !S.newPR; closeSheet(); location.hash = 'prs'; render(); break;
+    case 'd-unit': S.unit = S.unit === 'kg' ? 'lb' : 'kg'; render(); break;
+    case 'd-go': closeSheet(); location.hash = b.dataset.h; break;
+  }
+});
+function fx(q){ const n = norm(q); $('#fres').innerHTML = D.CATALOG.filter(c => S.sessions.some(s => s.exs.some(e => e.id === c.id)) && (!n || [c.name, c.vi, ...c.alias].some(t => norm(t).includes(n)))).map(c => `<button data-act="fx" data-id="${c.id}">${esc(c.name)}<small style="margin-left:auto">${S.sessions.filter(s => s.exs.some(e => e.id === c.id)).length} workouts</small></button>`).join('') || `<p class="empty">You haven’t logged an exercise called “${esc(q)}”.</p>`; }
+document.addEventListener('input', ev => { if (ev.target.id === 'fq') fx(ev.target.value); });
+demo(() => `
+  <button data-act="d-online" aria-pressed="${!S.online}">${S.online ? 'Go offline' : 'Offline · reconnect'}</button>
+  <button data-act="d-session" aria-pressed="${S.session}">Workout in progress</button>
+  <button data-act="d-empty" aria-pressed="${S.empty}">No workouts yet</button>
+  <button data-act="d-pr" aria-pressed="${S.newPR}">Just set a PR (from the workout toast)</button>
+  <button data-act="d-unit" aria-pressed="${S.unit === 'lb'}">Show in ${S.unit === 'kg' ? 'lb' : 'kg'}</button>
+  <span class="label grp">Screens</span>
+  <button data-act="d-go" data-h="">Workouts by week</button>
+  <button data-act="d-go" data-h="prs">PRs</button>
+  <button data-act="d-go" data-h="session/${S.sessions[2].id}">Workout detail · Push A</button>
+  <button data-act="d-go" data-h="exercise/bench">Exercise · bench press</button>
+  <span class="label grp">Other slices</span>
+  <a href="../index.html">All prototypes</a>`);
+render();
+</script>
+</body>
+</html>

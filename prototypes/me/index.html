@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E6E6E1">
+<title>Me: goals and settings · prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap&subset=vietnamese" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<style>
+/* Slice: goals (UC15), weekly streak (UC16), settings (UC02 + onboarding defaults), sign out (UC01), delete account (UC21). */
+.view{flex:1;display:flex;flex-direction:column;min-height:0}
+.view.enter .scroll{animation:viewin .24s var(--ease) both}
+@keyframes viewin{from{transform:translateY(12px);opacity:0}}
+.streak{display:grid;grid-template-columns:auto 1fr;align-items:end;gap:4px 16px;padding:16px 16px 8px}
+.streak p{padding-bottom:12px;line-height:1.35}
+.streak p b{display:block}
+.wks{display:flex;gap:4px;padding:0 16px 14px}
+.wks i{flex:1;height:28px;border-radius:6px;border:1.5px solid var(--rule)}
+.wks i.hit{background:var(--ink);border-color:var(--ink)}
+.wks i.dl{border-style:dashed;border-color:var(--ink)}
+.wks i.now{border-color:var(--orange);box-shadow:inset 0 0 0 1.5px var(--orange)}
+.wkl{display:flex;justify-content:space-between;padding:0 16px 12px;font-size:var(--t-label);font-weight:600}
+.goal .v{font-size:var(--t-num)}
+.goal .v small{font-family:'Be Vietnam Pro';font-size:var(--t-label);font-weight:700;letter-spacing:.06em}
+.goal .togo{display:block;font-size:var(--t-label);font-weight:700;margin-top:2px}
+.done .nm{text-decoration:none}
+.danger-zone{box-shadow:inset 0 0 0 2px var(--danger)}
+.gone{list-style:none;display:grid;gap:6px;margin:8px 0 4px}
+.gone li{display:flex;gap:10px;align-items:flex-start}
+.gone li svg{color:var(--danger);margin-top:2px}
+.byebye{padding:40px 20px;text-align:center}
+.byebye .bigstat{margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="demo-panel" aria-label="Prototype controls">
+    <h2>Prototype · sample data</h2>
+    <p>Goals (UC15), weekly streak (UC16), settings (UC02 and the onboarding defaults), sign out (UC01) and deleting the account (UC21). Not wired to Supabase, Dexie or the API.</p>
+    <div class="demo-list" data-demo></div>
+  </aside>
+  <div class="app" id="app"><div class="view" id="view"></div></div>
+</div>
+<script src="../shared/kit.js"></script>
+<script src="../shared/data.js"></script>
+<script>
+const {$, ic, esc, fmt, parse, plural, openSheet, closeSheet, toast, demo, renderDemo, openDemo, shellMarkup, demoBtn, navFoot, resumeBar, syncPill, shortDate, e1rm} = Kit;
+const D = DATA;
+document.getElementById('app').insertAdjacentHTML('beforeend', shellMarkup);
+const S = {online:true, pending:0, session:false, deload:false, goals:D.GOALS.map(g => ({...g})), u:{...D.user, provider:'google'}, err:null, persisted:true, deleted:false};
+const W = w => S.u.unit === 'kg' ? w : w * Kit.LB;
+const route = () => location.hash.replace(/^#\/?/, '').split('/');
+addEventListener('hashchange', () => { closeSheet(); S.err = null; render(true); });
+function topBar({back, title, sub}){ return `<header class="top">${back != null ? `<a class="icon-btn back" href="#${back}" aria-label="Back">${ic('left')}</a>` : ''}<div class="ttl"><h1>${title}</h1>${sub ? `<div class="sub">${sub}</div>` : ''}</div><div class="right"><div class="sync" id="sync" role="status"></div>${demoBtn}</div></header>${S.session ? resumeBar({name:'Push A', elapsed:'31:12', done:5}) : ''}`; }
+function render(enter){
+  const [r, a] = route();
+  const v = S.deleted ? deletedView : ({'':meView, goals:meView, goal:goalView, units:unitsView, defaults:defaultsView, data:dataView, account:accountView, delete:deleteView})[r] || meView;
+  const el = $('#view'); el.className = 'view' + (enter && !Kit.reduce ? ' enter' : ''); el.innerHTML = v(a);
+  syncPill($('#sync'), S); renderDemo();
+}
+
+/* ---------- Me ---------- */
+const bestE1 = id => D.SESSIONS.reduce((a, s) => s.exs.filter(e => e.id === id).reduce((b, e) => e.sets.reduce((c, [w, r]) => Math.max(c, e1rm(w, r)), b), a), 0);
+function goalLine(g){
+  if (g.type === 'weekly_frequency') return {t:`${g.target} workouts a week`, s:g.origin === 'onboarding' ? 'Set during setup · drives your streak' : 'Drives your streak', v:`${D.weeks(1)[0].count}<small> / ${g.target}</small>`, togo:'this week'};
+  if (g.type === 'pr_target'){ const c = D.ex(g.ex), now = bestE1(g.ex); return {t:`${c.name}: ${fmt(W(g.target))} ${S.u.unit}`, s:`Estimated 1RM${g.deadline ? ` · by ${shortDate(g.deadline)}` : ''}`, v:`${fmt(W(now), 1)}`, togo:g.status === 'achieved' ? `Reached ${shortDate(g.achieved)}` : now >= g.target ? 'Reached · confirming after sync' : `${fmt(W(g.target - now), 1)} ${S.u.unit} to go`}; }
+  const last = D.BODY.find(b => b.type === g.metric);
+  return {t:`Weight: ${fmt(W(g.target), 1)} ${S.u.unit}`, s:g.deadline ? `By ${shortDate(g.deadline)}` : 'No deadline', v:fmt(W(last.value), 1), togo:`${fmt(Math.abs(W(last.value - g.target)), 1)} ${S.u.unit} to go`};
+}
+function meView(){
+  const goal = S.goals.find(g => g.type === 'weekly_frequency' && g.status === 'active');
+  const st = D.streak(goal?.target || 3), ws = D.weeks(10);
+  const active = S.goals.filter(g => g.status === 'active'), done = S.goals.filter(g => g.status === 'achieved');
+  const left = goal ? Math.max(0, goal.target - ws.at(-1).count) : 0;
+  return `${topBar({title:'Me'})}
+  <main class="scroll">
+    <section class="bib" aria-label="Weekly streak">
+      <div class="band ${S.deload ? 'open' : 'ink'}"><span class="name">Weekly streak${S.deload ? ' · paused for deload' : ''}</span><b class="setno num ${S.deload ? '' : 'hot'}"><small>BEST</small>${st.best}</b></div>
+      <div class="streak"><b class="bigstat num">${st.current}</b><p><b>${st.current === 1 ? 'week' : 'weeks'} in a row</b>${S.deload ? 'Deload weeks don’t break it. It picks up when the deload ends.' : goal ? (left ? `${left} more by Sunday keeps it going.` : 'This week is in the bag.') : 'Set a weekly goal to start a streak.'}</p></div>
+      <div class="wks" aria-hidden="true">${ws.map(w => `<i class="${w.deload ? 'dl' : w.count >= (goal?.target || 3) ? 'hit' : ''} ${w.current ? 'now' : ''}"></i>`).join('')}</div>
+      <div class="wkl"><span>${shortDate(ws[0].start)}</span><span>This week</span></div>
+    </section>
+    <h2 class="hdg" id="goals">Goals</h2>
+    <div class="block">${active.map(g => { const l = goalLine(g); return `<a class="row goal" href="#goal/${g.id}"><span class="nm">${esc(l.t)}<small>${l.s}</small></span><span style="text-align:right"><b class="v num">${l.v}</b><span class="togo">${l.togo}</span></span>${ic('right', 'chev')}</a>`; }).join('') || '<div class="row"><span class="nm">No goals yet<small>Pick a lift to chase, a weekly target or a body measurement.</small></span></div>'}
+      <a class="row add" href="#goal/new">${ic('plus')}Add a goal</a></div>
+    ${done.length ? `<h2 class="hdg">Reached</h2><div class="block">${done.map(g => { const l = goalLine(g); return `<a class="row done" href="#goal/${g.id}"><span class="ok">${ic('check')}</span><span class="nm">${esc(l.t)}<small>${l.togo}</small></span>${ic('right', 'chev')}</a>`; }).join('')}</div>` : ''}
+    <h2 class="hdg">Settings</h2>
+    <div class="block">
+      <a class="row" href="#units">${ic('scale')}<span class="nm">Units and time zone<small>${S.u.unit} · ${S.u.tz.replace('_', ' ')}</small></span>${ic('right', 'chev')}</a>
+      <a class="row" href="#defaults">${ic('gear')}<span class="nm">Training defaults<small>Explanations, warm-ups, RPE, rest timer</small></span>${ic('right', 'chev')}</a>
+      <a class="row" href="#data">${ic('cloud')}<span class="nm">Data and sync<small>${S.pending ? `${plural(S.pending, 'change')} waiting to sync` : 'Everything synced'}</small></span>${ic('right', 'chev')}</a>
+      <a class="row" href="#account">${ic('user')}<span class="nm">Account<small>${esc(S.u.email)}</small></span>${ic('right', 'chev')}</a>
+    </div>
+    <p class="note" style="margin-top:16px">Fitness (working name) · prototype build. No analytics or ad trackers.</p>
+  </main>${navFoot('me')}`;
+}
+
+/* ---------- Goal editor (UC15) ---------- */
+function goalView(id){
+  const isNew = id === 'new';
+  const g = isNew ? (S.draft = S.draft || {id:'g' + Date.now(), type:'pr_target', ex:'ohp', target:null, deadline:null, status:'active'}) : S.goals.find(x => x.id === id);
+  if (!g) return meView();
+  const logged = D.CATALOG.filter(x => x.metric === 'weight_reps' && D.SESSIONS.some(s => s.exs.some(e => e.id === x.id)));
+  const ro = g.status !== 'active';
+  const hint = g.type === 'pr_target' ? `Your best estimated 1RM now: ${fmt(W(bestE1(g.ex)), 1)} ${S.u.unit}.` : g.type === 'body_metric' ? `Last weigh-in: ${fmt(W(D.BODY.find(b => b.type === 'weight').value), 1)} ${S.u.unit}.` : 'Your streak grows each Monday-to-Sunday week you hit this.';
+  return `${topBar({back:'', title:isNew ? 'New goal' : 'Goal', sub:ro ? `Reached ${shortDate(g.achieved)}` : ''})}
+  <main class="scroll">
+    <div class="block pad">
+      ${isNew ? `<div class="field"><span class="label">Kind of goal</span><div class="seg stack">${[['pr_target','A lift','Reach an estimated 1RM on one exercise'],['weekly_frequency','Workouts a week','Sets the bar for your streak'],['body_metric','Body weight','Reach a weight by a date']].map(([k, t, s]) => `<button data-act="gtype" data-v="${k}" aria-pressed="${g.type === k}">${t}<small>${s}</small></button>`).join('')}</div></div>` : ''}
+      ${g.type === 'pr_target' ? `<div class="field"><label class="label" for="gex">Exercise</label><select class="in" id="gex" ${ro || !isNew ? 'disabled' : ''}>${logged.map(x => `<option value="${x.id}" ${x.id === g.ex ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>` : ''}
+      <div class="field"><label class="label" for="gt">${g.type === 'weekly_frequency' ? 'Workouts per week' : `Target · ${S.u.unit}`}</label>
+        <input class="in numin" id="gt" inputmode="decimal" style="width:140px" value="${g.target != null ? fmt(g.type === 'weekly_frequency' ? g.target : W(g.target), 1) : ''}" placeholder="–" ${ro ? 'disabled' : ''} ${S.err ? 'aria-invalid="true" aria-describedby="gErr"' : ''}>
+        ${S.err ? `<p class="err" id="gErr">${ic('alert')}${S.err}</p>` : `<p class="help">${hint}</p>`}</div>
+      ${g.type !== 'weekly_frequency' ? `<div class="field"><label class="label" for="gd">Deadline · optional</label><input class="in" id="gd" type="date" value="${g.deadline ? g.deadline.toISOString().slice(0, 10) : ''}" ${ro ? 'disabled' : ''}></div>` : ''}
+      <p class="help" style="font-size:var(--t-label);font-weight:600">Marked as reached by itself when your logged numbers get there.</p>
+    </div>
+    ${!isNew && !ro ? `<div class="block" style="margin-top:24px"><button class="row danger" data-act="abandon">${ic('x')}<span class="nm">Stop tracking this goal<small>It moves out of your list. Nothing you logged changes.</small></span></button></div>` : ''}
+  </main>
+  ${ro ? '' : `<div class="foot"><button class="go ink" data-act="gsave">${isNew ? 'Add goal' : 'Save goal'}</button></div>`}`;
+}
+
+/* ---------- Settings ---------- */
+function unitsView(){
+  return `${topBar({back:'', title:'Units and time zone'})}
+  <main class="scroll"><div class="block pad">
+    <div class="field"><span class="label">Weight unit</span><div class="seg"><button data-act="unit" data-v="kg" aria-pressed="${S.u.unit === 'kg'}">Kilograms (kg)</button><button data-act="unit" data-v="lb" aria-pressed="${S.u.unit === 'lb'}">Pounds (lb)</button></div>
+      <p class="help">Changes how numbers are shown everywhere. What you already logged stays exactly as you entered it.</p></div>
+    <div class="field"><label class="label" for="tz">Time zone</label><select class="in" id="tz">${['Asia/Ho_Chi_Minh','Asia/Bangkok','Asia/Singapore','Asia/Tokyo','Europe/London','America/New_York','America/Los_Angeles'].map(z => `<option ${S.u.tz === z ? 'selected' : ''} value="${z}">${z.replace(/_/g, ' ')}</option>`).join('')}</select>
+      <p class="help">Weeks run Monday 00:00 to Sunday 23:59 in this zone. That’s what your streak and weekly charts count.</p></div>
+  </div></main>`;
+}
+function defaultsView(){
+  const u = S.u;
+  return `${topBar({back:'', title:'Training defaults', sub:'Set during setup; change any time'})}
+  <main class="scroll"><div class="block pad">
+    <div class="field"><span class="label">How much the app explains</span><div class="seg stack">${[['detailed','Detailed','Every suggestion explains the why in full.'],['standard','Standard','Short reasons with each suggestion.'],['brief','Brief','Just the numbers and a one-line reason.']].map(([k, t, s]) => `<button data-act="guide" data-v="${k}" aria-pressed="${u.guidance === k}">${t}<small>${s}</small></button>`).join('')}</div></div>
+    <div class="field switch"><span>Warm-up suggestions<small>Default for new exercises in your routines. Each exercise can override it.</small></span><button role="switch" data-act="sw" data-k="warmupDefault" aria-checked="${u.warmupDefault}" aria-label="Warm-up suggestions"></button></div>
+    <div class="field switch"><span>Log RPE<small>Adds an optional 1–10 effort rating to each set.</small></span><button role="switch" data-act="sw" data-k="rpe" aria-checked="${u.rpe}" aria-label="Log RPE"></button></div>
+    <div class="field switch"><span>Rest timer starts by itself<small>After each set. Turn it off per exercise in its settings.</small></span><button role="switch" data-act="sw" data-k="autoRest" aria-checked="${u.autoRest ?? true}" aria-label="Rest timer starts by itself"></button></div>
+  </div>
+  <div class="block" style="margin-top:12px"><a class="row" href="../start/index.html">${ic('refresh')}<span class="nm">Answer the setup questions again<small>Resets these defaults from your answers.</small></span>${ic('right', 'chev')}</a></div></main>`;
+}
+function dataView(){
+  return `${topBar({back:'', title:'Data and sync'})}
+  <main class="scroll">
+    <section class="block pad" style="display:flex;gap:12px;align-items:flex-start">
+      <span class="row" style="padding:0;border:0;min-height:0;width:auto"><span class="ok" style="${S.pending || !S.online ? 'background:var(--ink)' : ''}">${ic(!S.online ? 'off' : S.pending ? 'refresh' : 'check')}</span></span>
+      <p><b>${!S.online ? 'Offline' : S.pending ? `${plural(S.pending, 'change')} waiting` : 'Everything synced'}</b><br>${!S.online ? 'Keep logging; it all syncs when you’re back online.' : S.pending ? 'They’re saved on this phone and go up in the background.' : 'Your workouts are on this phone and on the server.'}</p>
+    </section>
+    ${S.pending && S.online ? '<div class="acts"><button class="btn ink" data-act="syncnow">Sync now</button></div>' : ''}
+    <h2 class="hdg">On this phone</h2>
+    <div class="block">
+      <div class="row"><span class="nm">Storage protection<small>${S.persisted ? 'The browser has agreed not to clear the app’s data on its own.' : 'Not granted. Add the app to your Home Screen so the browser keeps its data.'}</small></span><span class="end">${S.persisted ? '<span class="ok">' + ic('check') + '</span>' : 'OFF'}</span></div>
+      <div class="row"><span class="nm">Saved workouts<small>${D.SESSIONS.length} workouts · works offline</small></span></div>
+      <div class="row"><span class="nm">App version<small>Prototype · updates install only when you say so, never mid-workout</small></span><button class="btn line" data-act="upd">Check</button></div>
+    </div>
+  </main>`;
+}
+function accountView(){
+  return `${topBar({back:'', title:'Account'})}
+  <main class="scroll">
+    <div class="block"><div class="row">${ic(S.u.provider === 'google' ? 'google' : 'mail')}<span class="nm">${esc(S.u.email)}<small>Signed in with ${S.u.provider === 'google' ? 'Google' : 'email and password'}</small></span></div>
+      <button class="row" data-act="signout">${ic('logout')}<span class="nm">Sign out<small>Your data stays on the server; this phone forgets it.</small></span></button></div>
+    <h2 class="hdg">Delete account</h2>
+    <div class="block"><a class="row danger" href="#delete">${ic('trash')}<span class="nm">Delete account and all data<small>Permanent. Can’t be undone.</small></span>${ic('right', 'chev')}</a></div>
+  </main>`;
+}
+function deleteView(){
+  return `${topBar({back:'account', title:'Delete account'})}
+  <main class="scroll">
+    <section class="block pad danger-zone">
+      <p><b>This deletes everything, for good.</b></p>
+      <ul class="gone">${['All workouts, sets and PRs','Routines, exercises you created, and their settings','Goals, streak and body measurements','Your account and sign-in'].map(t => `<li>${ic('x')}<span>${t}</span></li>`).join('')}</ul>
+      <p class="small">There’s no recovery afterwards, not even by us.</p>
+    </section>
+    ${!S.online ? `<div class="alert" role="alert">${ic('off')}<p><b>You’re offline</b>Deleting needs a connection so the server can remove your data.</p></div>` : ''}
+    <section class="block pad">
+      ${S.u.provider === 'google' ? `<p class="small" style="margin-bottom:10px">To confirm it’s you, sign in with Google again.</p><button class="btn line wide" data-act="reauth" ${S.reauthed ? 'aria-disabled="true"' : ''}>${S.reauthed ? ic('check') + 'Confirmed as ' + esc(S.u.email) : ic('google') + 'Confirm with Google'}</button>`
+        : `<div class="field" style="border:0;padding-top:0"><label class="label" for="dpw">Your password</label><input class="in" id="dpw" type="password" autocomplete="current-password" ${S.err ? 'aria-invalid="true"' : ''}>${S.err ? `<p class="err">${ic('alert')}${S.err}</p>` : ''}</div>`}
+    </section>
+  </main>
+  <div class="foot"><button class="btn danger wide" style="min-height:56px" data-act="delete-ok">Delete my account forever</button></div>`;
+}
+function deletedView(){
+  return `<main class="scroll" style="padding-top:64px"><section class="block byebye"><b class="bigstat num">0</b><p><b>Your account is deleted.</b></p><p>All your data has been removed from the server and this phone.</p><a class="btn ink" href="../start/index.html" style="margin-top:12px">Back to sign in</a></section></main>`;
+}
+
+/* ---------- events ---------- */
+function queue(){ S.pending++; syncPill($('#sync'), S); if (S.online){ clearTimeout(S.qT); S.qT = setTimeout(() => { S.pending = 0; render(); }, 1400); } }
+document.addEventListener('change', ev => {
+  if (ev.target.id === 'tz'){ S.u.tz = ev.target.value; queue(); toast('Time zone saved. Weeks now follow it.'); }
+  if (ev.target.id === 'gex'){ S.draft.ex = ev.target.value; render(); }
+});
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act]'); if (!b) return;
+  const [r, id] = route();
+  switch (b.dataset.act){
+    case 'gtype': S.draft.type = b.dataset.v; S.draft.target = null; S.err = null; render(); break;
+    case 'gsave': {
+      const g = id === 'new' ? S.draft : S.goals.find(x => x.id === id);
+      const v = parse($('#gt').value);
+      if (v == null || v <= 0){ S.err = 'Enter a target number.'; render(); $('#gt').focus(); break; }
+      if (g.type === 'weekly_frequency' && (v > 7 || v % 1)){ S.err = 'Pick a whole number from 1 to 7.'; render(); $('#gt').focus(); break; }
+      g.target = g.type === 'weekly_frequency' ? v : (S.u.unit === 'lb' ? v / Kit.LB : v);
+      const dd = $('#gd')?.value; g.deadline = dd ? new Date(dd) : null;
+      if (id === 'new'){ if (g.type === 'weekly_frequency') S.goals.forEach(x => { if (x.type === 'weekly_frequency' && x.status === 'active') x.status = 'abandoned'; }); S.goals.push(g); S.draft = null; }
+      S.err = null; queue(); location.hash = ''; toast(id === 'new' ? 'Goal added.' : 'Goal saved.'); break;
+    }
+    case 'abandon': openSheet('Stop tracking this goal?', '<p style="margin-bottom:16px">It leaves your list. Your workouts and records stay as they are.</p>', {foot:`<div class="acts" style="margin:0"><button class="btn ink" data-act="abandon-ok">Stop tracking</button><button class="btn line" data-act="close">Keep it</button></div>`}); break;
+    case 'abandon-ok': S.goals.find(x => x.id === id).status = 'abandoned'; queue(); closeSheet(); location.hash = ''; toast('Goal removed from your list.'); break;
+    case 'unit': S.u.unit = b.dataset.v; queue(); render(); toast(`Showing ${b.dataset.v === 'kg' ? 'kilograms' : 'pounds'}. Your logged numbers didn’t change.`); break;
+    case 'guide': S.u.guidance = b.dataset.v; queue(); render(); break;
+    case 'sw': S.u[b.dataset.k] = !(S.u[b.dataset.k] ?? true); queue(); render(); break;
+    case 'syncnow': b.classList.add('busy'); setTimeout(() => { S.pending = 0; render(); toast('Synced.'); }, 900); break;
+    case 'upd': toast('You’re on the latest version.'); break;
+    case 'signout':
+      if (S.pending) openSheet('Sign out with unsynced changes?', `<p style="margin-bottom:16px"><b>${plural(S.pending, 'change')}</b> on this phone haven’t reached the server yet. Signing out now would lose them.</p>`, {foot:`<div class="acts" style="margin:0"><button class="btn ink" data-act="${S.online ? 'syncnow' : 'close'}">${S.online ? 'Sync first' : 'Stay signed in'}</button><button class="btn line" data-act="signout-ok">Sign out anyway</button></div>`});
+      else openSheet('Sign out?', '<p style="margin-bottom:16px">Everything is synced. Sign in again any time to pick up where you left off.</p>', {foot:`<div class="acts" style="margin:0"><button class="btn ink" data-act="signout-ok">Sign out</button><button class="btn line" data-act="close">Cancel</button></div>`});
+      break;
+    case 'signout-ok': toast('Signed out.'); setTimeout(() => { location.href = '../start/index.html'; }, 700); break;
+    case 'reauth': if (!S.online){ toast('Needs a connection.'); break; } S.reauthed = true; render(); break;
+    case 'delete-ok': {
+      if (!S.online){ toast('You’re offline. Connect to delete your account.'); break; }
+      if (S.u.provider === 'google' && !S.reauthed){ toast('Confirm with Google first.'); $('[data-act=reauth]')?.focus(); break; }
+      if (S.u.provider !== 'google'){ const pw = $('#dpw').value; if (pw.length < 8){ S.err = pw ? 'That password isn’t right.' : 'Enter your password to confirm.'; render(); $('#dpw').focus(); break; } }
+      b.classList.add('busy'); b.textContent = 'Deleting'; setTimeout(() => { S.deleted = true; render(); }, 1100); break;
+    }
+    case 'close': closeSheet(); break;
+    case 'demo': openDemo(); break;
+    case 'd-online': S.online = !S.online; if (S.online && S.pending) queue(); render(); break;
+    case 'd-pending': S.pending = S.pending ? 0 : 4; clearTimeout(S.qT); render(); break;
+    case 'd-session': S.session = !S.session; render(); break;
+    case 'd-deload': S.deload = !S.deload; render(); break;
+    case 'd-provider': S.u.provider = S.u.provider === 'google' ? 'email' : 'google'; S.reauthed = false; render(); break;
+    case 'd-persist': S.persisted = !S.persisted; render(); break;
+    case 'd-go': closeSheet(); S.deleted = false; location.hash = b.dataset.h; render(); break;
+  }
+});
+demo(() => `
+  <button data-act="d-online" aria-pressed="${!S.online}">${S.online ? 'Go offline' : 'Offline · reconnect'}</button>
+  <button data-act="d-pending" aria-pressed="${!!S.pending}">Unsynced changes</button>
+  <button data-act="d-session" aria-pressed="${S.session}">Workout in progress</button>
+  <button data-act="d-deload" aria-pressed="${S.deload}">Deload in progress (streak paused)</button>
+  <button data-act="d-provider" aria-pressed="${S.u.provider !== 'google'}">Signed in with ${S.u.provider === 'google' ? 'Google' : 'email'}</button>
+  <button data-act="d-persist" aria-pressed="${!S.persisted}">Storage protection not granted</button>
+  <span class="label grp">Screens</span>
+  <button data-act="d-go" data-h="">Me · streak and goals</button>
+  <button data-act="d-go" data-h="goal/new">New goal</button>
+  <button data-act="d-go" data-h="goal/g2">Edit goal · bench</button>
+  <button data-act="d-go" data-h="units">Units and time zone</button>
+  <button data-act="d-go" data-h="defaults">Training defaults</button>
+  <button data-act="d-go" data-h="data">Data and sync</button>
+  <button data-act="d-go" data-h="account">Account</button>
+  <button data-act="d-go" data-h="delete">Delete account</button>
+  <span class="label grp">Other slices</span>
+  <a href="../index.html">All prototypes</a>`);
+render();
+</script>
+</body>
+</html>

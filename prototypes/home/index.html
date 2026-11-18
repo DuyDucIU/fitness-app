@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E6E6E1">
+<title>Today · prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap&subset=vietnamese" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<style>
+/* Slice: Today — start a session (UC06), pre-session suggestions (UC12: R1, R2, R6, R7), weekly streak (UC16), deload (UC22), PWA lifecycle. */
+.main{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.main::-webkit-scrollbar{display:none}
+.week{display:flex;align-items:center;gap:12px;padding:4px 16px 12px;text-decoration:none}
+.days{display:flex;gap:5px}
+.days b{width:32px;height:38px;border-radius:var(--r-sm);border:1.5px solid var(--rule);display:grid;place-items:center;font-size:var(--t-label);font-weight:700;background:transparent}
+.days b.done{background:var(--ink);color:var(--tyvek);border-color:var(--ink)}
+.days b.today{border-color:var(--orange);box-shadow:inset 0 0 0 1.5px var(--orange)}
+.days b.today.done{box-shadow:inset 0 0 0 2px var(--orange)}
+.days b.paused{border-style:dashed}
+.week .st{margin-left:auto;text-align:right;font-size:var(--t-label);font-weight:600;line-height:1.25}
+.week .st .num{font-size:var(--t-num);display:block;line-height:1}
+/* Bib wallet: plan days as bibs on a snap rail; the next one starts centered */
+.wallet{flex:none;display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 28px;padding:0 28px 4px;scrollbar-width:none;overscroll-behavior-x:contain}
+.wallet::-webkit-scrollbar{display:none}
+.wallet .bib{flex:none;width:calc(100% - 4px);scroll-snap-align:center;align-self:flex-start;transition:opacity .2s}
+.wallet .bib:not(.on){opacity:.82}
+.ex li{list-style:none;display:flex;gap:12px;align-items:baseline;min-height:40px;border-top:1px solid var(--rule-soft);padding:8px 16px 6px}
+.ex li:first-child{border-top:0}
+.ex .n{font-size:var(--t-num);width:18px;line-height:1;flex:none;text-align:center}
+.ex .nm{flex:1;font-weight:600;line-height:1.3}
+.ex .v{font-size:var(--t-label);font-weight:700;letter-spacing:.06em;white-space:nowrap}
+.ex .ss{font-size:var(--t-label);font-weight:700;letter-spacing:.08em;padding:10px 16px 0;display:block}
+.ex{padding:6px 0 10px}
+.meta{display:flex;gap:16px;padding:0 16px 12px;font-size:var(--t-label);font-weight:600}
+.meta b{font-family:'Barlow Condensed';font-weight:800;font-size:var(--t-read);letter-spacing:0}
+.pager{display:flex;justify-content:center;gap:6px;padding:0 0 6px;margin-top:-4px}
+.pager button{width:24px;height:24px;display:grid;place-items:center}
+.pager button i{width:6px;height:6px;border-radius:50%;background:var(--rule);transition:background .2s,width .2s}
+.pager button[aria-current=true] i{background:var(--ink);width:14px;border-radius:3px}
+.tip .why{display:block}
+.tip + .tip{margin-top:-2px}
+.side{padding:4px 16px 16px;display:flex;flex-direction:column;gap:8px}
+.side a,.side button{font-weight:600;text-decoration:underline;text-underline-offset:3px;text-align:left;min-height:44px;display:flex;align-items:center;gap:8px}
+.dl-modes .seg button{text-align:left}
+.foot .go small{font-family:'Be Vietnam Pro';font-size:var(--t-label);font-weight:700;letter-spacing:.06em}
+.ios{display:grid;gap:10px;margin:8px 0 16px;counter-reset:s}
+.ios li{list-style:none;display:flex;gap:12px;align-items:center}
+.ios li::before{counter-increment:s;content:counter(s);font:800 var(--t-num)/1 'Barlow Condensed';width:20px;text-align:center}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="demo-panel" aria-label="Prototype controls">
+    <h2>Prototype · sample data</h2>
+    <p>Today: start a session (UC06), suggestions before the session (UC12), weekly streak (UC16), deload (UC22) and the PWA install/update prompts. Not wired to Dexie, the engine or the API.</p>
+    <div class="demo-list" data-demo></div>
+  </aside>
+  <div class="app" id="app">
+    <header class="top"><div class="ttl"><h1>Today</h1><div class="sub" id="date"></div></div><div class="right"><div class="sync" id="sync" role="status"></div><span id="demoSlot"></span></div></header>
+    <div id="banners"></div>
+    <div class="main" id="main"></div>
+    <div id="foot"></div>
+  </div>
+</div>
+<script src="../shared/kit.js"></script>
+<script src="../shared/data.js"></script>
+<script>
+const {$, $$, ic, esc, fmt, plural, openSheet, closeSheet, toast, announce, demo, renderDemo, openDemo, shellMarkup, demoBtn, navFoot, resumeBar, syncPill, ladder} = Kit;
+const D = DATA;
+document.getElementById('app').insertAdjacentHTML('beforeend', shellMarkup);
+$('#demoSlot').outerHTML = demoBtn;
+$('#date').textContent = Kit.longDate(D.TODAY);
+
+const plan = D.PLANS[0];
+const S = {mode:'normal', online:true, pending:0, session:false, iosTab:false, update:false, cur:0, dismissed:{}, deload:null, lastDeload:D.DELOADS[0], noPlan:false, startedToday:false};
+/* the rotation: next day = the one after the last session's day */
+function nextIdx(){ const last = D.SESSIONS[0]; return (plan.days.findIndex(d => d.id === last.dayId) + 1) % plan.days.length; }
+function order(){ const n = nextIdx(); return plan.days.map((_, i) => plan.days[(n + i) % plan.days.length]); }
+const lastOf = id => { for (const s of D.SESSIONS){ const e = s.exs.find(x => x.id === id); if (e) return {date:s.start, sets:e.sets}; } return null; };
+
+/* ---------- suggestions before the session (engine output, mocked) ---------- */
+function suggestionsFor(day){
+  const out = [];
+  if (S.deload) return out; // R1/R2/R7 are off during a deload
+  if (S.mode === 'break'){
+    // R6: ≥14 days off → 70% (50% if ≥28), rounded to each exercise's step; deload days don't count
+    const ex = day.ex.filter(pe => D.ex(pe.id).metric === 'weight_reps').slice(0, 2).map(pe => { const c = D.ex(pe.id), l = lastOf(pe.id); return `${c.name} ${fmt(Math.max(c.bar, ladder(l.sets[0][0] * .7, c.step)))} kg`; });
+    out.push({id:'r6', kind:'return_from_break', strong:true, text:`It’s been <b>18 days</b>. Ease back in at about 70% today: ${ex.join(', ')}.`, why:'After two weeks off, strength comes back fast but tendons need a session or two.', acts:['Use 70%', 'Start at my usual']});
+    return out;
+  }
+  if (S.mode === 'tired'){
+    out.push({id:'r7', kind:'deload', strong:true, text:'Your reps dropped by 2 or more on bench press and overhead press, two sessions in a row.', why:'A lighter week usually brings the numbers back. Your streak pauses, it doesn’t break.', acts:['Plan a deload', 'Not now']});
+  }
+  day.ex.forEach(pe => {
+    if (S.dismissed[pe.id]) return;
+    if (pe.id === 'ohp') out.push({id:'ohp', kind:'increase', text:'<b>Overhead press:</b> all three sets hit 10 reps last time. Add weight or reps today, your call.', why:'Every working set reached the top of your 6–10 range.', acts:['Got it']});
+    if (pe.id === 'cablerow') out.push({id:'cablerow', kind:'celebrate', text:'<b>Seated cable row:</b> 12 on every set again. Nice. Ready to go up?', why:'Second session in a row at the top of 8–12.', acts:['Got it']});
+  });
+  return out;
+}
+function tipHTML(t){
+  return `<div class="tip" role="note"><p>${t.text}<span class="why">${t.why}</span></p><div class="acts">${t.acts.map((a, i) => `<button class="btn ${i === 0 ? 'ink' : 'line'}" data-act="tip" data-id="${t.id}" data-i="${i}">${a}</button>`).join('')}</div></div>`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  syncPill($('#sync'), S);
+  renderBanners(); renderMain(); renderFoot(); renderDemo();
+}
+function renderBanners(){
+  let h = '';
+  if (S.session) h += resumeBar({name:'Push A', elapsed:'31:12', done:5});
+  if (S.update) h += `<div class="banner">${ic('download')}<p><b>Update ready</b>${S.session ? 'It installs after you finish this workout.' : 'Reloads the app in a second. Nothing you logged is lost.'}</p>${S.session ? '' : '<button class="btn ink" data-act="update">Update</button>'}</div>`;
+  if (S.deload) h += `<div class="banner">${ic('moon')}<p><b>Deload · day ${S.deload.day} of ${S.deload.days}</b>${DL[S.deload.mode].short}. Your streak is paused.</p><button class="btn line" data-act="dl-end">End early</button></div>`;
+  $('#banners').innerHTML = h;
+}
+function weekHTML(){
+  const ws = D.weekStart(D.TODAY);
+  const done = D.SESSIONS.filter(s => s.start >= ws);
+  const goal = D.GOALS.find(g => g.type === 'weekly_frequency').target;
+  const st = D.streak(goal);
+  const count = done.length + (S.startedToday ? 1 : 0);
+  const cells = ['M','T','W','T','F','S','S'].map((l, i) => {
+    const d = new Date(ws); d.setDate(ws.getDate() + i);
+    const isToday = d.toDateString() === D.TODAY.toDateString();
+    const did = done.some(s => s.start.toDateString() === d.toDateString()) || (isToday && S.startedToday);
+    return `<b class="${did ? 'done' : ''} ${isToday ? 'today' : ''} ${S.deload ? 'paused' : ''}" aria-label="${d.toLocaleDateString('en-US', {weekday:'long'})}${did ? ', trained' : ''}${isToday ? ', today' : ''}">${l}</b>`;
+  }).join('');
+  return `<a class="week" href="../me/index.html#goals" aria-label="This week: ${count} of ${goal} sessions. ${S.deload ? 'Streak paused for deload' : st.current + '-week streak'}. Open goals">
+    <div class="days">${cells}</div>
+    <div class="st"><span class="num">${count}/${goal}</span>${S.deload ? 'streak paused' : st.current ? `${st.current}-week streak` : 'this week'}</div></a>`;
+}
+function bibHTML(day, i){
+  const isNext = i === 0;
+  const sug = suggestionsFor(day).filter(t => isNext || !['r6', 'r7'].includes(t.id));
+  let list = '', k = 0, n = 0;
+  while (k < day.ex.length){
+    const pe = day.ex[k];
+    if (pe.group && day.ex[k + 1]?.group === pe.group){
+      list += `<li style="display:block;padding:0;border-top:1px solid var(--rule-soft)"><span class="ss">SUPERSET</span></li>`;
+      while (day.ex[k]?.group === pe.group){ list += exLine(day.ex[k], ++n, true); k++; }
+    } else { list += exLine(pe, ++n); k++; }
+  }
+  const last = D.SESSIONS.find(s => s.dayId === day.id);
+  const sets = day.ex.reduce((a, e) => a + e.sets, 0);
+  return `<section class="bib ${i === S.cur ? 'on' : ''}" data-i="${i}" aria-label="${esc(day.name)}${isNext ? ', next up' : ''}" aria-roledescription="slide">
+    <div class="band ${isNext ? '' : 'open'}"><span class="name">${esc(day.name)}${isNext ? ' · next up' : ''}</span><b class="setno num"><small>DAY</small>${(plan.days.indexOf(day)) + 1}</b></div>
+    <ul class="ex">${list}</ul>
+    <div class="meta"><span><b>${sets}</b> working sets</span>${last ? `<span>Last: <b>${Kit.shortDate(last.start)}</b> · ${last.minutes} min</span>` : '<span>Not done yet</span>'}</div>
+    <div class="perf"><i></i></div>
+    ${sug.length ? sug.map(tipHTML).join('') : S.deload ? `<div class="stub"><span class="label">Deload</span><p class="hint">${DL[S.deload.mode].long}</p><b class="last num">½</b></div>`
+      : `<div class="stub" style="grid-template-columns:1fr"><span class="label">Before you start</span><p class="hint" style="grid-row:auto">${last ? 'Nothing to change. Numbers start from last time.' : 'First time on this day. Log each first set by feel.'}</p></div>`}
+  </section>`;
+}
+function exLine(pe, n, inSS){
+  const c = D.ex(pe.id);
+  const reps = c.metric === 'duration' ? 'time' : `${pe.repMin}–${pe.repMax}`;
+  let sets = pe.sets, r = reps;
+  if (S.deload && (S.deload.mode === 'half_reps' || S.deload.mode === 'half_both')) sets = Math.max(1, Math.ceil(pe.sets / 2));
+  return `<li${inSS ? ' style="border-top:0"' : ''}><b class="n num">${n}</b><span class="nm">${esc(c.name)}</span><span class="v">${sets} × ${r}${S.deload && S.deload.mode !== 'half_reps' && c.metric === 'weight_reps' ? ' · ½ KG' : ''}</span></li>`;
+}
+function renderMain(){
+  const m = $('#main');
+  if (S.noPlan){
+    m.innerHTML = `${weekHTML()}<div style="padding:0 12px"><section class="bib"><div class="band open"><span class="name">No routine yet</span></div>
+      <div class="empty"><span class="bigstat num">0</span><p>Add the routine you already follow, or pick a program. You can also just start logging.</p>
+      <div class="acts" style="justify-content:center"><a class="btn ink" href="../plans/index.html#new">${ic('edit')}Write my routine</a><a class="btn line" href="../plans/index.html#templates">Browse programs</a></div></div></section></div>`;
+    return;
+  }
+  const days = order();
+  m.innerHTML = `${weekHTML()}
+    <div class="pager" role="tablist" aria-label="Choose a day">${[...days, {name:'Freestyle'}].map((d, i) => `<button role="tab" data-act="page" data-i="${i}" aria-current="${i === S.cur}" aria-label="${esc(d.name)}"><i></i></button>`).join('')}</div>
+    <div class="wallet" id="wallet" aria-label="Plan days. Swipe to choose another day">${days.map(bibHTML).join('')}
+      <section class="bib ${S.cur === days.length ? 'on' : ''}" data-i="${days.length}" aria-label="Freestyle"><div class="band open"><span class="name">Freestyle</span></div>
+        <div class="empty"><span class="bigstat num">0</span><p>An empty session. Add exercises as you go.</p></div></section>
+    </div>
+    <div class="side">${S.deload ? '' : `<button data-act="deload">${ic('moon')}Feeling run down? Plan a lighter week</button>`}</div>`;
+  const w = $('#wallet');
+  requestAnimationFrame(() => { const b = w.children[S.cur]; if (b) w.scrollLeft = b.offsetLeft - (w.clientWidth - b.clientWidth) / 2; });
+  let t; w.addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(() => {
+    const c = w.scrollLeft + w.clientWidth / 2;
+    const i = [...w.children].reduce((best, el, k) => Math.abs(el.offsetLeft + el.clientWidth / 2 - c) < Math.abs(w.children[best].offsetLeft + w.children[best].clientWidth / 2 - c) ? k : best, 0);
+    if (i !== S.cur){ S.cur = i; $$('.wallet .bib').forEach((el, k) => el.classList.toggle('on', k === i)); $$('.pager button').forEach((el, k) => el.setAttribute('aria-current', k === i)); renderFoot(); }
+  }, 90); }, {passive:true});
+}
+function renderFoot(){
+  if (S.noPlan){ $('#foot').innerHTML = navFoot('today', `<a class="go ink" href="../workout-log/index.html">Start freestyle</a>`); return; }
+  const days = order(), d = days[S.cur];
+  let primary;
+  if (S.session) primary = `<a class="go" href="../workout-log/index.html">Resume Push A</a>`;
+  else primary = `<button class="go ${S.cur === 0 ? '' : 'ink'}" data-act="start">${d ? `Start ${esc(d.name)}` : 'Start freestyle'}</button>`;
+  $('#foot').innerHTML = navFoot('today', primary);
+}
+
+/* ---------- deload (UC22) ---------- */
+const DL = {
+  rest_full:{t:'Full rest', s:'No training for the period.', short:'Full rest', long:'No sessions planned. Rest up.'},
+  rest_half:{t:'Train half as often', s:'Every other planned day.', short:'Half the sessions', long:'Train every other day this week, normal targets.'},
+  half_load:{t:'Half the weight', s:'Same sets and reps at about 50%.', short:'Half weight, same sets', long:'Same sets and reps at about half the weight, rounded to each exercise’s step.'},
+  half_reps:{t:'Half the sets', s:'Same weight, half the sets.', short:'Half the sets', long:'Same weights, half the working sets.'},
+  half_both:{t:'Half weight and half sets', s:'The lightest week.', short:'Half weight, half sets', long:'About half the weight and half the sets.'},
+};
+function deloadSheet(src){
+  const ld = S.lastDeload;
+  S.dl = S.dl || {mode:ld?.mode || 'half_load', days:ld?.days || 7, src};
+  openSheet('Plan a lighter week', `
+    ${src === 'suggested' ? '<p style="margin-bottom:8px">Suggested because your reps dropped two sessions in a row.</p>' : ''}
+    ${ld ? `<p class="small" style="margin-bottom:8px">Filled in from your last deload (${Kit.shortDate(ld.start)}). Change anything.</p>` : ''}
+    <div class="field dl-modes"><span class="label">What changes</span><div class="seg stack">${Object.entries(DL).map(([k, v]) => `<button data-act="dl-mode" data-v="${k}" aria-pressed="${S.dl.mode === k}">${v.t}<small>${v.s}</small></button>`).join('')}</div></div>
+    <div class="field"><span class="label">How long</span><div class="stepper"><button data-act="dl-days" data-d="-1" aria-label="One day less">${ic('minus')}</button><b class="num">${S.dl.days}</b><button data-act="dl-days" data-d="1" aria-label="One day more">${ic('plus')}</button><span class="label">days</span></div></div>
+    <p class="small" style="margin:4px 0 12px">During a deload your weekly streak pauses and the “go up” nudges are off. It ends by itself, or you can end it early.</p>`,
+    {foot:`<button class="btn ink wide" data-act="dl-start">Start deload today</button>`});
+}
+
+/* ---------- start ---------- */
+function start(){
+  const d = order()[S.cur];
+  if (S.iosTab && !S.iosSeen){
+    S.iosSeen = true;
+    openSheet('Add to Home Screen first?', `<p>On iPhone, workouts are safest when the app runs from your Home Screen: Safari can clear data from tabs it hasn’t seen in a while.</p>
+      <ol class="ios"><li>${ic('share')}Tap Share in Safari’s toolbar</li><li>${ic('plus')}Choose “Add to Home Screen”</li><li>${ic('play')}Open Fitness from your Home Screen</li></ol>`,
+      {foot:`<div class="acts" style="margin:0"><button class="btn ink" data-act="close">I’ll add it</button><button class="btn line" data-act="start-anyway">Start in Safari anyway</button></div>`});
+    return;
+  }
+  S.startedToday = true;
+  toast(`Starting ${esc(d ? d.name : 'freestyle')}…`);
+  setTimeout(() => { location.href = '../workout-log/index.html'; }, 700);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act;
+  switch (a){
+    case 'start': start(); break;
+    case 'start-anyway': closeSheet(); S.iosSeen = true; start(); break;
+    case 'page': { S.cur = +b.dataset.i; const w = $('#wallet'), el = w.children[S.cur]; w.scrollTo({left:el.offsetLeft - (w.clientWidth - el.clientWidth) / 2, behavior:Kit.reduce ? 'auto' : 'smooth'}); break; }
+    case 'tip': {
+      const id = b.dataset.id, i = +b.dataset.i;
+      if (id === 'r7'){ if (i === 0) deloadSheet('suggested'); else { S.mode = 'normal'; toast('Okay. Reasons stay in History if you change your mind.'); render(); } break; }
+      if (id === 'r6'){ S.mode = 'normal'; toast(i === 0 ? 'Today’s targets set to about 70%.' : 'Starting at your usual numbers.'); render(); break; }
+      S.dismissed[id] = true; S.pending++; render(); break;
+    }
+    case 'deload': S.dl = null; deloadSheet('manual'); break;
+    case 'dl-mode': S.dl.mode = b.dataset.v; deloadSheet(S.dl.src); break;
+    case 'dl-days': S.dl.days = Math.max(1, Math.min(14, S.dl.days + +b.dataset.d)); deloadSheet(S.dl.src); break;
+    case 'dl-start': S.deload = {mode:S.dl.mode, days:S.dl.days, day:1}; S.mode = 'normal'; S.pending++; closeSheet(); render(); toast(`Deload started: ${DL[S.deload.mode].short.toLowerCase()} for ${plural(S.deload.days, 'day')}.`); break;
+    case 'dl-end': openSheet('End the deload today?', `<p style="margin-bottom:16px">Targets go back to where they were before it started. Your streak picks up from next week.</p>`, {foot:`<div class="acts" style="margin:0"><button class="btn ink" data-act="dl-end-ok">End deload</button><button class="btn line" data-act="close">Keep going</button></div>`}); break;
+    case 'dl-end-ok': S.lastDeload = {mode:S.deload.mode, days:S.deload.days, start:D.TODAY}; S.deload = null; S.pending++; closeSheet(); render(); toast('Deload ended. Back to your usual targets.'); break;
+    case 'update': b.classList.add('busy'); setTimeout(() => { S.update = false; render(); toast('Updated.'); }, 900); break;
+    case 'close': closeSheet(); break;
+    case 'demo': openDemo(); break;
+    case 'd-online': S.online = !S.online; if (S.online && S.pending) setTimeout(() => { S.pending = 0; render(); }, 1200); render(); break;
+    case 'd-pending': S.pending = S.pending ? 0 : 3; render(); break;
+    case 'd-session': S.session = !S.session; render(); break;
+    case 'd-ios': S.iosTab = !S.iosTab; S.iosSeen = false; render(); break;
+    case 'd-update': S.update = !S.update; render(); break;
+    case 'd-mode': S.mode = b.dataset.v; S.dismissed = {}; S.cur = 0; S.deload = null; closeSheet(); render(); break;
+    case 'd-deload': S.deload = S.deload ? null : {mode:'half_load', days:7, day:3}; closeSheet(); render(); break;
+    case 'd-noplan': S.noPlan = !S.noPlan; closeSheet(); render(); break;
+  }
+});
+setInterval(() => { if (S.online && S.pending){ S.pending = 0; syncPill($('#sync'), S); } }, 2500);
+demo(() => `
+  <button data-act="d-online" aria-pressed="${!S.online}">${S.online ? 'Go offline' : 'Offline · reconnect'}</button>
+  <button data-act="d-pending" aria-pressed="${!!S.pending}">Unsynced changes</button>
+  <button data-act="d-session" aria-pressed="${S.session}">Workout in progress</button>
+  <button data-act="d-ios" aria-pressed="${S.iosTab}">iPhone, opened in a Safari tab</button>
+  <button data-act="d-update" aria-pressed="${S.update}">App update available</button>
+  <span class="label grp">Suggestions</span>
+  <button data-act="d-mode" data-v="normal" aria-pressed="${S.mode === 'normal' && !S.deload}">Normal week (R1 nudge on Push A)</button>
+  <button data-act="d-mode" data-v="break" aria-pressed="${S.mode === 'break'}">Back after 18 days off (R6)</button>
+  <button data-act="d-mode" data-v="tired" aria-pressed="${S.mode === 'tired'}">Reps dropping, deload suggested (R7)</button>
+  <button data-act="d-deload" aria-pressed="${!!S.deload}">Deload in progress</button>
+  <button data-act="d-noplan" aria-pressed="${S.noPlan}">New user · no routine</button>
+  <span class="label grp">Other slices</span>
+  <a href="../index.html">All prototypes</a>`);
+render();
+</script>
+</body>
+</html>
