@@ -61,5 +61,18 @@
   "error_not_found": "That's no longer here.",
   "error_internal_server_error": "Something went wrong on our side. Your data on this device is safe.",
   "error_network": "Can't reach the server. Everything is saved on this device.",
-  "error_unknown": "Something went wrong. Try again."
+  "error_unknown": "Something went wrong. Try again.",
+  "resume_in_progress": "{name} · in progress",
+  "resume_sets_logged": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} set logged",
+        "countPlural=other": "{count} sets logged"
+      }
+    }
+  ],
+  "resume_action": "Resume",
+  "resume_label": "Workout in progress: {name}, {elapsed}. Resume"
 }

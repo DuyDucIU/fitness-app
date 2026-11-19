@@ -2,17 +2,37 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { AppShell, Foot, SectionHeading, TopBar } from '@/components/app-shell';
-import { Block, Row, RowEnd, RowTitle, RowValue } from '@/components/block';
+import {
+  Block,
+  Row,
+  RowCheck,
+  RowEnd,
+  RowKey,
+  RowTitle,
+  RowValue,
+} from '@/components/block';
 import { Chip, ChipRow } from '@/components/chip';
-import { Segmented, Stepper, SwitchRow } from '@/components/controls';
+import { Segmented, Stepper, Subtabs, SwitchRow } from '@/components/controls';
 import { Alert, EmptyState } from '@/components/empty-state';
-import { Field, NumberInput, SearchInput, TextInput } from '@/components/field';
+import {
+  Field,
+  InputRow,
+  NumberInput,
+  SearchInput,
+  Select,
+  TextInput,
+} from '@/components/field';
+import { Menu, MenuItem } from '@/components/menu';
+import { ResumeBar } from '@/components/resume-bar';
+import { Note, Skeleton } from '@/components/text';
 import { Banner } from '@/components/banner';
 import {
   AlertIcon,
   DownloadIcon,
+  EditIcon,
   MoreIcon,
   PlusIcon,
+  TrashIcon,
 } from '@/components/icons';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { SyncPill, SyncPillView } from '@/components/sync-pill';
@@ -95,16 +115,29 @@ export function Component() {
         {m.app_update_body()}
       </Banner>
 
+      <SectionHeading>Resume · Subtabs</SectionHeading>
+      <div className="-mx-3 space-y-2">
+        <ResumeBar to="/" name="Push A" elapsed="31:12" setsLogged={5} />
+        <Subtabs
+          items={[
+            { to: '/dev/kit', label: 'Workouts' },
+            { to: '/history', label: 'PRs' },
+          ]}
+        />
+      </div>
+
       <SectionHeading>Hạ tầng</SectionHeading>
       <Block>
         <Row>
           <RowTitle
             sub={
-              health.isPending
-                ? m.common_loading()
-                : health.isError
-                  ? errorMessage(health.error)
-                  : health.data.status
+              health.isPending ? (
+                <Skeleton className="mt-1 h-3 w-24" />
+              ) : health.isError ? (
+                errorMessage(health.error)
+              ) : (
+                health.data.status
+              )
             }
           >
             API · GET /v1/health
@@ -168,6 +201,11 @@ export function Component() {
 
       <SectionHeading>Rows</SectionHeading>
       <Block>
+        <Row>
+          <RowKey>SET 1</RowKey>
+          <RowTitle sub="Logged">80 kg × 5</RowTitle>
+          <RowCheck label="Done" />
+        </Row>
         <Row asChild>
           <button type="button">
             <RowTitle sub="3 × 5 · 80 kg">Barbell squat</RowTitle>
@@ -215,6 +253,30 @@ export function Component() {
         <Field label={m.common_search()}>
           <SearchInput placeholder={m.common_search()} />
         </Field>
+      </Block>
+
+      <Block pad>
+        <Field label="Unit">
+          <Select defaultValue="kg">
+            <option value="kg">kg</option>
+            <option value="lb">lb</option>
+          </Select>
+        </Field>
+        <Field label="Starting weight · optional">
+          <InputRow>
+            <NumberInput value={weight} onValueChange={setWeight} />
+            <span className="label-caps">kg total</span>
+          </InputRow>
+        </Field>
+        <Field label="Date">
+          <TextInput type="date" />
+        </Field>
+      </Block>
+      <Note>Weigh in at the same time of day for a cleaner line.</Note>
+      <p className="px-1 caption">caption · .small</p>
+      <Block pad className="space-y-2">
+        <Skeleton className="h-3.5 w-3/5" />
+        <Skeleton className="h-6 w-10" />
       </Block>
 
       <SectionHeading>Controls</SectionHeading>
@@ -265,6 +327,21 @@ export function Component() {
                   onValueChange={setWeight}
                 />
               </Field>
+              <Menu>
+                <MenuItem
+                  icon={<EditIcon aria-hidden />}
+                  sub="Fix a weight or reps you mistyped."
+                >
+                  Edit sets
+                </MenuItem>
+                <MenuItem
+                  danger
+                  icon={<TrashIcon aria-hidden />}
+                  sub="Removes it from history, PRs and your streak."
+                >
+                  Delete workout
+                </MenuItem>
+              </Menu>
             </SheetBody>
             <SheetFooter>
               <Button size="wide">{m.common_save()}</Button>

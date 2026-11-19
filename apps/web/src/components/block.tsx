@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 import { Slot } from 'radix-ui';
 
-import { ChevronIcon } from '@/components/icons';
+import { CheckIcon, ChevronIcon } from '@/components/icons';
 
 /** Khối Trắng Tyvek bo 10px chứa các hàng (prototypes/shared/base.css › .block). */
 export function Block({
@@ -115,6 +115,29 @@ export function RowEnd({
     >
       {children}
       {chevron && <ChevronIcon className="-mr-1 size-5" aria-hidden />}
+    </span>
+  );
+}
+
+/** Cột nhãn hẹp 48px đầu hàng (.row .k), vd "SET 1". */
+export function RowKey({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="w-12 flex-none text-label font-bold tracking-[0.06em] whitespace-nowrap">
+      {children}
+    </span>
+  );
+}
+
+/** Dấu ✓ trắng trên tròn xanh 28px (.row .ok): "đã xong / đã đồng bộ". */
+export function RowCheck({ label }: { label?: string }) {
+  return (
+    <span
+      role={label ? 'img' : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+      className="grid size-7 flex-none place-items-center rounded-full bg-green text-on-signal"
+    >
+      <CheckIcon className="size-4" strokeWidth={3} aria-hidden />
     </span>
   );
 }

@@ -59,6 +59,13 @@
 
   /* Chuyển động */
   --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-skel: skel 1.2s ease-in-out infinite;
+
+  @keyframes skel {
+    50% {
+      opacity: 0.55;
+    }
+  }
 }
 
 /* ── Biến semantic của shadcn trỏ về token gốc ─────────────────────────────────
@@ -119,6 +126,20 @@
   letter-spacing: -0.01em;
 }
 
+/* Chữ phụ 12px đậm vừa (.small), vd dòng phụ trong hàng, chú thích dưới ô. */
+@utility caption {
+  font-size: var(--text-label);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Mũi tên mực của ô chọn (select.in). */
+@utility select-chevron {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
 /* Nhãn 12px chữ hoa */
 @utility label-caps {
   font-size: var(--text-label);
@@ -144,6 +165,12 @@
   }
   input {
     caret-color: var(--color-orange);
+  }
+  input[type='date'],
+  input[type='datetime-local'] {
+    color-scheme: light;
+    accent-color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
   }
   /* base.css: viền focus mực 3px; phần tử không có bo góc riêng thì bo 6px
      (class rounded-* ở layer utilities thắng rule này). */

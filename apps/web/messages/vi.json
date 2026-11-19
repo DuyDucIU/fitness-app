@@ -58,5 +58,17 @@
   "error_not_found": "Mục này không còn nữa.",
   "error_internal_server_error": "Máy chủ đang gặp lỗi. Dữ liệu trên máy này vẫn an toàn.",
   "error_network": "Không kết nối được máy chủ. Mọi thứ vẫn được lưu trên máy này.",
-  "error_unknown": "Có lỗi xảy ra, thử lại nhé."
+  "error_unknown": "Có lỗi xảy ra, thử lại nhé.",
+  "resume_in_progress": "{name} · đang tập",
+  "resume_sets_logged": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "Đã ghi {count} set"
+      }
+    }
+  ],
+  "resume_action": "Tập tiếp",
+  "resume_label": "Đang có buổi tập: {name}, {elapsed}. Tập tiếp"
 }

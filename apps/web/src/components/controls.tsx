@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { NavLink } from 'react-router';
 
 import { MinusIcon, PlusIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
@@ -130,6 +131,39 @@ export function Stepper({
       >
         <PlusIcon className="size-5" aria-hidden />
       </button>
+    </div>
+  );
+}
+
+/**
+ * Tab con trong một màn (prototypes/shared/base.css › .subtabs), vd Workouts | PRs ở
+ * History, Training | Body ở Progress. Mỗi tab là một link (`role="tab"`), tab hiện tại
+ * nền mực.
+ */
+export function Subtabs({
+  items,
+  'aria-label': ariaLabel,
+}: {
+  items: readonly { to: string; label: React.ReactNode }[];
+  'aria-label'?: string;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className="flex flex-none gap-1.5 px-3 pb-2"
+    >
+      {items.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          end
+          role="tab"
+          className="flex min-h-10 flex-1 items-center justify-center rounded-sm border-[1.5px] border-rule bg-tyvek font-semibold no-underline aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-tyvek"
+        >
+          {item.label}
+        </NavLink>
+      ))}
     </div>
   );
 }

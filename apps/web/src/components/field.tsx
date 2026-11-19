@@ -147,3 +147,27 @@ export function SearchInput({
     </label>
   );
 }
+
+/** Ô chọn gốc của trình duyệt, cùng kiểu với ô nhập và có mũi tên mực (select.in). */
+export function Select({
+  className,
+  ...props
+}: React.ComponentProps<'select'>) {
+  return (
+    <select
+      {...useFieldControl()}
+      className={cn(
+        'h-12 w-full appearance-none rounded-sm border-[1.5px] border-ink bg-white pr-10 pl-3 text-read outline-none select-chevron focus:shadow-[inset_0_0_0_1.5px_var(--color-ink)] aria-invalid:border-danger aria-invalid:shadow-[inset_0_0_0_1.5px_var(--color-danger)]',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/** Hàng ô nhập + nhãn/nút đứng cạnh nhau (.inrow), vd ô số kèm đơn vị. */
+export function InputRow({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div className={cn('flex items-center gap-2', className)} {...props} />
+  );
+}
