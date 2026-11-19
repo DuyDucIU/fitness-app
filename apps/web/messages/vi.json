@@ -38,7 +38,7 @@
       }
     }
   ],
-  "sync_offline_hint": "Đang ngoại tuyến. Mọi thứ bạn ghi đều được lưu trên máy này.",
+  "sync_offline_hint": "Đang không có mạng. Mọi thứ bạn ghi đều được lưu trên máy này.",
   "sync_offline_pending_hint": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],

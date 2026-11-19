@@ -27,6 +27,18 @@ describe('formatNumber', () => {
     expect(formatNumber(80, {}, 'vi')).toBe('80');
   });
 
+  it('nhóm hàng nghìn theo locale, tắt được cho ô nhập', () => {
+    expect(formatNumber(1234.5, {}, 'en')).toBe('1,234.5');
+    expect(formatNumber(1234.5, {}, 'vi')).toBe('1.234,5');
+    expect(formatNumber(1234.5, { grouping: false }, 'vi')).toBe('1234,5');
+    expect(parseDecimal(formatNumber(1234.5, { grouping: false }, 'vi'))).toBe(
+      1234.5,
+    );
+    expect(parseDecimal(formatNumber(1234.5, { grouping: false }, 'en'))).toBe(
+      1234.5,
+    );
+  });
+
   it('trả chuỗi rỗng cho giá trị không hữu hạn', () => {
     expect(formatNumber(Number.NaN, {}, 'en')).toBe('');
   });

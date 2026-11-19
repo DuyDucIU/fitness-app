@@ -13,8 +13,9 @@ describe('Button busy', () => {
       </Button>,
     );
     const button = screen.getByRole('button', { name: 'Update' });
-    expect(button.getAttribute('aria-busy')).toBe('true');
-    expect(button.getAttribute('aria-disabled')).toBeNull();
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute('aria-busy', 'true');
+    expect(button).not.toHaveAttribute('aria-disabled');
 
     button.focus();
     await userEvent.keyboard('{Enter}');

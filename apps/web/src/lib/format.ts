@@ -11,12 +11,17 @@ const INTL_LOCALE: Record<Locale, string> = { en: 'en-US', vi: 'vi-VN' };
 
 const cache = new Map<string, Intl.NumberFormat | Intl.DateTimeFormat>();
 
-function numberFormat(locale: Locale, maxFractionDigits: number) {
-  const key = `n|${locale}|${maxFractionDigits}`;
+function numberFormat(
+  locale: Locale,
+  maxFractionDigits: number,
+  useGrouping: boolean,
+) {
+  const key = `n|${locale}|${maxFractionDigits}|${useGrouping}`;
   let f = cache.get(key) as Intl.NumberFormat | undefined;
   if (!f) {
     f = new Intl.NumberFormat(INTL_LOCALE[locale], {
       maximumFractionDigits: maxFractionDigits,
+      useGrouping,
     });
     cache.set(key, f);
   }
@@ -33,14 +38,20 @@ function dateFormat(locale: Locale, options: Intl.DateTimeFormatOptions) {
   return f;
 }
 
-/** 77.5 → "77.5" (en) / "77,5" (vi). */
+/**
+ * 77.5 → "77.5" (en) / "77,5" (vi). `grouping: false` bỏ dấu nhóm hàng nghìn (1234,5 thay vì
+ * 1.234,5) — dùng cho giá trị đặt vào ô nhập, vì `parseDecimal` không nhận dấu nhóm.
+ */
 export function formatNumber(
   value: number,
-  { maxFractionDigits = 2 }: { maxFractionDigits?: number } = {},
+  {
+    maxFractionDigits = 2,
+    grouping = true,
+  }: { maxFractionDigits?: number; grouping?: boolean } = {},
   locale: Locale = getLocale(),
 ): string {
   if (!Number.isFinite(value)) return '';
-  return numberFormat(locale, maxFractionDigits).format(value);
+  return numberFormat(locale, maxFractionDigits, grouping).format(value);
 }
 
 /**

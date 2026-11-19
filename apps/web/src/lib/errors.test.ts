@@ -15,9 +15,15 @@ describe('errorMessage', () => {
     );
   });
 
-  it('lỗi mạng của fetch', () => {
-    expect(errorMessage(new TypeError('Failed to fetch'))).toBe(
+  it('không tới được server', () => {
+    expect(errorMessage(new ApiError('network', 0))).toBe(
       'No connection. Try again when you’re connected.',
+    );
+  });
+
+  it('lỗi lập trình không bị báo là mất mạng', () => {
+    expect(errorMessage(new TypeError('x is undefined'))).toBe(
+      'Something went wrong. Try again.',
     );
   });
 });

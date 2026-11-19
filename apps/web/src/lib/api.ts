@@ -25,7 +25,13 @@ async function request<T>(
     if (!data.session) throw new ApiError('unauthorized', 401);
     headers.Authorization = `Bearer ${data.session.access_token}`;
   }
-  const response = await fetch(`${env.apiUrl}${path}`, { headers });
+  let response: Response;
+  try {
+    response = await fetch(`${env.apiUrl}${path}`, { headers });
+  } catch (error) {
+    // fetch chỉ ném khi không tới được server (mất mạng, server tắt, CORS).
+    throw new ApiError('network', 0, String(error));
+  }
   if (!response.ok) {
     const body = ErrorResponseSchema.safeParse(
       await response.json().catch(() => null),

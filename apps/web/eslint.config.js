@@ -55,6 +55,8 @@ export default defineConfig([
               'help',
               'error',
               'stat',
+              'decreaseLabel',
+              'increaseLabel',
             ],
           },
         },

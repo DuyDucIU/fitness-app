@@ -2,7 +2,9 @@ import paraglide from '@inlang/paraglide-js/eslint';
 import tsParser from '@typescript-eslint/parser';
 
 export default [
-  { ignores: ['src/paraglide/**', 'node_modules/**'] },
+  {
+    ignores: ['src/paraglide/**', 'node_modules/**', 'dist/**', 'dev-dist/**'],
+  },
   {
     files: ['**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'],
     languageOptions: {

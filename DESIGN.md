@@ -395,7 +395,7 @@ Dứt khoát, chữ đậm, không hiệu ứng hover trang trí.
 - **Khối trống:** căn giữa, câu tối đa 30ch, có thể kèm một số cỡ bib và một nút.
 
 ### Inputs / Fields
-- **Ô số áo:** không viền, nền trong suốt, chữ cỡ bib, căn giữa, con trỏ cam. Khi focus: nền Cam Nhạt, không viền. Nội dung được chọn hết khi vào ô; khi rời ô, giá trị được định dạng lại theo `vi-VN`.
+- **Ô số áo:** không viền, nền trong suốt, chữ cỡ bib, căn giữa, con trỏ cam. Khi focus: nền Cam Nhạt, không viền. Nội dung được chọn hết khi vào ô; khi rời ô, giá trị được định dạng lại theo ngôn ngữ đang dùng (The Số Theo Ngôn Ngữ Rule).
 - **Ô tìm kiếm:** cao 48px, viền 1.5px mực, góc 8px, biểu tượng kính lúp bên trái.
 - **Ô nhập chữ (`input`):** cao 48px, viền 1.5px mực, góc 8px, nền trắng tinh (`on-signal`) để tách khỏi Trắng Tyvek của khối, đệm ngang 12px, chữ 16px, con trỏ cam. Focus: viền dày lên 3px bằng inset 1.5px mực, không glow. Không hợp lệ: viền và inset `danger`, dòng lỗi 12px 700 `danger` kèm biểu tượng 16px dưới ô. Nhãn trường là nhãn 12px chữ hoa phía trên (cách 8px), dòng trợ giúp 12px 600 phía dưới. Ô số ngắn dùng numeral 28px căn giữa, rộng 96px.
 - **Danh sách chọn (`select`):** cùng hình ô nhập, mũi tên chevron 20px mực bên phải (đệm phải 40px).
@@ -470,7 +470,7 @@ Một chuỗi dữ liệu, một điểm nhấn.
 - **Do** đặt chữ mực (#111111) trên nền cam; chỉ dùng chữ trắng trên lam và xanh.
 - **Do** giữ nút chính 64px ở đáy và điều khiển nghỉ ngay trên nó, trong vùng ngón cái.
 - **Do** để nút Xong set luôn bấm được: thiếu số thì đưa con trỏ tới ô trống và nói lý do bằng toast, không khoá nút.
-- **Do** định dạng mọi số theo `vi-VN` (77,5) và ngăn các set bằng chấm giữa.
+- **Do** định dạng mọi số theo ngôn ngữ đang dùng (en 77.5, vi 77,5 — The Số Theo Ngôn Ngữ Rule) và ngăn các set bằng chấm giữa.
 - **Do** vẽ trạng thái bằng nền, viền inset và đảo nền; giữ thay đổi sáng tới khi người tập thấy, và cho hàng trượt vào chứ không biến mất.
 - **Do** dùng biểu tượng nét 2px kiểu lucide, 20px, `currentColor`.
 - **Do** đặt thanh tab 5 mục (Today / Plans / History / Progress / Me) trên mọi màn gốc ngoài buổi tập, với nút chính 64px của màn ngay trên nó; biểu tượng tab là ngoại lệ 22px.

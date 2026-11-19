@@ -1,7 +1,7 @@
 import { m } from '@/paraglide/messages.js';
 
 /**
- * Lỗi từ API: giữ `code` của response lỗi thống nhất (SDD 8.1) để client hiển thị
+ * Lỗi từ API (`code = 'network'` khi không tới được server): giữ `code` của response lỗi thống nhất (SDD 8.1) để client hiển thị
  * message đã dịch; `message` của server chỉ để debug.
  */
 export class ApiError extends Error {
@@ -32,11 +32,11 @@ export function errorMessage(error: unknown): string {
         return m.error_not_found();
       case 'internal_server_error':
         return m.error_internal_server_error();
+      case 'network':
+        return m.error_network();
       default:
         return m.error_unknown();
     }
   }
-  // fetch ném TypeError khi không có mạng hoặc không tới được server.
-  if (error instanceof TypeError) return m.error_network();
   return m.error_unknown();
 }

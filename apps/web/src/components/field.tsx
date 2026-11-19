@@ -89,7 +89,9 @@ export function NumberInput({
   maxFractionDigits?: number;
 }) {
   const shown =
-    value === null ? '' : formatNumber(value, { maxFractionDigits });
+    value === null
+      ? ''
+      : formatNumber(value, { maxFractionDigits, grouping: false });
   const [text, setText] = React.useState(shown);
   const [editing, setEditing] = React.useState(false);
 
