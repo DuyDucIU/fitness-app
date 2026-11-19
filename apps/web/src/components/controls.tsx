@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { NavLink } from 'react-router';
+import { NavLink, useMatch, useResolvedPath } from 'react-router';
 
 import { MinusIcon, PlusIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
@@ -158,16 +158,32 @@ export function Subtabs({
       className="flex flex-none gap-1.5 px-3 pb-2"
     >
       {items.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end
-          role="tab"
-          className="flex min-h-10 flex-1 items-center justify-center rounded-sm border-[1.5px] border-rule bg-tyvek font-semibold no-underline aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-tyvek"
-        >
+        <SubtabLink key={item.to} to={item.to}>
           {item.label}
-        </NavLink>
+        </SubtabLink>
       ))}
     </div>
+  );
+}
+
+/** Một tab của `Subtabs`: `aria-selected` theo route hiện tại (role="tab" cần thuộc tính này). */
+function SubtabLink({
+  to,
+  children,
+}: {
+  to: string;
+  children: React.ReactNode;
+}) {
+  const selected = useMatch({ path: useResolvedPath(to).pathname, end: true });
+  return (
+    <NavLink
+      to={to}
+      end
+      role="tab"
+      aria-selected={!!selected}
+      className="flex min-h-10 flex-1 items-center justify-center rounded-sm border-[1.5px] border-rule bg-tyvek font-semibold no-underline aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-tyvek"
+    >
+      {children}
+    </NavLink>
   );
 }

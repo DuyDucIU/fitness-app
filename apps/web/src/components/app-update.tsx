@@ -40,11 +40,19 @@ export function AppUpdateProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ready,
       update: () => {
-        try {
-          sessionStorage.setItem(UPDATED_FLAG, '1');
-        } catch {
-          // bỏ qua
-        }
+        // Chỉ đánh dấu khi service worker mới thật sự nắm quyền (ngay trước khi tải lại),
+        // để lần tải lại tay sau một lần cập nhật hỏng không báo "Updated." sai.
+        navigator.serviceWorker?.addEventListener(
+          'controllerchange',
+          () => {
+            try {
+              sessionStorage.setItem(UPDATED_FLAG, '1');
+            } catch {
+              // sessionStorage bị chặn: chỉ mất câu báo "Updated."
+            }
+          },
+          { once: true },
+        );
         void updateServiceWorker(true);
       },
     }),
@@ -83,6 +91,8 @@ export function UpdateBanner({
             onClick={() => {
               setBusy(true);
               update();
+              // Bình thường app tải lại ngay; nếu không thì cho bấm lại.
+              window.setTimeout(() => setBusy(false), 10_000);
             }}
           >
             {m.common_update()}

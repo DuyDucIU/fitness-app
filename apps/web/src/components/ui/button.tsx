@@ -54,6 +54,7 @@ function Button({
   asChild = false,
   busy = false,
   type = 'button',
+  onClick,
   ...props
 }: React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
@@ -69,10 +70,19 @@ function Button({
       data-size={size}
       type={asChild ? undefined : type}
       aria-busy={busy || undefined}
+      aria-disabled={busy || props['aria-disabled'] || undefined}
+      onClick={(event) => {
+        // pointer-events-none không chặn Enter/Space, nên chặn ở đây.
+        if (busy) {
+          event.preventDefault();
+          return;
+        }
+        onClick?.(event);
+      }}
       className={cn(
         buttonVariants({ variant, size }),
         busy &&
-          "pointer-events-none after:size-4 after:animate-spin after:rounded-full after:border-2 after:border-current after:border-r-transparent after:content-[''] after:[animation-duration:0.7s]",
+          "pointer-events-none after:size-4 after:animate-[spin_0.7s_linear_infinite] after:rounded-full after:border-2 after:border-current after:border-r-transparent after:content-['']",
         className,
       )}
       {...props}

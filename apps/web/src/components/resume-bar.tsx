@@ -33,7 +33,7 @@ export function ResumeBar({
         </span>
       </span>
       <b className="text-num leading-none numeral">{elapsed}</b>
-      <span className="inline-flex min-h-10 items-center rounded-sm bg-ink px-4 font-bold text-tyvek">
+      <span className="inline-flex min-h-10 flex-none items-center justify-center rounded-sm bg-ink px-4 font-bold whitespace-nowrap text-tyvek">
         {m.resume_action()}
       </span>
     </Link>

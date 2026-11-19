@@ -180,8 +180,7 @@
     border-radius: 6px;
   }
   /* Trên nền mực (hàng đảo nền, toast) viền focus chuyển Trắng Tyvek. */
-  .on-dark :focus-visible,
-  .on-dark:focus-visible {
+  .on-dark :focus-visible {
     outline-color: var(--color-tyvek);
   }
   button {

@@ -142,6 +142,7 @@ export function SearchInput({
       <input
         type="search"
         className="min-w-0 flex-1 bg-transparent text-read outline-none placeholder:text-[#6b6b66]"
+        {...useFieldControl()}
         {...props}
       />
     </label>
@@ -157,7 +158,7 @@ export function Select({
     <select
       {...useFieldControl()}
       className={cn(
-        'h-12 w-full appearance-none rounded-sm border-[1.5px] border-ink bg-white pr-10 pl-3 text-read outline-none select-chevron focus:shadow-[inset_0_0_0_1.5px_var(--color-ink)] aria-invalid:border-danger aria-invalid:shadow-[inset_0_0_0_1.5px_var(--color-danger)]',
+        'h-12 w-full appearance-none rounded-sm border-[1.5px] border-ink bg-white pr-10 pl-3 text-read outline-none select-chevron disabled:cursor-not-allowed disabled:opacity-40 focus:shadow-[inset_0_0_0_1.5px_var(--color-ink)] aria-invalid:border-danger aria-invalid:shadow-[inset_0_0_0_1.5px_var(--color-danger)]',
         className,
       )}
       {...props}

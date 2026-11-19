@@ -49,11 +49,14 @@ function SheetOverlay({
   );
 }
 
-/** Phần tử được focus khi mở sheet: ô có `data-autofocus`, nếu không có thì nút đóng (kit.js › openSheet). */
+/**
+ * Phần tử được focus khi mở sheet (kit.js › openSheet): ô có `data-autofocus`, nếu không có
+ * thì nút đóng. Dùng `data-autofocus` vì React không render thuộc tính `autofocus` ra DOM.
+ */
 function focusOnOpen(event: Event) {
   const content = event.currentTarget as HTMLElement | null;
   const target =
-    content?.querySelector<HTMLElement>('[data-autofocus], [autofocus]') ??
+    content?.querySelector<HTMLElement>('[data-autofocus]') ??
     content?.querySelector<HTMLElement>('[data-slot="sheet-close"]');
   if (target) {
     event.preventDefault();
@@ -105,13 +108,11 @@ function SheetHeader({
   return (
     <div
       data-slot="sheet-header"
-      className={cn(
-        'flex items-center gap-2 pt-4 pr-2 pb-2 pl-4 [&>[data-slot=sheet-title]]:flex-1',
-        className,
-      )}
+      className={cn('flex items-center gap-2 pt-4 pr-2 pb-2 pl-4', className)}
       {...props}
     >
-      {children}
+      {/* Tiêu đề và mô tả xếp dọc; nút đóng đứng riêng bên phải */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1">{children}</div>
       {showCloseButton && (
         <SheetPrimitive.Close data-slot="sheet-close" asChild>
           <Button variant="ghost" size="icon" aria-label={m.common_close()}>

@@ -3,6 +3,7 @@
  * prototypes/shared/kit.js (tên khoá prototype ghi ở cuối dòng). Màn hình import từ đây
  * để cả app dùng cùng một icon cho cùng một ý.
  * Chưa có: `google` (logo thương hiệu, lucide không có) — dựng khi làm màn đăng nhập.
+ * Lệch nhẹ về nét: `pause` (lucide vẽ hai khối, prototype hai nét), `flag` (lucide cờ lượn sóng).
  */
 export {
   Check as CheckIcon, // check
@@ -17,7 +18,7 @@ export {
   X as CloseIcon, // x
   Menu as MenuIcon, // menu
   Link as LinkIcon, // link
-  ArrowRightLeft as SwapIcon, // swap
+  ArrowLeftRight as SwapIcon, // swap
   Trash as TrashIcon, // trash
   Search as SearchIcon, // search
   WifiOff as OfflineIcon, // off
@@ -43,6 +44,6 @@ export {
   LogOut as LogoutIcon, // logout
   Pause as PauseIcon, // pause
   Target as TargetIcon, // target
-  Download as DownloadIcon, // download
+  ArrowDownToLine as DownloadIcon, // download
   User as MeIcon, // user
 } from 'lucide-react';

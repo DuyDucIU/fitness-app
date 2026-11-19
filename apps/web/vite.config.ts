@@ -18,6 +18,9 @@ const fromRoot = (relative: string) =>
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Gốc dự án theo cách viết trên đĩa (xem fromRoot): Vitest chạy từ thư mục `d:` cũng
+  // nạp `vitest` một bản duy nhất, matcher của jest-dom mới gắn đúng `expect`.
+  root: fromRoot('.'),
   plugins: [
     // Song ngữ (SDD 3.5): tuỳ chọn compiler nằm ở project.inlang/paraglide.config.ts.
     paraglideVitePlugin({ project: './project.inlang' }),
