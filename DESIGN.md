@@ -301,7 +301,7 @@ Bảng màu như vật liệu in số áo: giấy Tyvek, mực đen, và ba màu
 **Character:** Barlow Condensed hẹp, đậm, chữ số đều cột như số in trên áo đua. Be Vietnam Pro dựng đúng dấu tiếng Việt và giữ giọng nói chuyện ấm cho câu gợi ý.
 
 ### Hierarchy
-- **Bib** (800, 132 / 104 / 80 / 66px, line-height 0.9): hai con số trên mặt số áo (tạ × reps) và số lớn ở trang tóm tắt, trang buổi trống. Cỡ giảm theo độ dài chuỗi: 1–2 ký tự 132px, 3 ký tự 104px, 4 ký tự 80px, dài hơn 66px. Hai số trong một cặp luôn dùng chung cỡ nhỏ hơn.
+- **Bib** (800, 132 / 104 / 80 / 66px, line-height 0.9): hai con số trên mặt số áo (tạ × reps) và số lớn ở trang tóm tắt, trang buổi trống. Trên mặt số đang ghi set, mọi con số (kg, reps, thời gian) dùng **một cỡ cố định 80px**, xuống `20.3vw` trên máy hẹp (73px ở khổ 360). Bấm − hoặc + không bao giờ đổi cỡ chữ hay dịch nút, và reps không đổi cỡ theo kg. Hàng số và hàng nút đều chia đôi bằng nhau: mỗi số nằm ngay trên cặp nút của nó, dấu × nằm đúng đường giữa. Chỉ giá trị 5 ký tự không vừa nửa ô (102.5, 142.5, +12.5) mới thu nhỏ, và chỉ trong chính ô đó (khoảng 63–66px ở khổ 390). Trang tóm tắt và trang buổi trống vẫn dùng thang 132 / 104 / 80 / 66px theo độ dài.
 - **Numeral** (800, 28px, line-height 1): số phụ duy nhất. Dùng cho đồng hồ buổi tập, số set trên dải, đồng hồ nghỉ, giá trị hàng set, số "Lần trước", số PR và nhãn nút Xong set (chữ hoa).
 - **Body** (400, 16px, line-height 1.45): câu gợi ý, mô tả, nội dung sheet. Tên buổi, tên bài, nhãn nút dùng cùng cỡ ở 600–700. Câu trong khối trống giới hạn 30ch.
 - **Label** (700, 12px, letter-spacing 0.08em, chữ hoa): nhãn cho dữ liệu và trường nhập: "kg", "reps", tên bài trên dải, "LẦN TRƯỚC · 12/11", nhãn trường trong sheet, chú thích "SUPERSET" trên ngoặc nhóm. Nhãn cột hàng set dùng 0.06em. Cùng cỡ 12px không hoa cho dòng phụ (chip đồng bộ, dòng thiết bị dưới mặt số, dòng nhỏ trong menu).
@@ -466,7 +466,7 @@ Một chuỗi dữ liệu, một điểm nhấn.
 ## Do's and Don'ts
 
 ### Do:
-- **Do** để con số của set hiện tại là thứ duy nhất ở cỡ số áo, và để hai số trong cặp tạ × reps luôn cùng cỡ (132 / 104 / 80 / 66px theo số dài hơn).
+- **Do** để con số của set hiện tại là thứ duy nhất ở cỡ số áo, và để hai số trong cặp tạ × reps luôn cùng một cỡ cố định 80px, không đổi khi bấm − hoặc +.
 - **Do** đặt chữ mực (#111111) trên nền cam; chỉ dùng chữ trắng trên lam và xanh.
 - **Do** giữ nút chính 64px ở đáy và điều khiển nghỉ ngay trên nó, trong vùng ngón cái.
 - **Do** để nút Xong set luôn bấm được: thiếu số thì đưa con trỏ tới ô trống và nói lý do bằng toast, không khoá nút.

@@ -114,8 +114,15 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .adj button:active{background:var(--ink);color:var(--tyvek)}
 .adj .label{min-width:44px;text-align:center}
 /* one-number faces: reps only, and timed holds */
-.face.one{grid-template-columns:1fr}
-.face.one .cell{max-width:280px;margin:0 auto;width:100%}
+/* The logging face is a row of numbers over a row of −/+ controls, both in equal halves, so each number sits right above
+   its own controls and × sits on the centre line. Every bib numeral uses ONE size (--bib, 80px), so stepping 80 → 82.5,
+   BW → +2.5 or 9 → 10 never resizes anything. Only a value too long for its half (142.5, +12.5) is scaled down, in that cell only. */
+.face.log{display:block;--bib:min(80px,20.3vw);padding:14px 8px 8px}
+.face.log .nums{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}
+.face.log .adjs{display:grid;grid-template-columns:1fr 1fr}
+.face.log.one .nums,.face.log.one .adjs{grid-template-columns:minmax(0,1fr)}
+.face.log .big{font-size:var(--bib);height:calc(var(--bib) * .96)}
+.face.log .x{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:0;pointer-events:none}
 .big[readonly]{caret-color:transparent}
 /* a timed set is running: the orange band fills with ink toward the top of the target time. Blue stays for rest only. */
 .band.hold .over{display:flex;background:var(--ink);color:var(--tyvek)}
@@ -525,14 +532,23 @@ function renderChips(){
   $('#chips').innerHTML = html;
   $('#chips .cur')?.scrollIntoView({inline:'nearest', block:'nearest', behavior: reduce ? 'auto' : 'smooth'});
 }
-function bigSize(v){ const l = String(v || '–').length; return l <= 2 ? 132 : l === 3 ? 104 : l === 4 ? 80 : 66; }
-/* both bib numbers always share one size, set by the longer one */
-function pairSize(s, e = ex()){
-  if (e.kind === 'time') return bigSize(s.t == null ? '' : dur(s.t));
-  if (e.kind === 'reps') return bigSize(s.r ?? '');
-  return Math.min(bigSize(wText(e, s.w)), bigSize(s.r ?? ''));
+/* Bib numerals have one fixed size (--bib in CSS). Only a value that can't fit its own cell at that size (202.5 kg, say)
+   is scaled down, and only in that cell; the other number never changes size because of it. */
+let measure;
+function fitBig(el){
+  if (!el) return;
+  el.style.fontSize = '';
+  const cs = getComputedStyle(el), px = parseFloat(cs.fontSize);
+  // measure with the input's own type settings (tabular figures are wider than a canvas measure suggests)
+  if (!measure){ measure = document.createElement('span'); measure.setAttribute('aria-hidden', 'true'); measure.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;left:-9999px;top:0'; document.body.appendChild(measure); }
+  Object.assign(measure.style, {fontFamily:cs.fontFamily, fontWeight:cs.fontWeight, fontSize:cs.fontSize, fontVariantNumeric:cs.fontVariantNumeric, letterSpacing:cs.letterSpacing});
+  measure.textContent = el.value || el.placeholder;
+  // two numbers: centred text must stay clear of the × on the centre line
+  const x = el.closest('.face.log:not(.one)')?.querySelector('.x')?.getBoundingClientRect().width;
+  const w = measure.getBoundingClientRect().width, room = el.clientWidth - (x ? x + 12 : 6);
+  if (w > room) el.style.fontSize = Math.floor(px * room / w) + 'px';
 }
-function resizeFace(){ const s = curSet(); if (!s || S.timing) return; const f = pairSize(s) + 'px'; ['#inW', '#inR', '#inT'].forEach(q => { const el = $(q); if (el) el.style.fontSize = f; }); }
+function resizeFace(){ ['#inW', '#inR', '#inT'].forEach(q => fitBig($(q))); }
 
 function renderMain(){
   const m = $('#main');
@@ -563,21 +579,21 @@ function renderMain(){
   const pLeft = holding ? Math.min(1, (Date.now() - S.timing.start) / 1000 / e.durMax) : resting ? Math.max(0, (S.rest.end - Date.now()) / S.rest.total) : 0;
   const bandHTML = `<div class="band ${bandCls}" id="band" style="--p:${pLeft}">${layer('base')}${layer('over', true)}</div>`;
 
-  const fs = set ? pairSize(set) : 0;
   /* the face changes with how the exercise is logged; the bib, band and log button stay the same */
-  const cellW = () => `<div class="cell"><input class="big" id="inW" inputmode="decimal" aria-label="${e.kind === 'bw+' ? 'Added weight in kilograms. BW means bodyweight only' : `Weight (${LOAD[e.load].toLowerCase()})`}" value="${set.w == null ? '' : wText(e, set.w)}" placeholder="–" style="font-size:${fs}px">
-        <div class="adj"><button data-act="w-" aria-label="${e.kind === 'bw+' ? 'Less added weight' : `Decrease by ${fmt(e.step)} kg`}">${ic('minus')}</button><span class="label">${e.kind === 'bw+' ? '+kg' : 'kg'}</span><button data-act="w+" aria-label="${e.kind === 'bw+' ? `Add ${fmt(e.step)} kg` : `Increase by ${fmt(e.step)} kg`}">${ic('plus')}</button></div></div>`;
-  const cellR = () => `<div class="cell"><input class="big" id="inR" inputmode="numeric" aria-label="Reps" value="${set.r ?? ''}" placeholder="–" style="font-size:${fs}px">
-        <div class="adj"><button data-act="r-" aria-label="One rep fewer">${ic('minus')}</button><span class="label">reps</span><button data-act="r+" aria-label="One rep more">${ic('plus')}</button></div></div>`;
+  const numW = () => `<input class="big" id="inW" inputmode="decimal" aria-label="${e.kind === 'bw+' ? 'Added weight in kilograms. BW means bodyweight only' : `Weight (${LOAD[e.load].toLowerCase()})`}" value="${set.w == null ? '' : wText(e, set.w)}" placeholder="–">`;
+  const adjW = () => `<div class="adj"><button data-act="w-" aria-label="${e.kind === 'bw+' ? 'Less added weight' : `Decrease by ${fmt(e.step)} kg`}">${ic('minus')}</button><span class="label">${e.kind === 'bw+' ? '+kg' : 'kg'}</span><button data-act="w+" aria-label="${e.kind === 'bw+' ? `Add ${fmt(e.step)} kg` : `Increase by ${fmt(e.step)} kg`}">${ic('plus')}</button></div>`;
+  const numR = () => `<input class="big" id="inR" inputmode="numeric" aria-label="Reps" value="${set.r ?? ''}" placeholder="–">`;
+  const adjR = () => `<div class="adj"><button data-act="r-" aria-label="One rep fewer">${ic('minus')}</button><span class="label">reps</span><button data-act="r+" aria-label="One rep more">${ic('plus')}</button></div>`;
   const tNow = holding ? Math.floor((Date.now() - S.timing.start) / 1000) : set?.t;
-  const cellT = () => `<div class="cell"><input class="big" id="inT" inputmode="numeric" aria-label="Time, minutes and seconds" value="${tNow == null ? '' : dur(tNow)}" placeholder="–:––" style="font-size:${bigSize(tNow == null ? '' : dur(tNow))}px" ${holding ? 'readonly' : ''}>
-        <div class="adj"><button data-act="t-" aria-label="5 seconds less" ${holding ? 'disabled' : ''}>${ic('minus')}</button><span class="label">${holding ? 'timing' : 'time'}</span><button data-act="t+" aria-label="5 seconds more" ${holding ? 'disabled' : ''}>${ic('plus')}</button></div></div>`;
+  const numT = () => `<input class="big" id="inT" inputmode="numeric" aria-label="Time, minutes and seconds" value="${tNow == null ? '' : dur(tNow)}" placeholder="–:––" ${holding ? 'readonly' : ''}>`;
+  const adjT = () => `<div class="adj"><button data-act="t-" aria-label="5 seconds less" ${holding ? 'disabled' : ''}>${ic('minus')}</button><span class="label">${holding ? 'timing' : 'time'}</span><button data-act="t+" aria-label="5 seconds more" ${holding ? 'disabled' : ''}>${ic('plus')}</button></div>`;
   const note = e.kind === 'time' ? `${e.equip} · target ${dur(e.durMin)}–${dur(e.durMax)} · time it or type it`
     : e.kind === 'reps' ? `${e.equip} · reps only · ${e.repMin}–${e.repMax} reps`
     : e.kind === 'bw+' ? `${e.equip} · BW = bodyweight only · ${e.repMin}–${e.repMax} reps`
     : `${e.equip} · ${e.load === 'total' && e.bar ? `incl. ${e.bar} kg bar` : LOAD[e.load].toLowerCase()} · step ${fmt(e.step)} kg · ${e.repMin}–${e.repMax} reps`;
-  const face = set ? `<div class="face ${e.kind === 'time' || e.kind === 'reps' ? 'one' : ''}">
-      ${e.kind === 'time' ? cellT() : e.kind === 'reps' ? cellR() : `${cellW()}<div class="x num" aria-hidden="true">×</div>${cellR()}`}
+  const face = set ? `<div class="face log ${e.kind === 'time' || e.kind === 'reps' ? 'one' : ''}">
+      <div class="nums">${e.kind === 'time' ? numT() : e.kind === 'reps' ? numR() : `${numW()}<span class="x num" aria-hidden="true">×</span>${numR()}`}</div>
+      <div class="adjs">${e.kind === 'time' ? adjT() : e.kind === 'reps' ? adjR() : adjW() + adjR()}</div>
     </div>
     <p class="unit-note">${note}</p>`
     : `<div class="freebib"><span class="num">${wList.length}/${wList.length}</span><p>Every set of ${e.name} is done.</p><button class="btn line" data-act="addset">${ic('plus')}Add a set</button></div>`;
@@ -627,6 +643,7 @@ function renderMain(){
     ${wuSection}${wkSection}`;
   e.sets.forEach(s => delete s.justDone);
   S.swapAnim = false;
+  resizeFace();
 }
 function labelOf(e, i){ const s = e.sets[i]; return s.kind === 'warmup' ? `warm-up ${i + 1}` : working(e).indexOf(s) + 1; }
 function hintFor(e){
@@ -809,7 +826,7 @@ function tick(){
   $('#clock').textContent = `${h ? h + ':' : ''}${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
   if (S.timing){
     const el = Math.floor((Date.now() - S.timing.start) / 1000), e = S.timing.e, inT = $('#inT');
-    if (inT){ inT.value = dur(el); inT.style.fontSize = bigSize(dur(el)) + 'px'; }
+    if (inT){ inT.value = dur(el); }
     $('#band')?.style.setProperty('--p', Math.min(1, el / e.durMax));
     if (!S.timing.hit && el >= e.durMax){ S.timing.hit = true; beep(); announce(`${dur(e.durMax)}. Top of your target.`); $('#band')?.classList.add('hit'); }
   }
