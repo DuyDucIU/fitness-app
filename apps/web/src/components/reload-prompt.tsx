@@ -1,6 +1,7 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import { Button } from '@/components/ui/button';
+import { m } from '@/paraglide/messages.js';
 
 /**
  * Báo có bản cập nhật; chỉ reload khi user đồng ý (registerType: 'prompt', SDD 3.3)
@@ -19,12 +20,12 @@ export function ReloadPrompt() {
       role="status"
       className="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] flex items-center gap-2 rounded-lg border bg-background p-3 shadow-lg"
     >
-      <span className="flex-1 text-sm">Có bản cập nhật mới.</span>
+      <span className="flex-1 text-sm">{m.app_update_ready()}</span>
       <Button size="sm" variant="ghost" onClick={() => setNeedRefresh(false)}>
-        Để sau
+        {m.common_later()}
       </Button>
       <Button size="sm" onClick={() => void updateServiceWorker(true)}>
-        Cập nhật
+        {m.common_update()}
       </Button>
     </div>
   );

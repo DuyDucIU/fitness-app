@@ -5,11 +5,13 @@ import { RouterProvider } from 'react-router/dom';
 
 import './index.css';
 import { ReloadPrompt } from '@/components/reload-prompt';
+import { applyDocumentLocale } from '@/lib/i18n';
 import { requestPersistentStorage } from '@/lib/storage';
 import { router } from '@/router';
 
 const queryClient = new QueryClient();
 
+applyDocumentLocale();
 void requestPersistentStorage();
 
 createRoot(document.getElementById('root')!).render(

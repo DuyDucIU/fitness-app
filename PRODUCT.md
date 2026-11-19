@@ -50,7 +50,7 @@ Thành công nghĩa là: ghi một set gần như không tốn công giữa hai 
 
 **Ràng buộc dữ liệu và hiển thị:** số liệu gốc lưu đúng như người dùng nhập, kèm đơn vị; khi đổi kg↔lb thì chỉ quy đổi ở tầng hiển thị. Tuần tính từ thứ Hai đến Chủ nhật theo múi giờ người dùng. PR tính tạm trên máy để ăn mừng ngay; server là nguồn chuẩn và có thể gỡ PR mà không thông báo thêm.
 
-**Ràng buộc kỹ thuật:** Vite + React 19 + TypeScript, React Router (data mode), Tailwind CSS v4 + shadcn/ui (base Radix, component do CLI sinh), lucide-react, Dexie, TanStack Query, Paraglide JS 2 cho song ngữ. Theme lấy từ token trong `DESIGN.md`, chỉ một theme sáng. Không gắn SDK analytics/crash/quảng cáo bên thứ ba. Content-Security-Policy chỉ cho script cùng origin.
+**Ràng buộc kỹ thuật:** Vite + React 19 + TypeScript, React Router (data mode), Tailwind CSS v4 + shadcn/ui (base Radix, component do CLI sinh), lucide-react, Dexie, TanStack Query, Paraglide JS 3 cho song ngữ. Theme lấy từ token trong `DESIGN.md`, chỉ một theme sáng. Không gắn SDK analytics/crash/quảng cáo bên thứ ba. Content-Security-Policy chỉ cho script cùng origin.
 
 **Chưa chốt:** tên sản phẩm và logo, cách chạy demo cuối kỳ, các ngưỡng số của engine (tạm chấp nhận làm mặc định).
 

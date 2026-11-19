@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import path from 'node:path';
+import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
@@ -8,6 +9,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    // Song ngữ (SDD 3.5): tuỳ chọn compiler nằm ở project.inlang/paraglide.config.ts.
+    paraglideVitePlugin({ project: './project.inlang' }),
     react(),
     tailwindcss(),
     // PWA (SDD 3.3): service worker Workbox (generateSW) chỉ precache app shell;

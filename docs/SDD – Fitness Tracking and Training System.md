@@ -78,7 +78,7 @@ PWA (D26, thay D5 ngày 16/11/2026): một codebase TypeScript chạy trên Safa
 | Lưu trữ cục bộ | Dexie (IndexedDB) + `dexie-react-hooks` (`useLiveQuery`) | Xem 3.2 |
 | Dữ liệu từ server | TanStack Query | Catalog, PR, biểu đồ, lịch sử |
 | UI | Tailwind CSS v4 + shadcn/ui (`--base radix`) | Component do CLI sinh, copy vào repo; theme lấy từ token trong `DESIGN.md` (khai báo ở `@theme`, biến semantic của shadcn trỏ về token). Chỉ một theme sáng, không dark mode ở MVP. Font Barlow Condensed + Be Vietnam Pro (subset tiếng Việt) |
-| Song ngữ | Paraglide JS 2 (`@inlang/paraglide-js`) | Xem 3.5 |
+| Song ngữ | Paraglide JS 3 (`@inlang/paraglide-js`) + inlang CLI | Dựng bằng `paraglide-js init`; xem 3.5 |
 | Auth | supabase-js | Xem 9.1 |
 | Test | Vitest + Testing Library | Cùng Vitest với `packages/engine`, `packages/contract` |
 
@@ -113,7 +113,7 @@ Module riêng (`packages/engine`), viết TypeScript, là tập hợp pure funct
 Giao diện có hai ngôn ngữ **tiếng Anh và tiếng Việt** ngay từ MVP (D27).
 
 - **Ngôn ngữ gốc và mặc định là tiếng Anh.** Câu chữ viết bằng tiếng Anh trước, tiếng Việt là bản dịch. Lần đầu mở app luôn là tiếng Anh, không tự nhận theo ngôn ngữ trình duyệt. Sau này chuyển mặc định sang tiếng Việt chỉ cần đổi `baseLocale` trong `apps/web/project.inlang/settings.json`, không sửa message.
-- **Chọn ngôn ngữ:** user đổi trong màn Me. Lựa chọn lưu ở máy (`localStorage`, strategy `["localStorage", "baseLocale"]` của Paraglide) và ở `USERS.locale` trên server; sau khi đăng nhập, giá trị trên server được ưu tiên. Đổi ngôn ngữ thì reload trang (hành vi mặc định của `setLocale`), chấp nhận được vì chỉ đổi trong Me, không đổi giữa buổi tập; phiên đang dở vẫn nằm trong IndexedDB. `<html lang>` đặt theo ngôn ngữ đang dùng; manifest khai báo `en`.
+- **Chọn ngôn ngữ:** user đổi trong màn Me. Lựa chọn lưu ở máy (`localStorage`, strategy `["localStorage", "baseLocale"]` của Paraglide, khai báo ở `apps/web/project.inlang/paraglide.config.ts`) và ở `USERS.locale` trên server; sau khi đăng nhập, giá trị trên server được ưu tiên. Đổi ngôn ngữ thì reload trang (hành vi mặc định của `setLocale`), chấp nhận được vì chỉ đổi trong Me, không đổi giữa buổi tập; phiên đang dở vẫn nằm trong IndexedDB. `<html lang>` đặt theo ngôn ngữ đang dùng; manifest khai báo `en`.
 - **Chỉ client sinh câu chữ hiển thị.** Engine trả mã lý do kèm tham số (vd `{ code: 'increase_load', delta: 2.5 }`), API trả mã lỗi (8.1); client dựng câu theo ngôn ngữ. Server và engine không trả câu chữ để hiển thị.
 - **Dữ liệu song ngữ:** tên bài (`EXERCISES.name_en`, `name_vi`), tên nhóm cơ (`MUSCLES.name_en`, `name_vi`), tên chương trình mẫu và tên buổi trong `packages/templates` (YAML có `en` và `vi`). Dữ liệu user tự nhập (tên buổi, alias, ghi chú) giữ nguyên, không dịch.
 - **Tên bài:** hiện theo ngôn ngữ UI; picker và màn chi tiết bài hiện thêm tên còn lại ở dòng phụ; màn ghi set chỉ hiện tên chính. Tìm kiếm luôn khớp cả tên EN, tên VI và alias.
@@ -124,10 +124,11 @@ Giao diện có hai ngôn ngữ **tiếng Anh và tiếng Việt** ngay từ MVP
 
 | Phần | Cách làm |
 | --- | --- |
-| Thư viện | Paraglide JS 2: message biên dịch thành hàm có kiểu (`m.common_save()`), chỉ đóng gói message được dùng, chạy offline như code thường. Output sinh ra ở `apps/web/src/paraglide` (không commit), được biên dịch trước `tsc`, `vite build`, lint và test |
+| Thư viện | Paraglide JS 3: message biên dịch thành hàm có kiểu (`m.common_save()`), chỉ đóng gói message được dùng, chạy offline như code thường. Output sinh ra ở `apps/web/src/paraglide` (không commit): Vite plugin biên dịch khi dev, build và test; `npm run i18n:compile` chạy trước `tsc` trong `build` và `typecheck` |
 | File message | `apps/web/messages/{en,vi}.json` (định dạng inlang message format). Plugin message format được nạp từ CDN lúc biên dịch, nên bước build cần mạng |
 | Quy ước key | Phẳng, `snake_case`, tiền tố theo phạm vi: `common_`, `nav_`, `home_`, `log_`, `plans_`, `history_`, `progress_`, `me_`, `error_` (khớp mã lỗi API), `engine_` (khớp mã lý do của engine). Số nhiều dùng variants của Paraglide (`Intl.PluralRules`), không ghép chuỗi bằng tay |
-| Kiểm tra key | Script `i18n:check` so `en.json` với `vi.json`: thiếu key, thừa key hoặc tham số `{…}` lệch nhau thì lỗi. Chạy trong `npm run verify` và CI — cần vì Paraglide tự rơi về tiếng Anh khi bản Việt thiếu key |
+| Kiểm tra bản dịch | `npm run check:i18n` (`inlang check` của inlang CLI): thiếu bản dịch, bản dịch rỗng, thiếu hoặc thừa biến `{…}`, thiếu dạng số nhiều thì lỗi. Chạy trong `npm run lint` của `apps/web`, nên có trong `verify` và CI — cần vì Paraglide tự rơi về ngôn ngữ gốc khi bản kia thiếu message |
+| Truy cập message | `npm run lint:i18n` (plugin ESLint của Paraglide, rule `no-dynamic-message-access`): cấm `m[key]` động, để key sai bị bắt lúc lint và message không dùng được tree-shake. Ánh xạ mã → message (vd mã lỗi API) viết tường minh bằng `switch` |
 | Chặn chuỗi cứng | ESLint `i18next/no-literal-string` (chỉ bắt chuỗi trong JSX) cho `apps/web/src`, bỏ qua file test |
 | Định dạng | Unit test module định dạng ở cả hai locale |
 | Xem trước | Route `/dev/kit` chỉ có khi dev: hiển thị mọi primitive, có nút chuyển EN/VI để soát dấu và độ dài chữ |
@@ -604,7 +605,7 @@ MVP: xoá trong app. Trang web xoá tài khoản độc lập (bắt buộc theo
 | D19 | Monorepo: `apps/web`, `apps/api`, `packages/engine` (TS), `packages/templates` (YAML), `packages/contract` (schema Zod dùng chung cho web app và backend; Swagger sinh từ schema khi dev) | Chốt |
 | D20 | Hosting beta đặt tại VN, Docker Compose (API, worker, PostgreSQL, auth, storage) — tránh thủ tục chuyển dữ liệu cá nhân xuyên biên giới (Nghị định 356/2025) | Post-MVP — chỉ cần khi lên beta |
 | D22 | Chia 2 nhóm user bằng bộ cài đặt mặc định từ onboarding, không tách 2 chế độ riêng | Chốt |
-| D27 | Giao diện song ngữ EN/VI từ MVP, tiếng Anh là ngôn ngữ gốc và mặc định (đổi mặc định sang tiếng Việt sau bằng một dòng cấu hình). Dùng Paraglide JS 2; chỉ client sinh câu chữ hiển thị, server và engine trả mã. Chi tiết ở 3.5 | Chốt (19/11/2026) · đổi mặc định sang tiếng Việt: dự kiến |
+| D27 | Giao diện song ngữ EN/VI từ MVP, tiếng Anh là ngôn ngữ gốc và mặc định (đổi mặc định sang tiếng Việt sau bằng một dòng cấu hình). Dùng Paraglide JS 3 + inlang CLI; chỉ client sinh câu chữ hiển thị, server và engine trả mã. Chi tiết ở 3.5 | Chốt (19/11/2026) · đổi mặc định sang tiếng Việt: dự kiến |
 
 Các dòng "Đề xuất" (D17, D18) là lựa chọn hợp lý cho quy mô hiện tại, có thể đổi nếu beta cho thấy cần tách service hoặc dùng queue riêng — không phải quyết định cứng.
 
@@ -650,7 +651,7 @@ Worker đã tách tiến trình riêng từ đầu (dù chạy chung server) —
 | Tầng | Cách test |
 | --- | --- |
 | Progression engine | Unit test theo bộ test case Given/When/Then đặt trong `packages/engine`, bám SRS Phụ lục A; chạy trên CI mỗi PR |
-| Song ngữ | `i18n:check` so key và tham số giữa `en.json` và `vi.json`; ESLint chặn chuỗi cứng trong JSX; unit test module định dạng số/ngày ở cả hai locale |
+| Song ngữ | `inlang check` kiểm tra bản dịch thiếu và biến lệch giữa `en.json` và `vi.json`; ESLint chặn chuỗi cứng trong JSX; unit test module định dạng số/ngày ở cả hai locale |
 | Contract | Web app và backend import cùng schema Zod; typecheck lỗi nếu hai phía lệch; unit test schema bằng Vitest |
 | Web app | Vitest + Testing Library cho component và logic outbox/sync (IndexedDB giả lập trong môi trường test) |
 | Backend | Integration test với PostgreSQL thật chạy bằng Docker |
