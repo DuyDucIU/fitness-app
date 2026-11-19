@@ -54,7 +54,7 @@ function Button({
   asChild = false,
   busy = false,
   type = 'button',
-  onClick,
+  onClickCapture,
   ...props
 }: React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
@@ -70,14 +70,16 @@ function Button({
       data-size={size}
       type={asChild ? undefined : type}
       aria-busy={busy || undefined}
-      aria-disabled={busy || props['aria-disabled'] || undefined}
-      onClick={(event) => {
-        // pointer-events-none không chặn Enter/Space, nên chặn ở đây.
+      onClickCapture={(event) => {
+        // Đang busy: chặn mọi lần kích hoạt. pointer-events-none không chặn Enter/Space,
+        // và chặn ở pha capture để cả `asChild` (vd <Link>) cũng không chạy handler của nó.
+        // Không đặt aria-disabled: .btn.busy của prototype không mờ đi.
         if (busy) {
           event.preventDefault();
+          event.stopPropagation();
           return;
         }
-        onClick?.(event);
+        onClickCapture?.(event);
       }}
       className={cn(
         buttonVariants({ variant, size }),

@@ -24,6 +24,7 @@ export function AppUpdateProvider({ children }: { children: React.ReactNode }) {
     needRefresh: [ready],
     updateServiceWorker,
   } = useRegisterSW();
+  const listening = React.useRef(false);
 
   React.useEffect(() => {
     try {
@@ -42,17 +43,21 @@ export function AppUpdateProvider({ children }: { children: React.ReactNode }) {
       update: () => {
         // Chỉ đánh dấu khi service worker mới thật sự nắm quyền (ngay trước khi tải lại),
         // để lần tải lại tay sau một lần cập nhật hỏng không báo "Updated." sai.
-        navigator.serviceWorker?.addEventListener(
-          'controllerchange',
-          () => {
-            try {
-              sessionStorage.setItem(UPDATED_FLAG, '1');
-            } catch {
-              // sessionStorage bị chặn: chỉ mất câu báo "Updated."
-            }
-          },
-          { once: true },
-        );
+        // Gắn listener một lần dù user bấm lại nhiều lần.
+        if (!listening.current) {
+          listening.current = true;
+          navigator.serviceWorker?.addEventListener(
+            'controllerchange',
+            () => {
+              try {
+                sessionStorage.setItem(UPDATED_FLAG, '1');
+              } catch {
+                // sessionStorage bị chặn: chỉ mất câu báo "Updated."
+              }
+            },
+            { once: true },
+          );
+        }
         void updateServiceWorker(true);
       },
     }),
@@ -78,6 +83,8 @@ export function UpdateBanner({
 }) {
   const { ready, update } = useAppUpdate();
   const [busy, setBusy] = React.useState(false);
+  const resetTimer = React.useRef<number | undefined>(undefined);
+  React.useEffect(() => () => window.clearTimeout(resetTimer.current), []);
   if (!ready) return null;
 
   return (
@@ -92,7 +99,11 @@ export function UpdateBanner({
               setBusy(true);
               update();
               // Bình thường app tải lại ngay; nếu không thì cho bấm lại.
-              window.setTimeout(() => setBusy(false), 10_000);
+              window.clearTimeout(resetTimer.current);
+              resetTimer.current = window.setTimeout(
+                () => setBusy(false),
+                10_000,
+              );
             }}
           >
             {m.common_update()}
