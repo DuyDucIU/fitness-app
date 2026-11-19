@@ -224,6 +224,13 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 
 .search{display:flex;align-items:center;gap:10px;height:48px;padding:0 12px;border-radius:var(--r-sm);border:1.5px solid var(--ink);background:#fff;margin-bottom:8px}
 .search input{flex:1;border:0;outline:0;background:transparent;font-size:var(--t-read)}
+/* picker: search + muscle chips pinned while results scroll (same as the Plans picker) */
+.pickhd{position:sticky;top:0;z-index:1;background:var(--tyvek);display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:2px 0 8px;margin-bottom:4px;border-bottom:1px solid var(--rule-soft)}
+.pickhd .search{margin-bottom:0}
+.mchips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.mchips::-webkit-scrollbar{display:none}
+.mchips .chip[aria-pressed=true]{border-color:var(--ink);background:var(--ink);color:var(--tyvek)}
+.results button[aria-disabled=true] .nm{opacity:.6}
 .results button{width:100%;min-height:56px;display:flex;align-items:center;gap:12px;border-top:1px solid var(--rule-soft);text-align:left}
 .results button:first-child{border-top:0}
 .results .nm{flex:1;font-weight:600;line-height:1.3}
@@ -311,6 +318,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 </div>
 
 <script src="../shared/sortable.js"></script>
+<script src="../shared/data.js"></script>
 <script>
 /* ---------- utilities ---------- */
 const LOCALE = 'en-US'; /* product will be bilingual EN/VI; number + date formatting follows the active locale */
@@ -340,16 +348,24 @@ const ic = (k, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden
 
 /* ---------- sample data ---------- */
 const LOAD = {total:'Total', per_side:'Per side', per_dumbbell:'Per dumbbell', stack:'Stack', added_weight:'Added weight'};
-const CATALOG = [
-  {key:'bench', name:'Barbell bench press', vi:'Đẩy ngực ngang', alias:['bench','đẩy ngực'], equip:'Barbell', load:'total', step:2.5, bar:20, last:{date:'Nov 12', sets:[[80,8],[80,8],[80,8],[80,7]]}, best:e1rm(80,8)},
-  {key:'ohp', name:'Overhead press', vi:'Đẩy vai đứng', alias:['ohp','military press','đẩy vai'], equip:'Barbell', load:'total', step:2.5, bar:20, last:{date:'Nov 12', sets:[[45,10],[45,10],[45,10]]}, best:e1rm(45,10)},
-  {key:'incl', name:'Incline dumbbell press', vi:'Đẩy ngực dốc tạ đơn', alias:['incline'], equip:'Dumbbell', load:'per_dumbbell', step:2, bar:0, last:{date:'Nov 12', sets:[[22.5,12],[22.5,11],[22.5,10]]}, best:e1rm(22.5,12)},
-  {key:'fly', name:'Cable crossover', vi:'Ép ngực cáp', alias:['fly','ép ngực'], equip:'Cable', load:'stack', step:5, bar:0, last:{date:'Nov 12', sets:[[35,15],[35,14],[35,12]]}, best:e1rm(35,15)},
-  {key:'push', name:'Triceps pushdown', vi:'Duỗi tay sau cáp', alias:['pushdown','tay sau'], equip:'Cable', load:'stack', step:5, bar:0, last:{date:'Nov 12', sets:[[30,15],[30,13],[30,12]]}, best:e1rm(30,15)},
-  {key:'dip', name:'Dips', vi:'Xà kép', alias:['dip'], equip:'Dip bars', load:'added_weight', step:2.5, bar:0, last:{date:'Nov 5', sets:[[10,10],[10,9]]}, best:e1rm(10,10)},
-  {key:'machine', name:'Machine chest press', vi:'Đẩy ngực máy', alias:['chest press'], equip:'Machine', load:'stack', step:5, bar:0, last:{date:'Oct 29', sets:[[60,12],[60,11]]}, best:e1rm(60,12)},
-  {key:'lat', name:'Dumbbell lateral raise', vi:'Dang tay ngang vai tạ đơn', alias:['lateral raise','side raise','vai giữa'], equip:'Dumbbell', load:'per_dumbbell', step:1, bar:0, last:null, best:0},
-];
+/* One exercise library for every slice: the 42-entry catalog and its history come from shared/data.js,
+   the same source the Plans picker and the Exercise library use. Only the shape is adapted for this screen. */
+const D = window.DATA;
+const G = D.G, GROUPS = ['chest','back','shoulders','biceps','triceps','quads','hams','glutes','calves','core'];
+/* "last time" = the newest non-deload session with this exercise; best = top e1RM ever, for PR detection */
+function historyOf(id){
+  let last = null, best = 0;
+  for (const s of D.SESSIONS){
+    const e = s.exs.find(x => x.id === id); if (!e) continue;
+    if (!last && !s.deload) last = {date:shortDate(s.start), sets:e.sets.map(x => x.slice())};
+    e.sets.forEach(([w, r]) => { best = Math.max(best, e1rm(w, r)); });
+  }
+  return {last, best};
+}
+/* this prototype logs weight × reps (added weight counts); timed and reps-only exercises are listed but not loggable here */
+const loggable = c => c.metric === 'weight_reps' || c.load === 'added_weight';
+const CATALOG = D.CATALOG.map(c => ({key:c.id, name:c.name, vi:c.vi, alias:c.alias, equip:c.equip, muscle:c.muscle, metric:c.metric,
+  load:c.load, step:c.step ?? 1, bar:c.bar ?? 0, ...historyOf(c.id)}));
 const cat = k => CATALOG.find(c => c.key === k);
 let uid = 0;
 function makeEx(key, plan = {}){
@@ -647,9 +663,13 @@ function tick(){
 
 /* ---------- sheets ---------- */
 function openSheet(title, body){
+  const sh = $('#sheet');
+  if (!sh.contains(document.activeElement)) S.lastFocus = document.activeElement;
+  /* opening a different sheet from a sheet (menu → picker): drop the old one and slide the new one up.
+     Re-rendering the same sheet (same title, e.g. Session after a reorder) stays in place. */
+  if (sh.classList.contains('open') && $('#sheetTitle').textContent !== title){ sh.style.transition = 'none'; sh.classList.remove('open'); void sh.offsetHeight; sh.style.transition = ''; $('#sheetBody').scrollTop = 0; }
   $('#sheetTitle').textContent = title; $('#sheetBody').innerHTML = body;
-  $('#sheet').classList.add('open'); $('#scrim').classList.add('open');
-  if (!$('#sheet').contains(document.activeElement)) S.lastFocus = document.activeElement;
+  sh.classList.add('open'); $('#scrim').classList.add('open');
   setTimeout(() => ($('#sheetBody [autofocus]') || $('#sheet .hd button')).focus({preventScroll:true}), 60);
 }
 function closeSheet(){ $('#sheet').classList.remove('open'); $('#scrim').classList.remove('open'); if (S.lastFocus?.isConnected) S.lastFocus.focus({preventScroll:true}); }
@@ -681,14 +701,17 @@ function sessionSheet(moved){
 }
 function picker(mode){
   S.pickMode = mode;
-  openSheet(mode === 'replace' ? `Swap ${ex().name} for…` : 'Add an exercise', `<label class="search">${ic('search')}<input id="q" autofocus placeholder="English or Vietnamese name, or your nickname" autocomplete="off"></label><div class="results" id="res"></div>`);
+  S.pm = null;
+  openSheet(mode === 'replace' ? `Swap ${ex().name} for…` : 'Add an exercise', `<div class="pickhd"><label class="search">${ic('search')}<input id="q" autofocus placeholder="Search by name or nickname" autocomplete="off" aria-label="Search exercises"></label><div id="pchips">${muscleChips()}</div></div><div class="results" id="res"></div>`);
   filterPicker('');
 }
+/* same search, muscle chips and row text as the Plans picker and the Exercise library */
+const muscleChips = () => `<div class="mchips" role="group" aria-label="Filter by muscle"><button class="chip" data-act="pmuscle" data-v="" aria-pressed="${!S.pm}">All</button>${GROUPS.map(g => `<button class="chip" data-act="pmuscle" data-v="${g}" aria-pressed="${S.pm === g}">${G[g]}</button>`).join('')}</div>`;
 function filterPicker(q){
-  const n = norm(q.trim());
-  const list = CATALOG.filter(c => !n || [c.name, c.vi, ...c.alias].some(t => norm(t).includes(n)));
-  $('#res').innerHTML = list.length ? list.map(c => `<button data-act="choose" data-k="${c.key}"><span class="nm">${c.name}<small>${c.vi} · ${c.equip}</small></span><span class="tag">${c.last ? 'Last: ' + c.last.date : 'New'}</span></button>`).join('')
-    : `<div class="empty"><p>No match for “${q}”.</p><button class="btn line" data-act="custom" data-q="${q.replace(/"/g, '')}">${ic('plus')}Create “${q}”</button></div>`;
+  const n = norm(q.trim()), esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const list = CATALOG.filter(c => (!S.pm || c.muscle.includes(S.pm)) && (!n || [c.name, c.vi, ...c.alias].some(t => norm(t).includes(n))));
+  $('#res').innerHTML = list.length ? list.map(c => `<button data-act="choose" data-k="${c.key}"${loggable(c) ? '' : ' aria-disabled="true"'}><span class="nm">${esc(c.name)}<small>${esc(c.vi)} · ${c.equip}${c.muscle.length ? ' · ' + c.muscle.map(m => G[m]).join(', ') : ''}</small></span><span class="tag">${c.owner ? 'YOURS' : !loggable(c) ? 'NOT IN DEMO' : c.last ? 'LAST ' + c.last.date.toUpperCase() : 'NEW'}</span></button>`).join('')
+    : `<div class="empty"><p>No exercise matches${q.trim() ? ` “${esc(q)}”` : ''}${S.pm ? ` in ${G[S.pm]}` : ''}.</p><button class="btn line" data-act="custom" data-q="${esc(q.trim())}">${ic('plus')}Create “${esc(q.trim() || 'new exercise')}”</button></div>`;
 }
 function choose(key){
   if (S.pickMode === 'replace'){
@@ -770,8 +793,12 @@ document.addEventListener('click', ev => {
     case 'session': sessionSheet(); break;
     case 'add': picker('add'); break;
     case 'replace': picker('replace'); break;
-    case 'choose': choose(b.dataset.k); break;
-    case 'custom': CATALOG.push({key:'c' + Date.now(), name:b.dataset.q || 'Custom exercise', vi:'Bài của bạn', alias:[], equip:'Custom', load:'total', step:2.5, bar:0, last:null, best:0}); choose(CATALOG.at(-1).key); break;
+    case 'choose':
+      if (!loggable(cat(b.dataset.k))){ toast('Timed and reps-only logging isn’t in this prototype yet.'); break; }
+      choose(b.dataset.k); break;
+    case 'pmuscle': S.pm = b.dataset.v || null; $('#pchips').innerHTML = muscleChips(); $(`#pchips [data-v="${S.pm || ''}"]`).focus(); filterPicker($('#q').value); $('#sheetBody').scrollTop = 0; break;
+    case 'custom': CATALOG.unshift({key:'c' + Date.now(), name:b.dataset.q || 'Custom exercise', vi:'Your exercise', alias:[], equip:'Custom', muscle:S.pm ? [S.pm] : [], metric:'weight_reps', load:'total', step:2.5, bar:0, last:null, best:0, owner:true});
+      choose(CATALOG[0].key); break;
     case 'pair': { const nb = S.exs[S.cur + 1]; if (e.group){ const g = e.group; S.exs.forEach(x => { if (x.group === g) x.group = null; }); } else if (nb){ const g = 'G' + Date.now(); e.group = g; nb.group = g; } closeSheet(); render(); break; }
     case 'step': e.step = +b.dataset.v; exMenu(); render(); break;
     case 'load': e.load = b.dataset.v; exMenu(); render(); break;

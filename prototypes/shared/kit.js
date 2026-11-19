@@ -60,13 +60,17 @@ function syncPill(el, st){
 /* ---------- sheet ---------- */
 let lastFocus = null, onClose = null;
 function openSheet(title, body, opts = {}){
+  const sh = $('#sheet'), wasOpen = sh.classList.contains('open');
+  if (!wasOpen) lastFocus = document.activeElement;
+  /* opening a different sheet from a sheet (e.g. exercise settings → Change exercise): drop the old one and slide the new one up.
+     Re-rendering the same sheet (same title) stays in place. */
+  if (wasOpen && $('#sheetTitle').textContent !== title){ sh.style.transition = 'none'; sh.classList.remove('open'); void sh.offsetHeight; sh.style.transition = ''; $('#sheetBody').scrollTop = 0; }
   $('#sheetTitle').textContent = title;
   $('#sheetBody').innerHTML = body;
   const ft = $('#sheetFoot');
   if (ft){ ft.innerHTML = opts.foot || ''; ft.hidden = !opts.foot; }
   onClose = opts.onClose || null;
-  if (!$('#sheet').classList.contains('open')) lastFocus = document.activeElement;
-  $('#sheet').classList.add('open'); $('#scrim').classList.add('open');
+  sh.classList.add('open'); $('#scrim').classList.add('open');
   setTimeout(() => ($('#sheetBody [autofocus]') || $('#sheet .hd button')).focus({preventScroll:true}), 60);
 }
 function closeSheet(){

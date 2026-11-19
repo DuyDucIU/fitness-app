@@ -43,6 +43,8 @@
 .daycol li span:last-child{font-size:var(--t-label);font-weight:700;letter-spacing:.06em;white-space:nowrap}
 .match{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);font-weight:700;letter-spacing:.06em}
 .match i{width:8px;height:8px;border-radius:50%;background:var(--orange)}
+/* picker sheet: search and muscle chips stay pinned while the results scroll */
+.pickhd{position:sticky;top:0;z-index:1;background:var(--tyvek);display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:2px 0 8px;margin-bottom:4px;border-bottom:1px solid var(--rule-soft)}
 .lib .tag{font-size:var(--t-label);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .alias{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .alias span{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 4px 0 10px;border-radius:999px;border:1.5px solid var(--ink);font-size:var(--t-label);font-weight:600}
@@ -265,11 +267,10 @@ function libraryView(){
   const all = [...S.custom, ...D.CATALOG];
   const n = norm(S.q.trim());
   const list = all.filter(c => (!S.muscle || c.muscle.includes(S.muscle)) && (!n || [c.name, c.vi, ...c.alias, ...(S.aliases[c.id] || [])].some(t => norm(t).includes(n))));
-  const groups = ['chest','back','shoulders','biceps','triceps','quads','hams','glutes','calves','core'];
   return `${topBar({back:'', title:'Exercises'})}
   <main class="scroll lib">
     <label class="search" style="margin-top:4px">${ic('search')}<input id="q" placeholder="Search by name or nickname" value="${esc(S.q)}" autocomplete="off" aria-label="Search exercises"></label>
-    <div class="chips" role="group" aria-label="Filter by muscle"><button class="chip" data-act="muscle" data-v="" aria-pressed="${!S.muscle}">All</button>${groups.map(g => `<button class="chip" data-act="muscle" data-v="${g}" aria-pressed="${S.muscle === g}">${D.G[g]}</button>`).join('')}</div>
+    ${muscleChips('muscle', S.muscle)}
     <div class="block" id="res">${list.length ? list.slice(0, 40).map(c => {
       const hit = n && (S.aliases[c.id] || []).find(a => norm(a).includes(n));
       return `<a class="row" href="#exercise/${c.id}"><span class="nm">${esc(c.name)}<small>${esc(c.vi)} · ${c.equip} · ${c.muscle.map(m => D.G[m]).join(', ')}${hit ? ` · your name “${esc(hit)}”` : ''}</small></span><span class="tag">${c.owner ? 'Yours' : lastOf(c.id) ? 'Logged' : ''}</span></a>`;
@@ -317,16 +318,23 @@ function customView(){
   </main>
   <div class="foot"><button class="go ink" data-act="c-save">Create exercise</button></div>`;
 }
+/* the picker searches and filters exactly like the library: same search, same muscle chips, same row text */
+const GROUPS = ['chest','back','shoulders','biceps','triceps','quads','hams','glutes','calves','core'];
+const muscleChips = (act, cur) => `<div class="chips" role="group" aria-label="Filter by muscle"><button class="chip" data-act="${act}" data-v="" aria-pressed="${!cur}">All</button>${GROUPS.map(g => `<button class="chip" data-act="${act}" data-v="${g}" aria-pressed="${cur === g}">${D.G[g]}</button>`).join('')}</div>`;
 function pickSheet(to){
-  S.pickTo = to; S.pq = '';
-  openSheet(to === 'swap' ? 'Change exercise' : 'Add an exercise', `<label class="search">${ic('search')}<input id="pq" autofocus placeholder="Search by name or nickname" autocomplete="off" aria-label="Search exercises"></label><div class="block" id="pres" style="margin-top:8px;background:transparent"></div>`, {onClose:null});
+  S.pickTo = to; S.pq = ''; S.pm = null;
+  openSheet(to === 'swap' ? 'Change exercise' : 'Add an exercise', `<div class="pickhd"><label class="search">${ic('search')}<input id="pq" autofocus placeholder="Search by name or nickname" autocomplete="off" aria-label="Search exercises"></label><div id="pchips">${muscleChips('pmuscle', null)}</div></div><div class="block" id="pres" style="background:transparent"></div>`, {onClose:null});
   filterPick('');
 }
 function filterPick(q){
+  S.pq = q;
   const n = norm(q.trim());
-  const list = [...S.custom, ...D.CATALOG].filter(c => !n || [c.name, c.vi, ...c.alias, ...(S.aliases[c.id] || [])].some(t => norm(t).includes(n)));
-  $('#pres').innerHTML = list.length ? list.slice(0, 30).map(c => `<button class="row" data-act="choose" data-id="${c.id}" style="padding-left:0"><span class="nm">${esc(c.name)}<small>${esc(c.vi)} · ${c.equip}</small></span><span class="end">${lastOf(c.id) ? 'Logged' : 'New'}</span></button>`).join('')
-    : `<div class="empty"><p>No match for “${esc(q)}”.</p><a class="btn line" href="#custom" data-act="custom-q">${ic('plus')}Create “${esc(q)}”</a></div>`;
+  const list = [...S.custom, ...D.CATALOG].filter(c => (!S.pm || c.muscle.includes(S.pm)) && (!n || [c.name, c.vi, ...c.alias, ...(S.aliases[c.id] || [])].some(t => norm(t).includes(n))));
+  $('#pres').innerHTML = list.length ? list.slice(0, 30).map(c => {
+      const hit = n && (S.aliases[c.id] || []).find(a => norm(a).includes(n));
+      return `<button class="row" data-act="choose" data-id="${c.id}" style="padding-left:0"><span class="nm">${esc(c.name)}<small>${esc(c.vi)} · ${c.equip} · ${c.muscle.map(m => D.G[m]).join(', ')}${hit ? ` · your name “${esc(hit)}”` : ''}</small></span><span class="end">${c.owner ? 'Yours' : lastOf(c.id) ? 'Logged' : 'New'}</span></button>`;
+    }).join('')
+    : `<div class="empty"><p>No exercise matches${q.trim() ? ` “${esc(q)}”` : ''}${S.pm ? ` in ${D.G[S.pm]}` : ''}.</p><a class="btn line" href="#custom" data-act="custom-q">${ic('plus')}Create “${esc(q.trim() || 'new exercise')}”</a></div>`;
 }
 
 /* ---------- events ---------- */
@@ -393,6 +401,7 @@ document.addEventListener('click', ev => {
     }
     case 'tpl-retry': S.tplError = false; S.loading = true; render(); setTimeout(() => { S.loading = false; render(); }, 900); break;
     case 'muscle': S.muscle = b.dataset.v || null; render(); break;
+    case 'pmuscle': S.pm = b.dataset.v || null; $('#pchips').innerHTML = muscleChips('pmuscle', S.pm); $(`#pchips [data-v="${S.pm || ''}"]`).focus(); filterPick($('#pq').value); $('#sheetBody').scrollTop = 0; break;
     case 'alias-add': { const v = $('#alias').value.trim(); if (!v) { $('#alias').focus(); break; } const id = route()[1]; (S.aliases[id] = S.aliases[id] || []).push(v); queue(); render(); toast(`Search “${esc(v)}” now finds this exercise.`); break; }
     case 'alias-del': { const id = route()[1]; S.aliases[id] = S.aliases[id].filter(x => x !== b.dataset.v); queue(); render(); break; }
     case 'st': { const id = route()[1]; const k = b.dataset.k; S.settings[id] = Object.assign(settingsOf(id), {[k]: k === 'load' ? b.dataset.v : +b.dataset.v}); queue(); render(); break; }

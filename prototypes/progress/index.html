@@ -35,7 +35,7 @@
 .wkpick{display:flex;align-items:center;gap:4px;padding:0 16px}
 .wkpick b{flex:1;text-align:center;font-weight:700}
 .logform{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
-.logform .numbig{font:800 var(--t-num) 'Barlow Condensed';height:56px;text-align:left;width:100%}
+.numbig{font:800 var(--t-num) 'Barlow Condensed';height:56px;text-align:left;width:100%}
 .entries .v{font-size:var(--t-num)}
 .src{font-size:var(--t-label);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 </style>
@@ -138,8 +138,28 @@ function bodyView(){
       <div class="field" style="border:0;padding-bottom:0"><label class="label" for="bt">Measured</label><input class="in" id="bt" type="datetime-local" value="2026-11-18T07:10"></div>
     </section>
     <h2 class="hdg">Entries</h2>
-    <div class="block entries">${list.length ? list.slice(0, 10).map((b, i) => `<div class="row"><span class="nm">${shortDate(b.at)}<small>${b.at.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})} · entered by hand</small></span><b class="v num">${fmt(t === 'weight' ? W(b.value) : b.value, 1)}</b><button class="icon-btn" data-act="bdel" data-i="${S.body.indexOf(b)}" aria-label="Delete entry from ${shortDate(b.at)}">${ic('trash')}</button></div>`).join('') : '<div class="row"><span class="nm">Nothing yet<small>Weigh in at the same time of day for a cleaner line.</small></span></div>'}</div>
+    <div class="block entries">${list.length ? list.slice(0, 10).map(b => `<button class="row" data-act="bedit" data-i="${S.body.indexOf(b)}" aria-label="Edit ${BT[t].l.toLowerCase()} from ${shortDate(b.at)}, ${fmt(shown(b), 1)} ${BT[t].u()}"><span class="nm">${shortDate(b.at)}<small>${b.at.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})} · ${b.edited ? 'edited' : 'entered by hand'}</small></span><b class="v num">${fmt(shown(b), 1)}</b>${ic('right', 'chev')}</button>`).join('') : '<div class="row"><span class="nm">Nothing yet<small>Weigh in at the same time of day for a cleaner line.</small></span></div>'}</div>
+    ${list.length ? '<p class="note" style="margin-top:8px">Tap an entry to fix the number or the time.</p>' : ''}
   </main>${navFoot('progress')}`;
+}
+/* Edit one entry (UC18). A body entry is a single number, so it opens on its own: no list-wide edit mode, no pencil per row.
+   Delete lives here too, one level in, with Undo (DESIGN.md delete policy). */
+const shown = b => b.type === 'weight' ? W(b.value) : b.value;
+const dtl = d => new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
+function checkBody(v, t){
+  if (v == null) return 'Enter a number, like 72.5.';
+  const ok = t === 'weight' ? W(20) < v && v < W(400) : t === 'waist' ? v > 30 && v < 250 : v > 2 && v < 70;
+  return ok ? null : `That doesn’t look like a ${BT[t].l.toLowerCase()} in ${BT[t].u()}. Check the unit.`;
+}
+function editSheet(i, err){
+  const b = S.body[i], t = b.type; S.editI = i;
+  openSheet(`Edit ${BT[t].l.toLowerCase()} · ${shortDate(b.at)}`, `<form id="editf" novalidate>
+      <div class="field" style="border:0;padding-top:0"><label class="label" for="ev">${BT[t].l} · ${BT[t].u()}</label><input class="in numbig" id="ev" inputmode="decimal" value="${err ? esc(err.raw) : fmt(shown(b), 1)}" autofocus ${err ? 'aria-invalid="true" aria-describedby="evErr"' : ''}>
+        ${err ? `<p class="err" id="evErr">${ic('alert')}${err.msg}</p>` : ''}</div>
+      <div class="field" style="border:0;padding-bottom:0"><label class="label" for="et">Measured</label><input class="in" id="et" type="datetime-local" value="${dtl(b.at)}"></div>
+    </form>
+    <div class="block" style="margin-top:16px;background:transparent"><button class="row danger" data-act="bdel" style="padding-left:0">${ic('trash')}<span class="nm">Delete this entry<small>The line redraws without it.</small></span></button></div>`,
+    {foot:`<button class="btn ink wide" type="submit" form="editf">Save changes</button>`});
 }
 
 /* ---------- events ---------- */
@@ -147,9 +167,17 @@ function queue(){ S.pending++; syncPill($('#sync'), S); if (S.online){ clearTime
 document.addEventListener('change', ev => { if (ev.target.id === 'exsel'){ S.ex = ev.target.value; render(); } });
 document.addEventListener('submit', ev => {
   ev.preventDefault();
-  const v = parse($('#bv').value), t = S.btype;
-  const ok = v != null && (t === 'weight' ? v > 20 && v < 400 : t === 'waist' ? v > 30 && v < 250 : v > 2 && v < 70);
-  if (!ok){ S.err = v == null ? 'Enter a number, like 72.5.' : `That doesn’t look like a ${BT[t].l.toLowerCase()} in ${BT[t].u()}. Check the unit.`; render(); $('#bv').focus(); return; }
+  if (ev.target.id === 'editf'){
+    const b = S.body[S.editI], raw = $('#ev').value, v = parse(raw), msg = checkBody(v, b.type);
+    if (msg){ editSheet(S.editI, {raw, msg}); return; }
+    const val = b.type === 'weight' && S.unit === 'lb' ? v / Kit.LB : v, at = new Date($('#et').value || b.at);
+    closeSheet();
+    if (Math.abs(shown(b) - v) < 1e-9 && +at === +b.at) return;
+    Object.assign(b, {value:val, at, edited:true}); S.body.sort((a, c) => c.at - a.at);
+    queue(); render(); toast(`Updated to ${fmt(v, 1)} ${BT[b.type].u()}.`); return;
+  }
+  const v = parse($('#bv').value), t = S.btype, msg = checkBody(v, t);
+  if (msg){ S.err = msg; render(); $('#bv').focus(); return; }
   S.err = null;
   const at = new Date($('#bt').value || D.TODAY);
   S.body.unshift({type:t, value:t === 'weight' && S.unit === 'lb' ? v / Kit.LB : v, unit:BT[t].u(), at, source:'manual'});
@@ -162,8 +190,9 @@ document.addEventListener('click', ev => {
     case 'range': S.range = +b.dataset.v; S.wk = 0; render(); break;
     case 'wk': S.wk = Math.max(0, Math.min(S.range - 1, S.wk + +b.dataset.d)); render(); break;
     case 'btype': S.btype = b.dataset.v; S.err = null; render(); break;
-    case 'bdel': { const [gone] = S.body.splice(+b.dataset.i, 1); queue(); render(); toast(`Deleted. <button data-act="bundo">Undo</button>`, 4000); S.undo = gone; break; }
-    case 'bundo': S.body.push(S.undo); S.body.sort((a, b) => b.at - a.at); hideToast(); render(); break;
+    case 'bedit': editSheet(+b.dataset.i); break;
+    case 'bdel': { const [gone] = S.body.splice(S.editI, 1); S.undo = gone; closeSheet(); queue(); render(); toast(`Deleted ${fmt(shown(gone), 1)} ${BT[gone.type].u()} from ${shortDate(gone.at)}. <button data-act="bundo">Undo</button>`, 5000); break; }
+    case 'bundo': if (S.undo){ S.body.push(S.undo); S.undo = null; S.body.sort((a, b) => b.at - a.at); hideToast(); queue(); render(); } break;
     case 'close': closeSheet(); break;
     case 'demo': openDemo(); break;
     case 'd-online': S.online = !S.online; if (S.online && S.pending) queue(); render(); break;
