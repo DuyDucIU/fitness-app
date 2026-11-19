@@ -1,0 +1,189 @@
+import * as React from 'react';
+import { NavLink, useMatch, useResolvedPath } from 'react-router';
+
+import { MinusIcon, PlusIcon } from '@/components/icons';
+import { Switch } from '@/components/ui/switch';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { formatNumber } from '@/lib/format';
+
+export interface SegmentedOption<T extends string> {
+  value: T;
+  label: React.ReactNode;
+  /** Dòng phụ, chỉ hiện ở dạng xếp chồng. */
+  sub?: React.ReactNode;
+}
+
+/**
+ * Nhóm chọn một (prototypes/shared/base.css › .seg), dựng trên ToggleGroup của Radix.
+ * Không cho bỏ chọn: bấm lại lựa chọn đang chọn thì giữ nguyên.
+ */
+export function Segmented<T extends string>({
+  value,
+  onValueChange,
+  options,
+  stack,
+  'aria-label': ariaLabel,
+}: {
+  value: T;
+  onValueChange: (value: T) => void;
+  options: readonly SegmentedOption<T>[];
+  stack?: boolean;
+  'aria-label'?: string;
+}) {
+  return (
+    <ToggleGroup
+      type="single"
+      variant={stack ? 'stack' : 'default'}
+      value={value}
+      onValueChange={(next) => {
+        if (next) onValueChange(next as T);
+      }}
+      aria-label={ariaLabel}
+    >
+      {options.map((o) => (
+        <ToggleGroupItem key={o.value} value={o.value}>
+          {o.label}
+          {stack && o.sub && (
+            <small className="block text-label font-normal">{o.sub}</small>
+          )}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
+}
+
+/** Hàng công tắc: nhãn 600 kèm dòng phụ bên trái, công tắc bên phải. */
+export function SwitchRow({
+  label,
+  sub,
+  checked,
+  onCheckedChange,
+}: {
+  label: React.ReactNode;
+  sub?: React.ReactNode;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  const id = React.useId();
+  return (
+    <div className="flex items-center justify-between gap-3 font-semibold">
+      <label htmlFor={id}>
+        {label}
+        {sub && <small className="block text-label font-normal">{sub}</small>}
+      </label>
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
+    </div>
+  );
+}
+
+/** Bộ tăng giảm −/giá trị/+ (prototypes/shared/base.css › .stepper). */
+export function Stepper({
+  value,
+  onValueChange,
+  step = 1,
+  min = 0,
+  max = Number.POSITIVE_INFINITY,
+  maxFractionDigits = 2,
+  decreaseLabel,
+  increaseLabel,
+  'aria-label': ariaLabel,
+}: {
+  value: number;
+  onValueChange: (value: number) => void;
+  step?: number;
+  min?: number;
+  max?: number;
+  maxFractionDigits?: number;
+  /** Nhãn theo ngữ cảnh như prototype, vd "One set fewer" / "15 seconds less". */
+  decreaseLabel: string;
+  increaseLabel: string;
+  'aria-label': string;
+}) {
+  // Làm tròn để cộng dồn bước 2.5 không sinh 7.499999.
+  const clamp = (v: number) =>
+    Math.min(max, Math.max(min, Math.round(v * 1000) / 1000));
+  const button =
+    'grid size-11 place-items-center rounded-sm border-[1.5px] border-ink active:bg-ink active:text-tyvek disabled:opacity-40';
+
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      className="flex items-center gap-2.5"
+    >
+      <button
+        type="button"
+        className={button}
+        aria-label={decreaseLabel}
+        disabled={value <= min}
+        onClick={() => onValueChange(clamp(value - step))}
+      >
+        <MinusIcon className="size-5" aria-hidden />
+      </button>
+      <output
+        aria-live="polite"
+        className="min-w-16 text-center text-num leading-none numeral"
+      >
+        {formatNumber(value, { maxFractionDigits })}
+      </output>
+      <button
+        type="button"
+        className={button}
+        aria-label={increaseLabel}
+        disabled={value >= max}
+        onClick={() => onValueChange(clamp(value + step))}
+      >
+        <PlusIcon className="size-5" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Tab con trong một màn (prototypes/shared/base.css › .subtabs), vd Workouts | PRs ở
+ * History, Training | Body ở Progress. Mỗi tab là một link (`role="tab"`), tab hiện tại
+ * nền mực.
+ */
+export function Subtabs({
+  items,
+  'aria-label': ariaLabel,
+}: {
+  items: readonly { to: string; label: React.ReactNode }[];
+  'aria-label'?: string;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className="flex flex-none gap-1.5 px-3 pb-2"
+    >
+      {items.map((item) => (
+        <SubtabLink key={item.to} to={item.to}>
+          {item.label}
+        </SubtabLink>
+      ))}
+    </div>
+  );
+}
+
+/** Một tab của `Subtabs`: `aria-selected` theo route hiện tại (role="tab" cần thuộc tính này). */
+function SubtabLink({
+  to,
+  children,
+}: {
+  to: string;
+  children: React.ReactNode;
+}) {
+  const selected = useMatch({ path: useResolvedPath(to).pathname, end: true });
+  return (
+    <NavLink
+      to={to}
+      end
+      role="tab"
+      aria-selected={!!selected}
+      className="flex min-h-10 flex-1 items-center justify-center rounded-sm border-[1.5px] border-rule bg-tyvek font-semibold no-underline aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-tyvek"
+    >
+      {children}
+    </NavLink>
+  );
+}

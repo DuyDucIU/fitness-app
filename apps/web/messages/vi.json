@@ -1,0 +1,70 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "app_update_title": "Có bản cập nhật",
+  "app_update_body": "App sẽ tải lại trong giây lát. Mọi thứ bạn đã ghi vẫn còn nguyên.",
+  "app_update_after_workout": "Bản mới sẽ cài sau khi bạn kết thúc buổi tập này.",
+  "app_updated": "Đã cập nhật.",
+  "common_back": "Quay lại",
+  "common_cancel": "Huỷ",
+  "common_close": "Đóng",
+  "common_save": "Lưu",
+  "common_retry": "Thử lại",
+  "common_options_for": "Tuỳ chọn cho {name}",
+  "common_update": "Cập nhật",
+  "nav_main": "Điều hướng chính",
+  "nav_today": "Hôm nay",
+  "nav_plans": "Lịch tập",
+  "nav_history": "Lịch sử",
+  "nav_progress": "Tiến bộ",
+  "nav_me": "Tôi",
+  "sync_synced": "Đã đồng bộ",
+  "sync_syncing": "Đang đồng bộ…",
+  "sync_pending": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} chưa đồng bộ"
+      }
+    }
+  ],
+  "sync_offline": "Ngoại tuyến",
+  "sync_offline_pending": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "Ngoại tuyến · {count} thay đổi"
+      }
+    }
+  ],
+  "sync_offline_hint": "Đang không có mạng. Mọi thứ bạn ghi đều được lưu trên máy này.",
+  "sync_offline_pending_hint": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} thay đổi đã lưu trên máy này, đang chờ có mạng"
+      }
+    }
+  ],
+  "me_language": "Ngôn ngữ",
+  "error_validation_failed": "Có chỗ chưa đúng, kiểm tra lại rồi thử lần nữa nhé.",
+  "error_unauthorized": "Đã đăng xuất. Đăng nhập lại lúc nào cũng được để tập tiếp từ chỗ đang dừng.",
+  "error_not_found": "Mục này không còn nữa.",
+  "error_internal_server_error": "Máy chủ đang gặp lỗi. Dữ liệu trên máy này vẫn an toàn.",
+  "error_network": "Không có mạng. Thử lại khi đã kết nối nhé.",
+  "error_unknown": "Có lỗi xảy ra, thử lại nhé.",
+  "resume_in_progress": "{name} · đang tập",
+  "resume_sets_logged": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "Đã ghi {count} set"
+      }
+    }
+  ],
+  "resume_action": "Tập tiếp",
+  "resume_label": "Đang có buổi tập: {name}, {elapsed}. Tập tiếp"
+}

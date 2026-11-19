@@ -48,6 +48,12 @@ enum AliasLang {
   en
 }
 
+/// Ngôn ngữ giao diện (D27, SDD 3.5). Tiếng Anh là mặc định.
+enum Locale {
+  en
+  vi
+}
+
 model User {
   id                  String        @id @default(uuid()) @db.Uuid
   email               String        @unique
@@ -55,6 +61,7 @@ model User {
   authSubject         String        @unique @map("auth_subject")
   displayName         String?       @map("display_name")
   unitPref            UnitPref      @default(kg) @map("unit_pref")
+  locale              Locale        @default(en)
   /// Ranh giới tuần cho streak (UC16)
   timezone            String        @default("Asia/Ho_Chi_Minh")
   rpeEnabled          Boolean       @default(false) @map("rpe_enabled")
@@ -72,6 +79,7 @@ model Muscle {
   id          Int    @id @default(autoincrement())
   /// Mã chuẩn hoá, vd "lats", "traps"
   code        String @unique
+  nameEn      String @map("name_en")
   nameVi      String @map("name_vi")
   /// chest, back, legs...
   muscleGroup String @map("muscle_group")

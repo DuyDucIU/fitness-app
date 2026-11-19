@@ -50,15 +50,17 @@ Thành công nghĩa là: ghi một set gần như không tốn công giữa hai 
 
 **Ràng buộc dữ liệu và hiển thị:** số liệu gốc lưu đúng như người dùng nhập, kèm đơn vị; khi đổi kg↔lb thì chỉ quy đổi ở tầng hiển thị. Tuần tính từ thứ Hai đến Chủ nhật theo múi giờ người dùng. PR tính tạm trên máy để ăn mừng ngay; server là nguồn chuẩn và có thể gỡ PR mà không thông báo thêm.
 
-**Ràng buộc kỹ thuật:** Vite + React 19 + TypeScript, React Router (data mode), Tailwind CSS v4 + shadcn/ui (base Radix, component do CLI sinh), lucide-react, Dexie, TanStack Query. Theme hiện tại là mặc định của shadcn, chỉ dùng tạm. Không gắn SDK analytics/crash/quảng cáo bên thứ ba. Content-Security-Policy chỉ cho script cùng origin.
+**Ràng buộc kỹ thuật:** Vite + React 19 + TypeScript, React Router (data mode), Tailwind CSS v4 + shadcn/ui (base Radix, component do CLI sinh), lucide-react, Dexie, TanStack Query, Paraglide JS 3 cho song ngữ. Theme lấy từ token trong `DESIGN.md`, chỉ một theme sáng. Không gắn SDK analytics/crash/quảng cáo bên thứ ba. Content-Security-Policy chỉ cho script cùng origin.
 
 **Chưa chốt:** tên sản phẩm và logo, cách chạy demo cuối kỳ, các ngưỡng số của engine (tạm chấp nhận làm mặc định).
 
 ## Brand Commitments
 
 - **Tên:** "Fitness Tracking" (short name "Fitness") chỉ là **tên làm việc**. Tên chính thức và logo chưa có; `public/favicon.svg` là logo tạm.
-- **Ngôn ngữ:** giao diện tiếng Việt (`lang="vi"`, manifest `vi`); tên bài tập có cả EN và VI, kèm alias do người dùng tự đặt. Tên tiếng Việt trong catalog hiện là bản nháp.
-- **Giọng văn — "bạn tập lâu năm":** thân mật, ngắn gọn, xưng hô gần gũi, nói chuyện như một người tập cùng (vd "Lên tạ được rồi đó"). Ăn mừng PR rõ ràng nhưng không màu mè. Gợi ý luôn nói lý do bằng ngôn ngữ của người tập, không bằng thuật ngữ engine.
+- **Ngôn ngữ (D27, SDD 3.5):** giao diện song ngữ tiếng Anh và tiếng Việt. Tiếng Anh là ngôn ngữ gốc và mặc định (câu chữ viết bằng tiếng Anh trước), tiếng Việt là bản dịch; dự kiến đổi mặc định sang tiếng Việt sau. Tên bài tập và nhóm cơ có cả EN và VI, kèm alias do người dùng tự đặt. Tên tiếng Việt trong catalog và bản dịch tiếng Việt của giao diện hiện là bản nháp do AI soạn, chờ founder rà soát.
+- **Giọng văn — một giọng, hai ngôn ngữ:** thân mật, ngắn gọn, nói chuyện như một người tập cùng lâu năm. Ăn mừng PR rõ ràng nhưng không màu mè. Gợi ý luôn nói lý do bằng ngôn ngữ của người tập, không bằng thuật ngữ engine.
+  - **EN — "experienced training buddy":** câu ngắn, chủ động, không khách sáo (vd "Time to add weight.").
+  - **VI — "bạn tập lâu năm":** xưng hô gần gũi (vd "Lên tạ được rồi đó"). Bản Việt được viết lại cho tự nhiên, không dịch sát từng chữ bản Anh.
 - **Stitch:** hai project "MVP App Design" (16/11/2026) và "Fitness App" (09/2026) **chỉ để tham khảo**, không ràng buộc hướng thiết kế mới.
 
 ## Evidence on Hand

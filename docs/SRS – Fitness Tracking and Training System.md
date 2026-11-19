@@ -606,6 +606,13 @@ Chưa từng thảo luận cụ thể — mục sau là đề xuất tối thi�
 - Lý do đổi: team không có Mac nên bản native chỉ làm được Android; PWA phủ cả iOS ngay ở MVP, và không cần giả lập hay Play Store để demo. Đánh đổi: nhóm Device integration (Health Connect/HealthKit) không làm được trên web — giữ làm post-MVP bằng cách bọc PWA thành app native (Capacitor), dùng lại code web.
 - Không dùng SDK quảng cáo hay theo dõi bên thứ 3 ngoài phạm vi đã liệt kê ở 5.2.
 
+### 5.6 Ngôn ngữ
+
+- Giao diện có hai ngôn ngữ, tiếng Anh và tiếng Việt, ngay từ MVP. Tiếng Anh là ngôn ngữ mặc định; user đổi ngôn ngữ trong phần cài đặt cá nhân, lựa chọn được giữ khi đăng nhập trên máy khác. (Chốt D27, 19/11/2026; dự kiến đổi mặc định sang tiếng Việt sau.)
+- Mọi chữ hiển thị (nhãn, thông báo, lý do gợi ý, thông báo lỗi) có đủ cả hai bản. Tên bài tập và nhóm cơ trong catalog có cả tên tiếng Anh và tiếng Việt; tìm bài khớp được cả hai tên và alias. Dữ liệu do user tự nhập không được dịch.
+- Số và ngày hiển thị theo quy ước của ngôn ngữ đang dùng (tiếng Việt: 77,5 kg; tiếng Anh: 77.5 kg); ô nhập số chấp nhận cả dấu phẩy lẫn dấu chấm.
+- Thiết kế kỹ thuật: SDD 3.5.
+
 ## 6. Ràng buộc thiết kế, giả định & phụ thuộc
 
 Các quyết định kiến trúc/kỹ thuật (nền tảng cụ thể, backend, hosting, cấu trúc repo, cơ chế đồng bộ, hàng đợi import...) được lùi sang tài liệu SDD sắp tới, không liệt kê lại ở đây — SRS chỉ giữ ràng buộc/yêu cầu đã thể hiện xuyên suốt mục 2–5.

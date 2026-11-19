@@ -5,3 +5,8 @@ apps/api/prisma/migrations
 apps/api/prisma/seed/data
 package-lock.json
 docs
+apps/web/src/paraglide
+# Nội bộ của inlang (tự quản lý, git-ignore), chỉ giữ cấu hình
+apps/web/project.inlang/*
+!apps/web/project.inlang/settings.json
+!apps/web/project.inlang/paraglide.config.ts

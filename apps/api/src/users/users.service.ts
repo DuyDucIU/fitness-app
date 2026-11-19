@@ -23,6 +23,7 @@ export class UsersService {
       email: user.email,
       displayName: user.displayName,
       unitPref: user.unitPref,
+      locale: user.locale,
       timezone: user.timezone,
       rpeEnabled: user.rpeEnabled,
     };

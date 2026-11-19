@@ -24,7 +24,7 @@ MVP (cập nhật 15/10/2026, khớp SRS mục 3.3; nền tảng client đổi s
 
 | Nhóm post-MVP | Phần thiết kế liên quan |
 | --- | --- |
-| Import lịch tập bằng LLM | OCR trên máy (3.5), hàng đợi import (4.2), luồng import (6), object storage, adapter LLM (11.3), D9, D18, bảng `IMPORT_JOBS` |
+| Import lịch tập bằng LLM | OCR trên máy (3.6), hàng đợi import (4.2), luồng import (6), object storage, adapter LLM (11.3), D9, D18, bảng `IMPORT_JOBS` |
 | Tích hợp Health Connect | Bản bọc native bằng Capacitor (D26), `DeviceProvider` (3.1, 11.2), dữ liệu thiết bị (9.2), bảng `DEVICE_CONNECTIONS`, `DAILY_ACTIVITIES`, tuân thủ Google Play (9.7) |
 | Video hướng dẫn kỹ thuật | Cron kiểm tra link video chết (4.1), bảng `EXERCISE_VIDEOS` |
 | Beta công khai và triển khai | Deploy frontend và backend lên server, tự host auth (4.4, D7), hosting VN (9.3, D20), backup (9.6), privacy policy (9.7), Web Push |
@@ -77,7 +77,8 @@ PWA (D26, thay D5 ngày 16/11/2026): một codebase TypeScript chạy trên Safa
 | Routing | React Router, Data mode (`createBrowserRouter`) | SPA thuần, không SSR |
 | Lưu trữ cục bộ | Dexie (IndexedDB) + `dexie-react-hooks` (`useLiveQuery`) | Xem 3.2 |
 | Dữ liệu từ server | TanStack Query | Catalog, PR, biểu đồ, lịch sử |
-| UI | Tailwind CSS + shadcn/ui (`--base radix`) | Component được copy vào repo; theme mặc định, map design (Stitch) sau |
+| UI | Tailwind CSS v4 + shadcn/ui (`--base radix`) | Component do CLI sinh, copy vào repo; theme lấy từ token trong `DESIGN.md` (khai báo ở `@theme`, biến semantic của shadcn trỏ về token). Chỉ một theme sáng, không dark mode ở MVP. Font Barlow Condensed + Be Vietnam Pro (subset tiếng Việt) |
+| Song ngữ | Paraglide JS 3 (`@inlang/paraglide-js`) + inlang CLI | Dựng bằng `paraglide-js init`; xem 3.5 |
 | Auth | supabase-js | Xem 9.1 |
 | Test | Vitest + Testing Library | Cùng Vitest với `packages/engine`, `packages/contract` |
 
@@ -107,7 +108,32 @@ Lớp truy cập thiết bị sức khoẻ vẫn bọc qua interface `DeviceProv
 
 Module riêng (`packages/engine`), viết TypeScript, là tập hợp pure function không gọi mạng, không đọc đồng hồ hệ thống (nhận `today` qua tham số input) — nhờ vậy chạy được offline và test được độc lập không cần mock thời gian/mạng. App gọi engine ngay sau khi log set (`afterSet`) để lấy gợi ý back-off, và trước khi vào buổi tập (`planSession`) để lấy gợi ý tăng (chỉ nêu hướng, không kèm mức tạ), khởi động, quay lại sau nghỉ và deload. Bộ luật đầy đủ nằm ở SRS Phụ lục A.
 
-### 3.5 Import trên máy — *post-MVP*
+### 3.5 Song ngữ (i18n)
+
+Giao diện có hai ngôn ngữ **tiếng Anh và tiếng Việt** ngay từ MVP (D27).
+
+- **Ngôn ngữ gốc và mặc định là tiếng Anh.** Câu chữ viết bằng tiếng Anh trước, tiếng Việt là bản dịch. Lần đầu mở app luôn là tiếng Anh, không tự nhận theo ngôn ngữ trình duyệt. Sau này chuyển mặc định sang tiếng Việt chỉ cần đổi `baseLocale` trong `apps/web/project.inlang/settings.json`, không sửa message.
+- **Chọn ngôn ngữ:** user đổi trong màn Me. Lựa chọn lưu ở máy (`localStorage`, strategy `["localStorage", "baseLocale"]` của Paraglide, khai báo ở `apps/web/project.inlang/paraglide.config.ts`) và ở `USERS.locale` trên server; sau khi đăng nhập, giá trị trên server được ưu tiên. *Chưa làm:* đọc `locale` từ `/me` và ghi khi đổi ngôn ngữ — làm cùng endpoint cập nhật hồ sơ; hiện ngôn ngữ chỉ lưu ở `localStorage`. Đổi ngôn ngữ thì reload trang (hành vi mặc định của `setLocale`), chấp nhận được vì chỉ đổi trong Me, không đổi giữa buổi tập; phiên đang dở vẫn nằm trong IndexedDB. `<html lang>` đặt theo ngôn ngữ đang dùng; manifest khai báo `en`.
+- **Chỉ client sinh câu chữ hiển thị.** Engine trả mã lý do kèm tham số (vd `{ code: 'increase_load', delta: 2.5 }`), API trả mã lỗi (8.1); client dựng câu theo ngôn ngữ. Server và engine không trả câu chữ để hiển thị.
+- **Dữ liệu song ngữ:** tên bài (`EXERCISES.name_en`, `name_vi`), tên nhóm cơ (`MUSCLES.name_en`, `name_vi`), tên chương trình mẫu và tên buổi trong `packages/templates` (YAML có `en` và `vi`). Dữ liệu user tự nhập (tên buổi, alias, ghi chú) giữ nguyên, không dịch.
+- **Tên bài:** hiện theo ngôn ngữ UI; picker và màn chi tiết bài hiện thêm tên còn lại ở dòng phụ; màn ghi set chỉ hiện tên chính. Tìm kiếm luôn khớp cả tên EN, tên VI và alias.
+- **Định dạng số và ngày** đi theo ngôn ngữ UI (`en`: 77.5, Nov 19; `vi`: 77,5, 19/11), qua một module dùng chung bọc `Intl.NumberFormat` / `Intl.DateTimeFormat`; không gọi `toLocaleString` rải rác. Ô nhập số nhận cả dấu phẩy lẫn dấu chấm ở cả hai ngôn ngữ. Đơn vị kg/lb là cài đặt riêng, không phụ thuộc ngôn ngữ.
+- **Bản dịch tiếng Việt** do AI soạn nháp, founder rà soát (cùng cách với tên Việt trong catalog). Bản Việt được viết lại cho tự nhiên, không bắt buộc dịch sát chữ; giọng văn hai ngôn ngữ mô tả trong `PRODUCT.md`.
+
+**Công cụ:**
+
+| Phần | Cách làm |
+| --- | --- |
+| Thư viện | Paraglide JS 3: message biên dịch thành hàm có kiểu (`m.common_save()`), chỉ đóng gói message được dùng, chạy offline như code thường. Output sinh ra ở `apps/web/src/paraglide` (không commit): Vite plugin biên dịch khi dev, build và test; `npm run i18n:compile` chạy trước `tsc` trong `build` và `typecheck` |
+| File message | `apps/web/messages/{en,vi}.json` (định dạng inlang message format). Plugin message format được nạp từ CDN lúc biên dịch, nên bước build cần mạng |
+| Quy ước key | Phẳng, `snake_case`, tiền tố theo phạm vi: `common_`, `app_` (vỏ app: cập nhật), `nav_`, `sync_` (chip đồng bộ), `resume_` (thanh tiếp tục buổi tập), `home_`, `log_`, `plans_`, `history_`, `progress_`, `me_`, `error_` (khớp mã lỗi API), `engine_` (khớp mã lý do của engine). Số nhiều dùng variants của Paraglide (`Intl.PluralRules`), không ghép chuỗi bằng tay |
+| Kiểm tra bản dịch | `npm run check:i18n` (`inlang check` của inlang CLI): thiếu bản dịch, bản dịch rỗng, thiếu hoặc thừa biến `{…}`, thiếu dạng số nhiều thì lỗi. Chạy trong `npm run lint` của `apps/web`, nên có trong `verify` và CI — cần vì Paraglide tự rơi về ngôn ngữ gốc khi bản kia thiếu message |
+| Truy cập message | `npm run lint:i18n` (plugin ESLint của Paraglide, rule `no-dynamic-message-access`): cấm `m[key]` động, để key sai bị bắt lúc lint và message không dùng được tree-shake. Ánh xạ mã → message (vd mã lỗi API) viết tường minh bằng `switch` |
+| Chặn chuỗi cứng | ESLint `i18next/no-literal-string` cho `apps/web/src` (bỏ qua file test và `src/routes/dev`): bắt text trong JSX và các thuộc tính mang chữ (`aria-label`, `title`, `placeholder`, `alt`, `label`, `sub`, `help`, `error`, `stat`, `decreaseLabel`, `increaseLabel`). Không bắt được: chuỗi trong object literal (vd `options` của nhóm lựa chọn), đối số hàm (vd `toast.show('…')`, `announce('…')`) và JSX nằm trong biến tên viết hoa toàn bộ (vd `const TABS = …`) — các chỗ đó dựa vào review |
+| Định dạng | Unit test module định dạng ở cả hai locale |
+| Xem trước | Route `/dev/kit` chỉ có khi dev: hiển thị mọi primitive, có nút chuyển EN/VI để soát dấu và độ dài chữ |
+
+### 3.6 Import trên máy — *post-MVP*
 
 Ảnh chụp lịch tập được OCR ngay trên máy trước khi upload — giảm dữ liệu nhạy cảm gửi lên server và cho kết quả text sơ bộ nhanh hơn so với chờ vision LLM. Thiết kế ban đầu dùng ML Kit, vốn chỉ có trên native; với PWA cần chọn lại: thư viện OCR chạy trong trình duyệt, ML Kit qua bản bọc Capacitor, hoặc bỏ bước OCR trên máy và gửi thẳng ảnh cho server. **Chưa chốt** — quyết định khi lên kế hoạch import.
 
@@ -254,6 +280,7 @@ erDiagram
         text auth_subject UK
         text display_name
         text unit_pref "kg | lb"
+        text locale "en | vi, UI language"
         text timezone "week boundary for streak"
         bool rpe_enabled
         text dumbbell_load_default "per_dumbbell | total, asked once"
@@ -263,6 +290,7 @@ erDiagram
     MUSCLES {
         int id PK
         text code UK "normalized: lats, traps"
+        text name_en
         text name_vi
         text muscle_group "chest, back, legs"
     }
@@ -485,6 +513,7 @@ erDiagram
 - **Đơn vị và quy ước ghi tạ:** `SET_LOGS.weight_value` lưu đúng con số user nhập, kèm `input_unit` (kg/lb) — dữ liệu gốc không đổi khi user đổi đơn vị hiển thị (UC02); quy ước ghi tạ (tổng/mỗi bên/mỗi quả/cột tạ) được snapshot ở `SESSION_EXERCISES.load_input` để lịch sử cũ không bị hiểu sai nếu sau này user đổi quy ước. Chỉ so sánh số tạ trong cùng một bài và cùng một quy ước.
 - **Sync:** các bảng `WORKOUT_SESSIONS`, `SESSION_EXERCISES`, `SET_LOGS` dùng UUID sinh ở client; đẩy lên bằng `INSERT ... ON CONFLICT (id) DO UPDATE`; kéo về bằng `GET /sync/pull?since=<cursor theo updated_at>`; xoá bằng tombstone `deleted_at`.
 - **Dữ liệu dẫn xuất:** `PERSONAL_RECORDS` và các field streak trong `GOALS` chỉ là cache, tính lại được từ `SET_LOGS`/`WORKOUT_SESSIONS`. Phải tính lại khi user sửa hoặc xoá dữ liệu gốc — không cộng dồn, để idempotent với dữ liệu offline sync trễ.
+- **Song ngữ:** `EXERCISES` và `MUSCLES` có tên ở cả hai ngôn ngữ (`name_en`, `name_vi`); `USERS.locale` lưu ngôn ngữ giao diện (mặc định `en`). Xem 3.5.
 - **Chuẩn hoá nhóm cơ:** dùng bảng `MUSCLES` + `EXERCISE_MUSCLES` thay vì mảng text, để volume theo nhóm cơ không bị lệch vì từ đồng nghĩa.
 - **Index:** `workout_sessions(user_id, started_at desc)`, `session_exercises(exercise_id)` cho truy vấn "lần trước"; cân nhắc denormalize `user_id` vào `session_exercises` nếu truy vấn chậm. GIN trigram trên `exercise_aliases(alias_normalized)`. Unique `daily_activities(user_id, day, source)`, unique `body_metrics(user_id, source, external_id)`.
 - **Quyền riêng tư:** (post-MVP) chỉ lưu dữ liệu tổng hợp từ Health Connect (bước/ngày, cân nặng), không lưu nhịp tim thô; (post-MVP) xoá media import sau khi user xác nhận, hoặc sau 7 ngày nếu job không được xác nhận; llm\_output giữ 90 ngày để đo độ chính xác parser rồi xoá (đề xuất, xem SRS 5.2); xoá tài khoản = xoá cứng toàn bộ dữ liệu user theo cascade.
@@ -500,7 +529,7 @@ Contract chi tiết (request/response schema của từng route) được viết
 - REST, JSON cho request/response; HTTPS khi triển khai lên server, MVP chạy localhost dùng HTTP.
 - CORS: chỉ cho phép các origin trong `CORS_ORIGINS`; header `Authorization` phải nằm trong danh sách header được phép.
 - Xác thực: header `Authorization: Bearer <JWT>` (từ Supabase Auth), NestJS verify JWT ở guard, không cần truyền `user_id` trong body.
-- Response lỗi có cấu trúc thống nhất (mã lỗi + message người đọc được) để client hiện thông báo nhất quán.
+- Response lỗi có cấu trúc thống nhất (`code` + `message`). Client hiển thị thông báo theo `code` bằng message đã dịch (`error_<code>`); `message` chỉ để debug và ghi log, không hiển thị cho user (3.5).
 - Đồng bộ dùng cursor-based pagination (`since=<updated_at>`), không dùng offset — tránh bỏ sót khi có ghi đồng thời.
 
 ### 8.2 Nhóm endpoint theo UC (mức khái niệm)
@@ -576,6 +605,7 @@ MVP: xoá trong app. Trang web xoá tài khoản độc lập (bắt buộc theo
 | D19 | Monorepo: `apps/web`, `apps/api`, `packages/engine` (TS), `packages/templates` (YAML), `packages/contract` (schema Zod dùng chung cho web app và backend; Swagger sinh từ schema khi dev) | Chốt |
 | D20 | Hosting beta đặt tại VN, Docker Compose (API, worker, PostgreSQL, auth, storage) — tránh thủ tục chuyển dữ liệu cá nhân xuyên biên giới (Nghị định 356/2025) | Post-MVP — chỉ cần khi lên beta |
 | D22 | Chia 2 nhóm user bằng bộ cài đặt mặc định từ onboarding, không tách 2 chế độ riêng | Chốt |
+| D27 | Giao diện song ngữ EN/VI từ MVP, tiếng Anh là ngôn ngữ gốc và mặc định (đổi mặc định sang tiếng Việt sau bằng một dòng cấu hình). Dùng Paraglide JS 3 + inlang CLI; chỉ client sinh câu chữ hiển thị, server và engine trả mã. Chi tiết ở 3.5 | Chốt (19/11/2026) · đổi mặc định sang tiếng Việt: dự kiến |
 
 Các dòng "Đề xuất" (D17, D18) là lựa chọn hợp lý cho quy mô hiện tại, có thể đổi nếu beta cho thấy cần tách service hoặc dùng queue riêng — không phải quyết định cứng.
 
@@ -621,6 +651,7 @@ Worker đã tách tiến trình riêng từ đầu (dù chạy chung server) —
 | Tầng | Cách test |
 | --- | --- |
 | Progression engine | Unit test theo bộ test case Given/When/Then đặt trong `packages/engine`, bám SRS Phụ lục A; chạy trên CI mỗi PR |
+| Song ngữ | `inlang check` kiểm tra bản dịch thiếu và biến lệch giữa `en.json` và `vi.json`; ESLint chặn chuỗi cứng trong JSX; unit test module định dạng số/ngày ở cả hai locale |
 | Contract | Web app và backend import cùng schema Zod; typecheck lỗi nếu hai phía lệch; unit test schema bằng Vitest |
 | Web app | Vitest + Testing Library cho component và logic outbox/sync (IndexedDB giả lập trong môi trường test) |
 | Backend | Integration test với PostgreSQL thật chạy bằng Docker |
@@ -630,7 +661,7 @@ Worker đã tách tiến trình riêng từ đầu (dù chạy chung server) —
 ## 12. Câu hỏi / quyết định còn mở
 
 - **Cách chạy demo cuối kỳ (D26):** chưa chốt giữa (a) Chrome desktop, (b) frontend public + tunnel, (c) deploy cả hai — tuỳ tiến độ, ưu tiên (c) nếu kịp (xem 4.4).
-- **OCR trên máy cho import (post-MVP):** ML Kit không có trên web — cần chọn lại (3.5).
+- **OCR trên máy cho import (post-MVP):** ML Kit không có trên web — cần chọn lại (3.6).
 - **D7:** cần thử nghiệm thực tế xác nhận tự host được trước beta, trước khi cam kết mốc chuyển Supabase Auth từ bản cloud sang tự host. Ngôn ngữ backend đã chốt NestJS, ORM đã chốt Prisma (truy vấn pg\_trgm và FOR UPDATE SKIP LOCKED viết bằng raw SQL qua `$queryRaw`).
 - **D20:** hosting VN qua Docker Compose là post-MVP (đi cùng beta), không còn chặn MVP vì MVP chạy localhost.
 - **API spec chi tiết:** schema Zod trong `packages/contract` mới có `/health`, `/me`; các endpoint còn lại sẽ làm theo hướng contract-first cùng lúc với code, dựa trên nhóm endpoint ở mục 8.2.
