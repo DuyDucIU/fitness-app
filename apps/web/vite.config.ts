@@ -26,13 +26,15 @@ export default defineConfig({
       manifest: {
         name: 'Fitness Tracking',
         short_name: 'Fitness',
-        description: 'Ghi buổi tập và nhận gợi ý tăng tạ',
-        lang: 'vi',
+        // Tiếng Anh là ngôn ngữ mặc định (D27, SDD 3.5).
+        description: 'Log your workouts and get progression suggestions',
+        lang: 'en',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
+        // Xám Tyvek (DESIGN.md › ground)
+        theme_color: '#e6e6e1',
+        background_color: '#e6e6e1',
       },
     }),
   ],
