@@ -145,11 +145,30 @@
   input {
     caret-color: var(--color-orange);
   }
+  /* base.css: viền focus mực 3px; phần tử không có bo góc riêng thì bo 6px
+     (class rounded-* ở layer utilities thắng rule này). */
   :focus-visible {
     outline: 3px solid var(--color-ink);
     outline-offset: 2px;
+    border-radius: 6px;
+  }
+  /* Trên nền mực (hàng đảo nền, toast) viền focus chuyển Trắng Tyvek. */
+  .on-dark :focus-visible,
+  .on-dark:focus-visible {
+    outline-color: var(--color-tyvek);
   }
   button {
     touch-action: manipulation;
+  }
+}
+
+/* Giảm chuyển động theo cài đặt hệ thống (prototypes/shared/base.css, DESIGN.md). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -7,7 +7,13 @@ import { Chip, ChipRow } from '@/components/chip';
 import { Segmented, Stepper, SwitchRow } from '@/components/controls';
 import { Alert, EmptyState } from '@/components/empty-state';
 import { Field, NumberInput, SearchInput, TextInput } from '@/components/field';
-import { AlertIcon, MoreIcon, PlusIcon } from '@/components/icons';
+import { Banner } from '@/components/banner';
+import {
+  AlertIcon,
+  DownloadIcon,
+  MoreIcon,
+  PlusIcon,
+} from '@/components/icons';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { SyncPill, SyncPillView } from '@/components/sync-pill';
 import { useToast } from '@/components/toast-context';
@@ -79,6 +85,16 @@ export function Component() {
         <LanguageSwitcher />
       </Block>
 
+      <SectionHeading>Banner</SectionHeading>
+      <Banner
+        className="mx-0"
+        icon={<DownloadIcon aria-hidden />}
+        title={m.app_update_title()}
+        action={<Button>{m.common_update()}</Button>}
+      >
+        {m.app_update_body()}
+      </Banner>
+
       <SectionHeading>Hạ tầng</SectionHeading>
       <Block>
         <Row>
@@ -120,7 +136,8 @@ export function Component() {
         <Button variant="line">{m.common_cancel()}</Button>
         <Button variant="orange">{m.common_update()}</Button>
         <Button variant="danger">Delete</Button>
-        <Button variant="text">{m.common_later()}</Button>
+        <Button variant="text">Write my own instead</Button>
+        <Button busy>{m.common_update()}</Button>
         <Button
           variant="ghost"
           size="icon"

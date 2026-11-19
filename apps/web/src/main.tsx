@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
 
 import './index.css';
-import { ReloadPrompt } from '@/components/reload-prompt';
+import { AppUpdateProvider } from '@/components/app-update';
 import { ToastProvider } from '@/components/toast';
 import { applyDocumentLocale } from '@/lib/i18n';
 import { requestPersistentStorage } from '@/lib/storage';
@@ -19,8 +19,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <RouterProvider router={router} />
-        <ReloadPrompt />
+        <AppUpdateProvider>
+          <RouterProvider router={router} />
+        </AppUpdateProvider>
       </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,

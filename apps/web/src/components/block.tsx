@@ -32,7 +32,7 @@ const rowVariants = cva(
         /** Hàng "hiện tại" (viền cam dành cho hiện tại, nền cam nhạt). */
         current: 'bg-orange-tint',
         /** Hàng đảo nền mực (vd hàng PR). */
-        inverse: 'bg-ink text-tyvek',
+        inverse: 'on-dark bg-ink text-tyvek',
         danger: 'text-danger',
         /** Hàng "Thêm…" viền đứt, căn giữa. */
         add: 'justify-center gap-2 border-dashed border-rule font-bold',

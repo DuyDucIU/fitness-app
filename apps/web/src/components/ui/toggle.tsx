@@ -9,7 +9,7 @@ import { Toggle as TogglePrimitive } from 'radix-ui';
  * Sinh bằng shadcn CLI rồi đổi biến thể.
  */
 const toggleVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-sm bg-tyvek font-semibold whitespace-nowrap shadow-[inset_0_0_0_1.5px_var(--color-rule)] outline-none disabled:pointer-events-none disabled:opacity-40 data-[state=on]:bg-ink data-[state=on]:text-tyvek data-[state=on]:shadow-[inset_0_0_0_1.5px_var(--color-ink)] [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-2 rounded-sm bg-tyvek font-semibold whitespace-nowrap shadow-[inset_0_0_0_1.5px_var(--color-rule)] disabled:pointer-events-none disabled:opacity-40 data-[state=on]:bg-ink data-[state=on]:text-tyvek data-[state=on]:shadow-[inset_0_0_0_1.5px_var(--color-ink)] [&_svg]:pointer-events-none [&_svg]:shrink-0',
   {
     variants: {
       variant: {

@@ -10,9 +10,10 @@ import { Slot } from 'radix-ui';
  * - `orange`: nền cam — hành động "đang diễn ra / bấm được".
  * - `danger`, `text`, `ghost`.
  * - Cỡ `go` (64px, chữ số áo viết hoa) cho nút chính ở vùng đáy; kết hợp với `orange` / `ink` / `line`.
+ * - `busy`: đang chạy, hiện vòng quay sau nhãn và chặn bấm lại (.btn.busy).
  */
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 font-bold whitespace-nowrap transition-transform outline-none select-none active:not-disabled:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
+  "inline-flex shrink-0 items-center justify-center gap-2 font-bold whitespace-nowrap select-none active:not-disabled:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
   {
     variants: {
       variant: {
@@ -50,11 +51,13 @@ function Button({
   variant = 'ink',
   size = 'default',
   asChild = false,
+  busy = false,
   type = 'button',
   ...props
 }: React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
+    busy?: boolean;
   }) {
   const Comp = asChild ? Slot.Root : 'button';
 
@@ -64,7 +67,13 @@ function Button({
       data-variant={variant}
       data-size={size}
       type={asChild ? undefined : type}
-      className={cn(buttonVariants({ variant, size, className }))}
+      aria-busy={busy || undefined}
+      className={cn(
+        buttonVariants({ variant, size }),
+        busy &&
+          "pointer-events-none after:size-4 after:animate-spin after:rounded-full after:border-2 after:border-current after:border-r-transparent after:content-[''] after:[animation-duration:0.7s]",
+        className,
+      )}
       {...props}
     />
   );

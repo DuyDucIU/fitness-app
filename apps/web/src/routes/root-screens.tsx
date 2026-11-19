@@ -1,6 +1,7 @@
 import type * as React from 'react';
 
 import { AppShell, Foot, SectionHeading, TopBar } from '@/components/app-shell';
+import { UpdateBanner } from '@/components/app-update';
 import { Block } from '@/components/block';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { SyncPill } from '@/components/sync-pill';
@@ -12,14 +13,17 @@ import { m } from '@/paraglide/messages.js';
  */
 function RootScreen({
   title,
+  banner,
   children,
 }: {
   title: string;
+  banner?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (
     <AppShell
       top={<TopBar title={title} right={<SyncPill />} />}
+      banner={banner}
       foot={<Foot tabs />}
     >
       {children}
@@ -28,7 +32,7 @@ function RootScreen({
 }
 
 export function TodayPage() {
-  return <RootScreen title={m.nav_today()} />;
+  return <RootScreen title={m.nav_today()} banner={<UpdateBanner />} />;
 }
 
 export function PlansPage() {

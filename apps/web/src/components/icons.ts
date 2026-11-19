@@ -21,4 +21,5 @@ export {
   User as MeIcon,
   Settings as SettingsIcon,
   Dumbbell as ExerciseIcon,
+  Download as DownloadIcon,
 } from 'lucide-react';
