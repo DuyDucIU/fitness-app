@@ -114,5 +114,5 @@ npm run preview -w @fitness/web   # http://localhost:4173 (đã có sẵn trong 
 - Prisma dùng bản 7.x (tag `latest` trên npm hiện là 8 rc). NestJS dùng bản 11 vì `nestjs-zod` chưa hỗ trợ NestJS 12.
 - TypeScript ghim `~6.0.3` (TS 7 chưa tương thích với `@nestjs/swagger` và `typescript-eslint`). TS 6 không tự nạp `@types/*`, nên `tsconfig` khai báo `types` tường minh.
 - `apps/web` đọc thẳng mã nguồn TS của `@fitness/contract` và `@fitness/engine` (alias trong `vite.config.ts`) vì hai package build ra CommonJS cho NestJS — nhờ vậy Vite tree-shake được zod.
-- Component trong `apps/web/src/components/ui` do shadcn CLI sinh (`npx shadcn@latest add <tên>` trong `apps/web`), theme đang là mặc định — chưa map design Stitch.
+- Component trong `apps/web/src/components/ui` do shadcn CLI sinh (`npx shadcn@latest add <tên>` trong `apps/web`), theme lấy từ token trong `DESIGN.md` (xem `src/index.css`).
 - Catalog bài tập nạp từ [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense), ghim commit trong `apps/api/prisma/seed/data/SOURCE_COMMIT.txt`; thêm bài bằng cách thêm dòng vào `apps/api/prisma/seed/catalog.yaml`.

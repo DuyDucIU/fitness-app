@@ -309,9 +309,9 @@ Bảng màu như vật liệu in số áo: giấy Tyvek, mực đen, và ba màu
 ### Named Rules
 **The Ba Cỡ Cộng Một Rule.** Chỉ có cỡ số áo, số phụ 28px, chữ đọc 16px và nhãn 12px. Muốn nhấn thì đổi độ đậm, chữ hoa hoặc đảo nền, không thêm cỡ mới.
 
-**The Dấu Phẩy Việt Rule.** Mọi số hiển thị đi qua định dạng `vi-VN`: 77,5 kg, 2,5 kg. Ô nhập chấp nhận cả dấu phẩy lẫn dấu chấm khi gõ.
+**The Số Theo Ngôn Ngữ Rule.** Mọi số và ngày hiển thị đi qua module định dạng dùng chung, theo ngôn ngữ đang dùng: tiếng Anh 77.5 kg, Nov 19; tiếng Việt 77,5 kg, 19/11. Ô nhập chấp nhận cả dấu phẩy lẫn dấu chấm khi gõ, ở cả hai ngôn ngữ.
 
-**Chưa giải quyết (drift, ghi nhận, chưa sửa):** các prototype hiện dùng chữ tiếng Anh và số kiểu en-US (77.5) để khớp với `prototypes/workout-log/index.html` đã commit, trong khi rule trên và PRODUCT.md quy định tiếng Việt và `vi-VN`. Rule giữ nguyên; việc chọn ngôn ngữ và định dạng số cho bản dựng thật còn bỏ ngỏ.
+**Song ngữ (D27):** giao diện có tiếng Anh (gốc, mặc định) và tiếng Việt, nên mọi layout phải chịu được chữ của cả hai bản: chữ Việt có dấu chồng cao hơn và câu thường dài hơn bản Anh. Các prototype viết bằng tiếng Anh và số kiểu en-US, đúng với ngôn ngữ mặc định; câu chữ trong prototype là nguồn cho bản tiếng Anh.
 
 ## Layout
 
