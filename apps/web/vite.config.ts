@@ -1,10 +1,20 @@
 /// <reference types="vitest/config" />
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+/**
+ * Đường dẫn tuyệt đối theo đúng cách viết trên đĩa. Trên Windows, `import.meta.dirname`
+ * mang chữ ổ đĩa của thư mục đang đứng (VS Code hay dùng `d:`), còn Vite resolve
+ * node_modules ra `D:`; lệch chữ hoa/thường làm một package bị nạp hai bản
+ * (vd hai context của react-router, hai bản React → lỗi hook `null`).
+ */
+const fromRoot = (relative: string) =>
+  realpathSync.native(path.resolve(import.meta.dirname, relative));
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -43,17 +53,11 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(import.meta.dirname, './src'),
+      '@': fromRoot('./src'),
       // Package dùng chung build ra CommonJS cho NestJS; web đọc thẳng mã nguồn TS (ESM)
       // để Vite tree-shake được zod và không cần build package trước khi chạy dev.
-      '@fitness/contract': path.resolve(
-        import.meta.dirname,
-        '../../packages/contract/src/index.ts',
-      ),
-      '@fitness/engine': path.resolve(
-        import.meta.dirname,
-        '../../packages/engine/src/index.ts',
-      ),
+      '@fitness/contract': fromRoot('../../packages/contract/src/index.ts'),
+      '@fitness/engine': fromRoot('../../packages/engine/src/index.ts'),
     },
   },
   // Port cố định, trùng CORS_ORIGINS của API: bị chiếm thì báo lỗi thay vì lặng lẽ đổi port.

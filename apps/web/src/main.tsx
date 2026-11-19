@@ -5,6 +5,7 @@ import { RouterProvider } from 'react-router/dom';
 
 import './index.css';
 import { ReloadPrompt } from '@/components/reload-prompt';
+import { ToastProvider } from '@/components/toast';
 import { applyDocumentLocale } from '@/lib/i18n';
 import { requestPersistentStorage } from '@/lib/storage';
 import { router } from '@/router';
@@ -17,8 +18,10 @@ void requestPersistentStorage();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <ReloadPrompt />
+      <ToastProvider>
+        <RouterProvider router={router} />
+        <ReloadPrompt />
+      </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

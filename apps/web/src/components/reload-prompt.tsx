@@ -18,13 +18,15 @@ export function ReloadPrompt() {
   return (
     <div
       role="status"
-      className="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] flex items-center gap-2 rounded-lg border bg-background p-3 shadow-lg"
+      className="fixed inset-x-3 bottom-[calc(var(--safe-bottom)+12px)] z-50 mx-auto flex max-w-[416px] items-start gap-3 rounded-md bg-tyvek py-3 pr-2 pl-3.5 shadow-[inset_0_0_0_1.5px_var(--color-ink)]"
     >
-      <span className="flex-1 text-sm">{m.app_update_ready()}</span>
-      <Button size="sm" variant="ghost" onClick={() => setNeedRefresh(false)}>
+      <span className="flex-1 self-center leading-[1.4] font-semibold">
+        {m.app_update_ready()}
+      </span>
+      <Button variant="text" onClick={() => setNeedRefresh(false)}>
         {m.common_later()}
       </Button>
-      <Button size="sm" onClick={() => void updateServiceWorker(true)}>
+      <Button onClick={() => void updateServiceWorker(true)}>
         {m.common_update()}
       </Button>
     </div>

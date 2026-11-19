@@ -32,7 +32,8 @@ export default defineConfig([
     // Song ngữ (SDD 3.5): chữ hiển thị phải đi qua message của Paraglide (`m.*`),
     // không viết chuỗi cứng trong JSX (cả text lẫn thuộc tính như aria-label).
     files: ['src/**/*.tsx'],
-    ignores: ['src/**/*.test.tsx'],
+    // src/routes/dev chỉ có khi dev (/dev/kit), chữ ở đó là nhãn cho dev.
+    ignores: ['src/**/*.test.tsx', 'src/routes/dev/**'],
     plugins: { i18next },
     rules: {
       'i18next/no-literal-string': [
@@ -51,6 +52,25 @@ export default defineConfig([
               'label',
             ],
           },
+        },
+      ],
+    },
+  },
+  {
+    // `cn` phải biết token riêng (src/lib/utils.ts); component do shadcn CLI sinh import
+    // thẳng từ package `cn`, cần đổi sang '@/lib/utils'.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/lib/utils.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'cn',
+              message: "Import cn từ '@/lib/utils' (đã cấu hình token riêng).",
+            },
+          ],
         },
       ],
     },
