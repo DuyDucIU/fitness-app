@@ -12,7 +12,7 @@ function ErrorScreen({ message }: { message: string }) {
       top={<div aria-hidden className="h-(--safe-top) flex-none" />}
       foot={<Foot tabs />}
     >
-      <EmptyState>{message}</EmptyState>
+      <EmptyState heading>{message}</EmptyState>
     </AppShell>
   );
 }

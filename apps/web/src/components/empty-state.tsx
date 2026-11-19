@@ -6,11 +6,14 @@ import type * as React from 'react';
  */
 export function EmptyState({
   stat,
+  heading,
   children,
   action,
 }: {
   /** Số lớn kiểu số áo (vd "0"). */
   stat?: React.ReactNode;
+  /** Câu là tiêu đề của cả màn (màn không có thanh trên), render bằng `<h1>`. */
+  heading?: boolean;
   children: React.ReactNode;
   action?: React.ReactNode;
 }) {
@@ -19,7 +22,11 @@ export function EmptyState({
       {stat !== undefined && (
         <span className="mb-2 block text-bib numeral">{stat}</span>
       )}
-      <p className="mx-auto mb-3.5 max-w-[30ch]">{children}</p>
+      {heading ? (
+        <h1 className="mx-auto mb-3.5 max-w-[30ch] font-normal">{children}</h1>
+      ) : (
+        <p className="mx-auto mb-3.5 max-w-[30ch]">{children}</p>
+      )}
       {action}
     </div>
   );
