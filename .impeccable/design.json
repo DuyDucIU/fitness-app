@@ -1,0 +1,538 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-18T11:52:35.000Z",
+  "title": "Design System: Fitness Tracking",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Xám Tyvek",
+        "canonical": "oklch(92.4% 0.007 106.5)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252523",
+          "#42423F",
+          "#61615D",
+          "#83837E",
+          "#A5A5A1",
+          "#C9C9C7",
+          "#EEEEEE"
+        ]
+      },
+      "tyvek": {
+        "role": "neutral",
+        "displayName": "Trắng Tyvek",
+        "canonical": "oklch(96.6% 0.004 106.5)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252524",
+          "#424240",
+          "#61615F",
+          "#828280",
+          "#A5A5A3",
+          "#C9C9C8",
+          "#EEEEEE"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Mực",
+        "canonical": "oklch(17.8% 0.000 89.9)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Kẻ",
+        "canonical": "oklch(85.3% 0.010 106.6)",
+        "tonalRamp": [
+          "#0B0B0A",
+          "#252523",
+          "#42423E",
+          "#62625C",
+          "#83837C",
+          "#A5A5A0",
+          "#C9C9C6",
+          "#EEEEED"
+        ]
+      },
+      "rule-soft": {
+        "role": "neutral",
+        "displayName": "Kẻ Mờ",
+        "canonical": "oklch(89.3% 0.008 106.6)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252523",
+          "#42423E",
+          "#62625C",
+          "#83837D",
+          "#A5A5A1",
+          "#C9C9C6",
+          "#EEEEED"
+        ]
+      },
+      "orange": {
+        "role": "primary",
+        "displayName": "Cam Cự Ly",
+        "canonical": "oklch(67.0% 0.220 35.6)",
+        "tonalRamp": [
+          "#170603",
+          "#480C00",
+          "#771D02",
+          "#AC2C00",
+          "#E33E02",
+          "#FF7652",
+          "#FDB5A2",
+          "#FFE9E3"
+        ]
+      },
+      "orange-tint": {
+        "role": "primary",
+        "displayName": "Cam Nhạt",
+        "canonical": "oklch(94.3% 0.031 43.1)",
+        "tonalRamp": [
+          "#0D0B0A",
+          "#2B2320",
+          "#4E3E38",
+          "#715C53",
+          "#937D74",
+          "#B3A199",
+          "#D2C6C2",
+          "#F1EDEC"
+        ]
+      },
+      "blue": {
+        "role": "secondary",
+        "displayName": "Lam Nghỉ",
+        "canonical": "oklch(51.3% 0.202 262.5)",
+        "tonalRamp": [
+          "#050B18",
+          "#092152",
+          "#0B3895",
+          "#1954D1",
+          "#3B79F9",
+          "#76A3FB",
+          "#ADCAFF",
+          "#E6EFFF"
+        ]
+      },
+      "green": {
+        "role": "tertiary",
+        "displayName": "Xanh Đã Xong",
+        "canonical": "oklch(61.7% 0.147 153.8)",
+        "tonalRamp": [
+          "#040E07",
+          "#012E15",
+          "#015029",
+          "#0E7440",
+          "#189B57",
+          "#65BA83",
+          "#A7D7B5",
+          "#E4F3E8"
+        ]
+      },
+      "on-signal": {
+        "role": "neutral",
+        "displayName": "Trắng Trên Tín Hiệu",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#A5A5A5",
+          "#C9C9C9",
+          "#EEEEEE"
+        ]
+      },
+      "danger": {
+        "role": "danger",
+        "displayName": "Đỏ Xoá",
+        "canonical": "oklch(49.6% 0.180 28.4)",
+        "tonalRamp": [
+          "#1A0503",
+          "#430D08",
+          "#6E150E",
+          "#9A1E14",
+          "#C9372B",
+          "#E2685D",
+          "#F1A69F",
+          "#FCE7E5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "bib": {
+        "displayName": "Số áo",
+        "purpose": "Hai con số tạ × reps trên mặt số áo và số lớn ở tóm tắt; 132/104/80/66px theo độ dài, cặp số dùng chung cỡ nhỏ hơn."
+      },
+      "numeral": {
+        "displayName": "Số phụ",
+        "purpose": "Cỡ số phụ duy nhất 28px: đồng hồ, số set, giá trị hàng set, Lần trước, PR, nhãn nút chính."
+      },
+      "body": {
+        "displayName": "Chữ đọc",
+        "purpose": "Câu gợi ý, mô tả, tên bài và nhãn nút (600–700)."
+      },
+      "label": {
+        "displayName": "Nhãn",
+        "purpose": "Nhãn chữ hoa 12px cho dữ liệu và trường nhập; không dùng làm dòng trang trí trên tiêu đề."
+      }
+    },
+    "shadows": [
+      {
+        "name": "state-ring-rest",
+        "value": "inset 0 0 0 2px #1F5BD8",
+        "purpose": "Viền trạng thái của dải khi nghỉ."
+      },
+      {
+        "name": "state-ring-warm",
+        "value": "inset 0 0 0 2px #111111",
+        "purpose": "Viền rỗng của dải khi khởi động hoặc bài đã xong."
+      },
+      {
+        "name": "edit-double-ring",
+        "value": "inset 0 0 0 2px #111111, inset 0 0 0 5px #F4F4F1, inset 0 0 0 6px #111111",
+        "purpose": "Dải khi đang sửa một set đã ghi."
+      },
+      {
+        "name": "chip-current-ring",
+        "value": "inset 0 0 0 1.5px #FF4F1A",
+        "purpose": "Làm dày viền cam của chip bài hiện tại."
+      },
+      {
+        "name": "today-cell-ring",
+        "value": "inset 0 0 0 1.5px #FF4F1A",
+        "purpose": "Ô hôm nay trên dòng tuần (2px khi ô đã xong)."
+      },
+      {
+        "name": "banner-ring",
+        "value": "inset 0 0 0 1.5px #111111",
+        "purpose": "Banner thông tin: cài app iOS, có bản cập nhật."
+      },
+      {
+        "name": "alert-ring",
+        "value": "inset 0 0 0 2px #B42318",
+        "purpose": "Khối cảnh báo lỗi."
+      },
+      {
+        "name": "input-focus",
+        "value": "inset 0 0 0 1.5px #111111",
+        "purpose": "Ô nhập đang focus (danger khi không hợp lệ)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(.16,1,.3,1)",
+        "purpose": "Easing chung cho mọi chuyển động trượt dọc, không nảy."
+      },
+      {
+        "name": "row-enter",
+        "value": "translateY(-14px) → 0, .32s",
+        "purpose": "Set vừa ghi trượt vào hàng."
+      },
+      {
+        "name": "bib-swap",
+        "value": "translateY(16px) → 0, .26s",
+        "purpose": "Mặt số set kế tiếp hiện lên."
+      },
+      {
+        "name": "band-state",
+        "value": "background-color .24s",
+        "purpose": "Dải đổi màu trạng thái."
+      },
+      {
+        "name": "rest-clip",
+        "value": "clip-path .25s linear",
+        "purpose": "Lớp lam rút dần theo --p mỗi nhịp đồng hồ."
+      },
+      {
+        "name": "rest-done-flash",
+        "value": ".9s steps(1) × 3, cam ↔ Trắng Tyvek",
+        "purpose": "Hết giờ nghỉ, kèm âm báo và rung."
+      },
+      {
+        "name": "sheet",
+        "value": "transform .28s",
+        "purpose": "Sheet trượt từ đáy, lớp phủ mực 42% phía sau."
+      },
+      {
+        "name": "summary",
+        "value": "transform .34s",
+        "purpose": "Trang tóm tắt trượt lên."
+      },
+      {
+        "name": "reduced-motion",
+        "value": ".01ms",
+        "purpose": "prefers-reduced-motion: mọi chuyển động gần như tức thời."
+      },
+      {
+        "name": "page-slide",
+        "value": "translateX(100%) → 0, .28s",
+        "purpose": "Màn đi sâu trượt đè từ phải."
+      },
+      {
+        "name": "toast",
+        "value": "translateY(12px) → 0, .26s",
+        "purpose": "Toast hiện lên trên vùng đáy."
+      },
+      {
+        "name": "wallet-snap",
+        "value": "scroll-snap-type: x mandatory; opacity .2s",
+        "purpose": "Ví số áo dừng đúng một tấm ở giữa; tấm bên cạnh mờ 82%."
+      },
+      {
+        "name": "skeleton-pulse",
+        "value": "opacity 1 ↔ .55, 1.2s ease-in-out",
+        "purpose": "Khối giữ chỗ khi tải."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone-column",
+        "value": "440px"
+      },
+      {
+        "name": "short-screen",
+        "value": "max-height: 700px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Nút Xong set",
+      "kind": "button",
+      "refersTo": "button-go",
+      "description": "Nút chính 64px ở vùng ngón cái; không bao giờ bị khoá.",
+      "html": "<button class=\"ds-go\">Xong set <b class=\"ds-go-n\">3</b></button>",
+      "css": ".ds-go{width:100%;height:64px;border:0;border-radius:12px;background:var(--orange, #FF4F1A);color:var(--ink, #111111);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em;font-size:28px;text-transform:uppercase;letter-spacing:.01em;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer}.ds-go-n{font:inherit}.ds-go:active{transform:translateY(1px)}.ds-go:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}"
+    },
+    {
+      "name": "Nút chính mực",
+      "kind": "button",
+      "refersTo": "button-go-ink",
+      "description": "Biến thể mực của nút chính: Lưu set, Sang bài, Kết thúc buổi tập.",
+      "html": "<button class=\"ds-go-ink\">Lưu set 2</button>",
+      "css": ".ds-go-ink{width:100%;height:64px;border:0;border-radius:12px;background:var(--ink, #111111);color:var(--tyvek, #F4F4F1);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em;font-size:28px;text-transform:uppercase;letter-spacing:.01em;cursor:pointer}.ds-go-ink:active{transform:translateY(1px)}.ds-go-ink:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}"
+    },
+    {
+      "name": "Nút mực và nút viền",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "Cặp trả lời trong cuống gợi ý và sheet: khẳng định bằng mực, thay thế bằng viền.",
+      "html": "<div class=\"ds-acts\"><button class=\"ds-btn ds-btn-ink\">Ừ, 75 kg</button><button class=\"ds-btn ds-btn-line\">Giữ 80 kg</button></div>",
+      "css": ".ds-acts{display:flex;gap:8px;flex-wrap:wrap}.ds-btn{font-family:'Be Vietnam Pro',system-ui,sans-serif;height:44px;padding:0 16px;border-radius:8px;font-size:16px;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:none;border:0;color:var(--ink, #111111)}.ds-btn-ink{background:var(--ink, #111111);color:var(--tyvek, #F4F4F1)}.ds-btn-line{border:1.5px solid var(--ink, #111111)}.ds-btn:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}"
+    },
+    {
+      "name": "Điều khiển nghỉ",
+      "kind": "button",
+      "refersTo": "rest-control",
+      "description": "Hai nút viền lam ngay trên nút chính khi đang nghỉ.",
+      "html": "<div class=\"ds-restctl\"><button><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 8v4l2 2\"/><circle cx=\"12\" cy=\"12\" r=\"9\"/></svg>Thêm 30 giây</button><button><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 4 10 8-10 8V4zM19 5v14\"/></svg>Bỏ qua nghỉ</button></div>",
+      "css": ".ds-restctl{display:flex;gap:8px}.ds-restctl button{font-family:'Be Vietnam Pro',system-ui,sans-serif;flex:1;height:48px;border-radius:8px;border:2px solid var(--blue, #1F5BD8);color:var(--blue, #1F5BD8);background:var(--tyvek, #F4F4F1);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}.ds-restctl button:active{background:var(--blue, #1F5BD8);color:#fff}.ds-restctl button:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}"
+    },
+    {
+      "name": "Chip bài",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Dải chip bài cuộn ngang: hiện tại viền cam, xong có dấu ✓ xanh.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip ds-cur\"><b>1</b>Đẩy ngực ngang<span class=\"ds-dots\"><i class=\"d\"></i><i class=\"d\"></i><i></i><i></i></span></button><button class=\"ds-chip ds-done\"><b>2</b>Đẩy vai đứng<span class=\"ds-ck\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span></button></div>",
+      "css": ".ds-chips{display:flex;gap:8px}.ds-chip{font-family:'Be Vietnam Pro',system-ui,sans-serif;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:8px;background:var(--tyvek, #F4F4F1);border:1.5px solid var(--rule, #CFCFC8);color:var(--ink, #111111);font-size:16px;font-weight:600;white-space:nowrap;cursor:pointer;transition:border-color .2s}.ds-chip b{font-weight:800}.ds-cur{border-color:var(--orange, #FF4F1A);box-shadow:inset 0 0 0 1.5px var(--orange, #FF4F1A)}.ds-done{background:transparent}.ds-ck{color:var(--green, #1E9E5A);display:flex}.ds-dots{display:flex;gap:3px}.ds-dots i{width:6px;height:6px;border-radius:50%;background:var(--rule, #CFCFC8)}.ds-dots i.d{background:var(--ink, #111111)}.ds-chip:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}"
+    },
+    {
+      "name": "Chip đồng bộ",
+      "kind": "chip",
+      "refersTo": "sync-pill",
+      "description": "Trạng thái lưu: chấm xanh đã đồng bộ, chấm rỗng có set chờ, nền mực khi offline.",
+      "html": "<div class=\"ds-syncs\"><span class=\"ds-sync ds-ok\"><span class=\"ds-dot\"></span>Đã đồng bộ</span><span class=\"ds-sync\"><span class=\"ds-dot\"></span>2 set chờ</span><span class=\"ds-sync ds-off\">Offline · 2 set</span></div>",
+      "css": ".ds-syncs{display:flex;gap:8px;flex-wrap:wrap}.ds-sync{font-family:'Be Vietnam Pro',system-ui,sans-serif;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:999px;border:1.5px solid var(--ink, #111111);color:var(--ink, #111111);font-size:12px;font-weight:600}.ds-dot{width:9px;height:9px;border-radius:50%;border:2px solid var(--ink, #111111);box-sizing:border-box}.ds-ok .ds-dot{background:var(--green, #1E9E5A);border:0}.ds-off{background:var(--ink, #111111);color:var(--tyvek, #F4F4F1)}"
+    },
+    {
+      "name": "Tấm số áo",
+      "kind": "custom",
+      "refersTo": "bib",
+      "description": "Thành phần chữ ký: dải trạng thái, mặt số tạ × reps, răng cưa, cuống Lần trước.",
+      "html": "<section class=\"ds-bib\"><div class=\"ds-band\"><span class=\"ds-name\">Đẩy ngực ngang</span><b class=\"ds-setno\">SET 3/4</b><span class=\"ds-more\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"5\" cy=\"12\" r=\"1.6\" fill=\"currentColor\"/><circle cx=\"12\" cy=\"12\" r=\"1.6\" fill=\"currentColor\"/><circle cx=\"19\" cy=\"12\" r=\"1.6\" fill=\"currentColor\"/></svg></span></div><div class=\"ds-face\"><div class=\"ds-cell\"><span class=\"ds-big\">80</span><div class=\"ds-adj\"><button aria-label=\"Giảm\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/></svg></button><span>kg</span><button aria-label=\"Tăng\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M12 5v14\"/></svg></button></div></div><span class=\"ds-x\">×</span><div class=\"ds-cell\"><span class=\"ds-big\">8</span><div class=\"ds-adj\"><button aria-label=\"Bớt\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/></svg></button><span>reps</span><button aria-label=\"Thêm\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M12 5v14\"/></svg></button></div></div></div><div class=\"ds-perf\"><i></i></div><div class=\"ds-stub\"><span class=\"ds-lbl\">Lần trước · 12/11</span><p>Hụt 1 set ở cuối. Đủ 8 cả 4 set là lên tạ được rồi đó.</p><b class=\"ds-last\">80×8 · 8 · 8 · 7</b></div></section>",
+      "css": ".ds-bib{font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--tyvek, #F4F4F1);color:var(--ink, #111111);border-radius:10px;overflow:hidden;position:relative;max-width:380px}.ds-band{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 4px 6px 16px;background:var(--orange, #FF4F1A);color:var(--ink, #111111)}.ds-name{flex:1;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;line-height:1.3}.ds-setno{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em;font-size:28px;line-height:1}.ds-more{width:36px;display:grid;place-items:center}.ds-face{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;padding:14px 8px 8px}.ds-cell{display:flex;flex-direction:column;align-items:center}.ds-big{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em;font-size:132px;line-height:.9;letter-spacing:-.015em}.ds-x{font-size:40px;font-weight:600;line-height:1;padding:0 2px 90px}.ds-adj{display:flex;align-items:center;gap:8px;margin-top:8px}.ds-adj span{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;min-width:44px;text-align:center}.ds-adj button{width:48px;height:44px;border-radius:8px;border:1.5px solid var(--ink, #111111);background:none;color:var(--ink, #111111);display:grid;place-items:center;cursor:pointer}.ds-adj button:active{background:var(--ink, #111111);color:var(--tyvek, #F4F4F1)}.ds-adj button:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}.ds-perf{position:relative;height:18px}.ds-perf::before{content:\"\";position:absolute;left:14px;right:14px;top:8px;border-top:2px dashed var(--rule, #CFCFC8)}.ds-perf::after,.ds-perf i{content:\"\";position:absolute;top:0;width:18px;height:18px;border-radius:50%;background:var(--ground, #E6E6E1)}.ds-perf::after{right:-9px}.ds-perf i{left:-9px}.ds-stub{padding:4px 16px 16px;display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:center}.ds-lbl{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}.ds-stub p{margin:0;font-size:16px;line-height:1.4;grid-row:span 2}.ds-last{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em;font-size:28px;line-height:1}"
+    },
+    {
+      "name": "Dải nghỉ (đồng hồ)",
+      "kind": "custom",
+      "refersTo": "band-rest-overlay",
+      "description": "Khi nghỉ, lớp lam cắt theo --p rút dần về trái để lộ Trắng Tyvek; dải chính là đồng hồ.",
+      "html": "<div class=\"ds-rband\" style=\"--p:.55\"><div class=\"ds-rl\"><span class=\"ds-rn\">Đẩy ngực ngang</span><b class=\"ds-rs\">3/4</b><b class=\"ds-rs\"><small>NGHỈ</small>1:23</b></div><div class=\"ds-rl ds-rover\" aria-hidden=\"true\"><span class=\"ds-rn\">Đẩy ngực ngang</span><b class=\"ds-rs\">3/4</b><b class=\"ds-rs\"><small>NGHỈ</small>1:23</b></div></div>",
+      "css": ".ds-rband{font-family:'Be Vietnam Pro',system-ui,sans-serif;position:relative;overflow:hidden;background:var(--tyvek, #F4F4F1);color:var(--ink, #111111);box-shadow:inset 0 0 0 2px var(--blue, #1F5BD8);border-radius:10px 10px 0 0;max-width:380px}.ds-rl{display:flex;align-items:center;gap:8px;min-height:56px;padding:6px 16px}.ds-rover{position:absolute;inset:0;background:var(--blue, #1F5BD8);color:#fff;clip-path:inset(0 calc((1 - var(--p, 0)) * 100%) 0 0);transition:clip-path .25s linear}.ds-rn{flex:1;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}.ds-rs{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em;font-size:28px;line-height:1;white-space:nowrap}.ds-rs small{font-family:'Be Vietnam Pro',system-ui,sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-right:6px;vertical-align:.4em}"
+    },
+    {
+      "name": "Hàng set",
+      "kind": "card",
+      "refersTo": "set-row",
+      "description": "Hàng 52px: đã ghi có ✓ xanh, đang tập nền Cam Nhạt, PR nền mực chữ cam.",
+      "html": "<div class=\"ds-sets\"><div class=\"ds-row\"><span class=\"ds-k\">SET 1</span><span class=\"ds-v\">80 × 8</span><span class=\"ds-st\"><span class=\"ds-ok\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span></span></div><div class=\"ds-row ds-prrow\"><span class=\"ds-k\">SET 2</span><span class=\"ds-v\">85 × 8</span><span class=\"ds-st\">PR · e1RM 107,7 kg</span></div><div class=\"ds-row ds-rcur\"><span class=\"ds-k\">SET 3</span><span class=\"ds-v ds-plan\">80 × 8</span><span class=\"ds-st\">đang tập</span></div></div>",
+      "css": ".ds-sets{font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--tyvek, #F4F4F1);color:var(--ink, #111111);border-radius:10px;overflow:hidden;max-width:380px}.ds-row{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 12px 0 16px;border-top:1px solid var(--rule-soft, #DCDCD6)}.ds-row:first-child{border-top:0}.ds-k{width:48px;font-size:12px;font-weight:700;letter-spacing:.06em}.ds-v{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em;font-size:28px;line-height:1}.ds-plan{font-weight:600}.ds-st{margin-left:auto;display:flex;align-items:center;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.ds-ok{width:28px;height:28px;border-radius:50%;background:var(--green, #1E9E5A);color:#fff;display:grid;place-items:center}.ds-ok svg{width:16px;height:16px;stroke-width:3}.ds-rcur{background:var(--orange-tint, #FFE6DC)}.ds-prrow{background:var(--ink, #111111);color:var(--tyvek, #F4F4F1)}.ds-prrow .ds-st{color:var(--orange, #FF4F1A)}"
+    },
+    {
+      "name": "Nhóm chọn",
+      "kind": "input",
+      "refersTo": "segment",
+      "description": "Chọn bậc tạ, cách ghi tạ trong sheet; nút chọn đảo sang nền mực.",
+      "html": "<div class=\"ds-seg\"><button aria-pressed=\"false\">1 kg</button><button aria-pressed=\"false\">2 kg</button><button aria-pressed=\"true\">2,5 kg</button><button aria-pressed=\"false\">5 kg</button></div>",
+      "css": ".ds-seg{display:flex;gap:6px;flex-wrap:wrap}.ds-seg button{font-family:'Be Vietnam Pro',system-ui,sans-serif;height:44px;min-width:56px;padding:0 12px;border-radius:8px;border:1.5px solid var(--rule, #CFCFC8);background:none;color:var(--ink, #111111);font-weight:600;font-size:16px;cursor:pointer}.ds-seg button[aria-pressed=true]{border-color:var(--ink, #111111);background:var(--ink, #111111);color:var(--tyvek, #F4F4F1)}.ds-seg button:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}"
+    },
+    {
+      "name": "Thanh tab đáy",
+      "kind": "nav",
+      "refersTo": "tab-bar",
+      "description": "Năm mục trên mọi màn gốc ngoài buổi tập; nút chính 64px nằm ngay trên. Không có trong buổi tập và màn đi sâu.",
+      "html": "<div class=\"ds-foot\"><button class=\"ds-go-start\">Start Push A</button><nav class=\"ds-tabs\" aria-label=\"Main\"><a href=\"#\" aria-current=\"page\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18\"/></svg><span>Today</span></a><a href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01\"/></svg><span>Plans</span></a><a href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 3-6.7L3 8\"/><path d=\"M3 3v5h5M12 7v5l4 2\"/></svg><span>History</span></a><a href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 3v18h18\"/><path d=\"m7 15 4-4 3 3 5-6\"/></svg><span>Progress</span></a><a href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M4 21a8 8 0 0 1 16 0\"/></svg><span>Me</span></a></nav></div>",
+      "css": ".ds-foot{font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--ground, #E6E6E1);border-top:1px solid var(--rule-soft, #DCDCD6);padding:10px 12px 2px;max-width:440px;color:var(--ink, #111111)}.ds-go-start{width:100%;height:64px;border:0;border-radius:12px;background:var(--orange, #FF4F1A);color:var(--ink, #111111);font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:28px;text-transform:uppercase;letter-spacing:.01em;margin-bottom:6px;cursor:pointer}.ds-go-start:active{transform:translateY(1px)}.ds-tabs{display:grid;grid-template-columns:repeat(5,1fr);margin:0 -8px}.ds-tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:52px;font-size:12px;font-weight:600;text-decoration:none;color:inherit;border-radius:8px;position:relative}.ds-tabs a[aria-current=page]{font-weight:700}.ds-tabs a[aria-current=page]::before{content:\"\";position:absolute;top:-1px;left:30%;right:30%;height:3px;border-radius:0 0 3px 3px;background:var(--ink, #111111)}.ds-tabs a:active{background:var(--rule-soft, #DCDCD6)}.ds-tabs a:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}.ds-go-start:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}"
+    },
+    {
+      "name": "Ví số áo",
+      "kind": "custom",
+      "refersTo": "bib",
+      "description": "Ngày tập là các tấm số áo vuốt ngang; ngày kế tiếp dải cam NEXT UP, ngày khác dải viền mực; chấm phân trang.",
+      "html": "<div class=\"ds-wal\"><div class=\"ds-rail\"><section class=\"ds-wb ds-on\"><div class=\"ds-wband\"><span class=\"ds-wn\">Push A · next up</span><b class=\"ds-wd\"><small>DAY</small>1</b></div><ol class=\"ds-ex\"><li><b>1</b><span>Bench press</span><em>4 × 6–8</em></li><li><b>2</b><span>Overhead press</span><em>3 × 8–10</em></li></ol></section><section class=\"ds-wb\"><div class=\"ds-wband ds-open\"><span class=\"ds-wn\">Pull A</span><b class=\"ds-wd\"><small>DAY</small>2</b></div><ol class=\"ds-ex\"><li><b>1</b><span>Deadlift</span><em>3 × 5</em></li></ol></section></div><div class=\"ds-pager\"><i class=\"ds-pc\"></i><i></i><i></i></div></div>",
+      "css": ".ds-wal{font-family:'Be Vietnam Pro',system-ui,sans-serif;max-width:440px;color:var(--ink, #111111)}.ds-rail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 28px 4px;scrollbar-width:none}.ds-wb{flex:none;width:calc(100% - 4px);scroll-snap-align:center;background:var(--tyvek, #F4F4F1);border-radius:10px;overflow:hidden}.ds-wb:not(.ds-on){opacity:.82}.ds-wband{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 16px;background:var(--orange, #FF4F1A)}.ds-wband.ds-open{background:var(--tyvek, #F4F4F1);box-shadow:inset 0 0 0 2px var(--ink, #111111)}.ds-wn{flex:1;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.ds-wd{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:28px;line-height:1}.ds-wd small{font-family:'Be Vietnam Pro',sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;margin-right:6px;vertical-align:.4em}.ds-ex{margin:0;padding:6px 0 10px}.ds-ex li{list-style:none;display:flex;gap:12px;align-items:baseline;min-height:40px;border-top:1px solid var(--rule-soft, #DCDCD6);padding:8px 16px 6px}.ds-ex li:first-child{border-top:0}.ds-ex b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:28px;line-height:1;width:18px;text-align:center}.ds-ex span{flex:1;font-weight:600}.ds-ex em{font-style:normal;font-size:12px;font-weight:700;letter-spacing:.06em}.ds-pager{display:flex;justify-content:center;gap:6px;padding:8px 0}.ds-pager i{width:6px;height:6px;border-radius:50%;background:var(--rule, #CFCFC8)}.ds-pager i.ds-pc{width:14px;border-radius:3px;background:var(--ink, #111111)}"
+    },
+    {
+      "name": "Dòng tuần",
+      "kind": "custom",
+      "refersTo": "week-cell",
+      "description": "Bảy ô 32×38: đã tập tô mực, hôm nay viền cam, tạm nghỉ viền đứt.",
+      "html": "<div class=\"ds-days\"><b class=\"ds-dn\">M</b><b>T</b><b class=\"ds-dn ds-today\">W</b><b>T</b><b>F</b><b class=\"ds-pz\">S</b><b>S</b></div>",
+      "css": ".ds-days{font-family:'Be Vietnam Pro',system-ui,sans-serif;display:flex;gap:5px;color:var(--ink, #111111)}.ds-days b{width:32px;height:38px;border-radius:8px;border:1.5px solid var(--rule, #CFCFC8);display:grid;place-items:center;font-size:12px;font-weight:700;box-sizing:border-box}.ds-days b.ds-dn{background:var(--ink, #111111);color:var(--tyvek, #F4F4F1);border-color:var(--ink, #111111)}.ds-days b.ds-today{border-color:var(--orange, #FF4F1A);box-shadow:inset 0 0 0 1.5px var(--orange, #FF4F1A)}.ds-days b.ds-today.ds-dn{box-shadow:inset 0 0 0 2px var(--orange, #FF4F1A)}.ds-days b.ds-pz{border-style:dashed}"
+    },
+    {
+      "name": "Ô nhập và danh sách chọn",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Ô 48px viền 1.5px mực trên nền trắng tinh; focus dày lên 3px; lỗi đổi sang danger.",
+      "html": "<div class=\"ds-fld\"><label class=\"ds-lb\" for=\"ds-n\">Routine name</label><input class=\"ds-in\" id=\"ds-n\" value=\"Push / Pull / Legs\"></div><div class=\"ds-fld\"><label class=\"ds-lb\" for=\"ds-s\">Weight unit</label><select class=\"ds-in ds-sel\" id=\"ds-s\"><option>kg</option><option>lb</option></select></div><div class=\"ds-fld\"><label class=\"ds-lb\" for=\"ds-e\">Day name</label><input class=\"ds-in\" id=\"ds-e\" aria-invalid=\"true\" value=\"\"><p class=\"ds-err\">Give this day a name.</p></div>",
+      "css": ".ds-fld{font-family:'Be Vietnam Pro',system-ui,sans-serif;padding:12px 0;color:var(--ink, #111111);max-width:380px}.ds-lb{display:block;margin-bottom:8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.ds-in{width:100%;height:48px;padding:0 12px;border-radius:8px;border:1.5px solid var(--ink, #111111);background:#fff;font:inherit;font-size:16px;color:inherit;outline:none;caret-color:var(--orange, #FF4F1A);box-sizing:border-box}.ds-in:focus{box-shadow:inset 0 0 0 1.5px var(--ink, #111111)}.ds-in[aria-invalid=true]{border-color:var(--danger, #B42318);box-shadow:inset 0 0 0 1.5px var(--danger, #B42318)}.ds-sel{appearance:none;padding-right:40px;background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\") no-repeat right 12px center}.ds-err{margin:6px 0 0;font-size:12px;font-weight:700;color:var(--danger, #B42318)}"
+    },
+    {
+      "name": "Lựa chọn xếp chồng và tab con",
+      "kind": "input",
+      "refersTo": "segment-stack",
+      "description": "Lựa chọn dọc 56px và tab con 40px; đã chọn luôn là nền mực chữ Trắng Tyvek.",
+      "html": "<div class=\"ds-sub\"><button aria-pressed=\"true\">Sessions</button><button aria-pressed=\"false\">PRs</button></div><div class=\"ds-stack\"><button aria-pressed=\"true\">Lighter weight<small>Same sets and reps at about 60%.</small></button><button aria-pressed=\"false\">Fewer sets<small>Same weight, half the sets.</small></button></div>",
+      "css": ".ds-sub,.ds-stack{font-family:'Be Vietnam Pro',system-ui,sans-serif;display:flex;gap:6px;max-width:380px;color:var(--ink, #111111)}.ds-stack{flex-direction:column;margin-top:12px}.ds-sub button,.ds-stack button{font:inherit;color:inherit;border-radius:8px;border:1.5px solid var(--rule, #CFCFC8);background:var(--tyvek, #F4F4F1);font-weight:600;cursor:pointer}.ds-sub button{flex:1;min-height:40px}.ds-stack button{text-align:left;min-height:56px;padding:8px 14px;line-height:1.3}.ds-stack small{display:block;font-size:12px;font-weight:400}.ds-sub button[aria-pressed=true],.ds-stack button[aria-pressed=true]{border-color:var(--ink, #111111);background:var(--ink, #111111);color:var(--tyvek, #F4F4F1)}.ds-sub button:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}.ds-stack button:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}"
+    },
+    {
+      "name": "Hàng danh sách",
+      "kind": "card",
+      "refersTo": "list-row",
+      "description": "Hàng 52px trong khối Trắng Tyvek, chevron khi dẫn đi, hàng xoá chữ danger.",
+      "html": "<div class=\"ds-blk\"><a class=\"ds-lr\" href=\"#\"><span class=\"ds-nm\">Push A<small>Tue 12 Nov · 52 min</small></span><b class=\"ds-v\">14</b><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></a><a class=\"ds-lr\" href=\"#\"><span class=\"ds-nm\">Pull A<small>Sat 9 Nov · 47 min</small></span><b class=\"ds-v\">12</b><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></a><button class=\"ds-lr ds-dg\">Delete routine</button></div>",
+      "css": ".ds-blk{font-family:'Be Vietnam Pro',system-ui,sans-serif;background:var(--tyvek, #F4F4F1);border-radius:10px;overflow:hidden;max-width:380px;color:var(--ink, #111111)}.ds-lr{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 12px 8px 16px;border:0;border-top:1px solid var(--rule-soft, #DCDCD6);width:100%;box-sizing:border-box;background:none;font:inherit;color:inherit;text-align:left;text-decoration:none;cursor:pointer}.ds-lr:first-child{border-top:0}.ds-lr:active{background:var(--rule-soft, #DCDCD6)}.ds-nm{flex:1;font-weight:600;line-height:1.3}.ds-nm small{display:block;font-size:12px;font-weight:400}.ds-v{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:28px;line-height:1}.ds-dg{color:var(--danger, #B42318);font-weight:600}.ds-lr:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}"
+    },
+    {
+      "name": "Thanh tiếp tục, banner, cảnh báo",
+      "kind": "custom",
+      "refersTo": "resume-bar",
+      "description": "Thanh cam khi còn buổi mở; banner viền inset mực; alert viền inset 2px danger.",
+      "html": "<a class=\"ds-res\" href=\"#\"><span class=\"ds-rn\">Push A · in progress<span>6 sets logged</span></span><b class=\"ds-rt\">23:14</b><span class=\"ds-rb\">Resume</span></a><div class=\"ds-ban\"><p><b>Install on your iPhone</b>Tap Share, then Add to Home Screen.</p></div><div class=\"ds-al\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 8v4M12 16h.01\"/></svg><p><b>Couldn’t load your history</b>Check your connection and try again.</p></div>",
+      "css": ".ds-res,.ds-ban,.ds-al{font-family:'Be Vietnam Pro',system-ui,sans-serif;max-width:380px;color:var(--ink, #111111);border-radius:10px;margin-bottom:8px;box-sizing:border-box}.ds-res{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 8px 6px 16px;background:var(--orange, #FF4F1A);text-decoration:none}.ds-rn{flex:1;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;line-height:1.3}.ds-rn span{display:block;letter-spacing:0;text-transform:none;font-weight:600}.ds-rt{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:28px;line-height:1}.ds-rb{min-height:40px;padding:0 16px;border-radius:8px;background:var(--ink, #111111);color:var(--tyvek, #F4F4F1);font-weight:700;display:inline-flex;align-items:center}.ds-res:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}.ds-ban{display:flex;padding:12px 14px;background:var(--tyvek, #F4F4F1);box-shadow:inset 0 0 0 1.5px var(--ink, #111111)}.ds-ban p,.ds-al p{margin:0;line-height:1.4}.ds-ban b,.ds-al b{display:block}.ds-al{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;background:var(--tyvek, #F4F4F1);box-shadow:inset 0 0 0 2px var(--danger, #B42318)}.ds-al svg{color:var(--danger, #B42318);margin-top:2px;flex:none}"
+    },
+    {
+      "name": "Nút nguy hiểm và toast",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Xác nhận xoá trong sheet; toast mực với nút Hoàn tác cam.",
+      "html": "<button class=\"ds-dbtn\">Delete routine</button><div class=\"ds-toast\">Set removed<button>Undo</button></div>",
+      "css": ".ds-dbtn{font-family:'Be Vietnam Pro',system-ui,sans-serif;min-height:44px;padding:0 16px;border:0;border-radius:8px;background:var(--danger, #B42318);color:#fff;font-size:16px;font-weight:700;cursor:pointer}.ds-dbtn:active{transform:translateY(1px)}.ds-dbtn:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}.ds-toast{font-family:'Be Vietnam Pro',system-ui,sans-serif;display:inline-flex;gap:12px;align-items:center;margin-top:12px;margin-left:12px;background:var(--ink, #111111);color:var(--tyvek, #F4F4F1);border-radius:8px;padding:10px 14px;font-weight:600}.ds-toast button{font:inherit;background:none;border:0;color:var(--orange, #FF4F1A);font-weight:700;cursor:pointer}"
+    },
+    {
+      "name": "Biểu đồ một chuỗi",
+      "kind": "custom",
+      "refersTo": "chart",
+      "description": "Cột mực ≤24px đầu bo 4px, tuần deload màu rule, một cột cam mới nhất có nhãn giá trị, lưới rule-soft, nút Show as table.",
+      "html": "<figure class=\"ds-ch\"><svg viewBox=\"0 0 300 150\" role=\"img\" aria-label=\"Weekly volume: latest 14.2k kg\"><g class=\"ds-gr\"><line x1=\"30\" x2=\"300\" y1=\"20\" y2=\"20\"/><line x1=\"30\" x2=\"300\" y1=\"65\" y2=\"65\"/><line x1=\"30\" x2=\"300\" y1=\"110\" y2=\"110\"/></g><g class=\"ds-ax\"><text x=\"0\" y=\"24\">15k</text><text x=\"0\" y=\"69\">10k</text><text x=\"0\" y=\"114\">5k</text><text x=\"48\" y=\"140\">W1</text><text x=\"108\" y=\"140\">W2</text><text x=\"168\" y=\"140\">W3</text><text x=\"228\" y=\"140\">W4</text></g><path class=\"ds-m\" d=\"M48,110V60Q48,56 52,56H68Q72,56 72,60V110Z\"/><path class=\"ds-m\" d=\"M108,110V48Q108,44 112,44H128Q132,44 132,48V110Z\"/><path class=\"ds-mu\" d=\"M168,110V84Q168,80 172,80H188Q192,80 192,84V110Z\"/><path class=\"ds-hi\" d=\"M228,110V36Q228,32 232,32H248Q252,32 252,36V110Z\"/><text class=\"ds-vl\" x=\"240\" y=\"24\" text-anchor=\"middle\">14.2k</text></svg><button class=\"ds-tv\" aria-pressed=\"false\">Show as table</button></figure>",
+      "css": ".ds-ch{font-family:'Be Vietnam Pro',system-ui,sans-serif;margin:0;padding:8px;background:var(--tyvek, #F4F4F1);border-radius:10px;max-width:380px}.ds-ch svg{width:100%;height:auto;display:block}.ds-gr line{stroke:var(--rule-soft, #DCDCD6);stroke-width:1}.ds-ax text{font:600 12px 'Be Vietnam Pro',sans-serif;fill:var(--ink, #111111)}.ds-m{fill:var(--ink, #111111)}.ds-mu{fill:var(--rule, #CFCFC8)}.ds-hi{fill:var(--orange, #FF4F1A)}.ds-vl{font:800 16px 'Barlow Condensed',sans-serif;fill:var(--ink, #111111)}.ds-tv{display:block;margin-left:auto;min-height:36px;padding:0 8px;border:0;background:none;color:var(--ink, #111111);font:inherit;font-size:12px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.ds-tv:focus-visible{outline:3px solid var(--ink, #111111);outline-offset:2px;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Số áo thi đấu",
+    "overview": "Mỗi set là một tấm số áo vận động viên: con số sắp nâng in to như số báo danh, đọc được khi điện thoại nằm trên ghế cách hai mét. Màn hình là một cột điện thoại (tối đa 440px) trên nền xám Tyvek lạnh. Mỗi tấm số áo có một dải màu in tràn ở đầu, và dải này mang trạng thái của set. Mặt số chỉ có hai con số và dấu nhân. Một đường răng cưa với hai khuyết tròn tách cuống \"Lần trước\" khỏi mặt số. Hệ thống được viết lại từ prototype đã dựng (`prototypes/workout-log/index.html`), nên mọi giá trị dưới đây là giá trị thật đã chạy.\n\nMật độ cao nhưng chỉ có một thứ to: con số của set hiện tại. Mọi thứ bậc còn lại dựa vào độ đậm, chữ hoa giãn và nền đảo (đen trên trắng thành trắng trên đen), không dựa vào thêm cỡ chữ. Bề mặt phẳng, không gradient, không bóng đổ trang trí. Trạng thái được vẽ bằng nền, viền inset và lớp phủ cắt theo thời gian.\n\nThế giới này từ chối bố cục mặc định của ngành: bảng set nhiều cột (SET | LẦN TRƯỚC | KG | REPS | ✓) cuộn dài trên nền tối với một màu neon.\n\nNgoài buổi tập, cùng thế giới được mở rộng sang các màn gốc (Today, Plans, History, Progress, Me) và màn bắt đầu, dựng trong `prototypes/shared/` (`base.css`, `kit.js`, `chart.js`) cùng các slice `prototypes/home|plans|history|progress|me|start/`. Kế hoạch là một ví số áo: mỗi ngày tập là một tấm số áo vuốt ngang, ngày kế tiếp nằm giữa và cách nút Bắt đầu một chạm; mọi thứ khác nằm sau thanh tab đáy năm mục. Các giá trị bổ sung dưới đây lấy từ code đã dựng đó.",
+    "keyCharacteristics": [
+      "Ba cỡ chữ cộng một cỡ số phụ: số áo (132px trở xuống), số phụ 28px, chữ đọc 16px, nhãn 12px chữ hoa.",
+      "Dải đầu số áo là kênh trạng thái duy nhất: cam, lam rút dần, viền rỗng, viền đôi, đen.",
+      "Nền Tyvek ấm-xám, mực đen tuyệt đối, không màu xám cho số liệu đã ghi.",
+      "Vùng ngón cái ở đáy: điều khiển nghỉ nằm ngay trên nút Xong set 64px.",
+      "Số kiểu Việt Nam: dấu phẩy thập phân (77,5), chấm giữa ngăn các set (80×8 · 8 · 7)."
+    ],
+    "rules": [
+      {
+        "name": "The Một Màu Một Nghĩa Rule",
+        "body": "Cam là \"đang diễn ra / bấm được\", lam là \"đang nghỉ\", xanh là \"đã xong / đã đồng bộ\". Không màu nào mượn nghĩa của màu khác; một nút phụ không bao giờ màu xanh, một thông báo không bao giờ màu lam.",
+        "section": "colors"
+      },
+      {
+        "name": "The Số Liệu Đen Rule",
+        "body": "Số đã ghi và số dự kiến luôn bằng mực đen. \"Lần trước\" khác biệt bằng cỡ (số phụ 28px) và vị trí (cuống dưới răng cưa), không bằng màu xám. Chỉ chữ giữ chỗ \"–\" của ô trống và chấm tiến độ chưa xong mới mang màu `rule`.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mực Là Chọn Rule",
+        "body": "Trạng thái \"đã chọn\" luôn là nền mực chữ Trắng Tyvek: chip lọc, nhóm chọn, lựa chọn xếp chồng, tab con. Viền cam chỉ dành cho \"hiện tại / hôm nay\" (ô hôm nay trên dòng tuần, chip bài hiện tại trong buổi), không bao giờ cho lựa chọn.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ba Cỡ Cộng Một Rule",
+        "body": "Chỉ có cỡ số áo, số phụ 28px, chữ đọc 16px và nhãn 12px. Muốn nhấn thì đổi độ đậm, chữ hoa hoặc đảo nền, không thêm cỡ mới.",
+        "section": "typography"
+      },
+      {
+        "name": "The Dấu Phẩy Việt Rule",
+        "body": "Mọi số hiển thị đi qua định dạng `vi-VN`: 77,5 kg, 2,5 kg. Ô nhập chấp nhận cả dấu phẩy lẫn dấu chấm khi gõ.",
+        "section": "typography"
+      },
+      {
+        "name": "The Mực Không Bóng Rule",
+        "body": "Không bóng đổ trang trí, không gradient. Viền inset là thiết bị của thế giới này để nói trạng thái, không phải để nâng khối lên.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Một Chuỗi Mực Rule",
+        "body": "Biểu đồ chỉ dùng mực, một điểm cam và `rule`. Lam và xanh không bao giờ là chuỗi dữ liệu; chúng giữ nghĩa nghỉ và đã xong.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** để con số của set hiện tại là thứ duy nhất ở cỡ số áo, và để hai số trong cặp tạ × reps luôn cùng cỡ (132 / 104 / 80 / 66px theo số dài hơn).",
+      "**Do** đặt chữ mực (#111111) trên nền cam; chỉ dùng chữ trắng trên lam và xanh.",
+      "**Do** giữ nút chính 64px ở đáy và điều khiển nghỉ ngay trên nó, trong vùng ngón cái.",
+      "**Do** để nút Xong set luôn bấm được: thiếu số thì đưa con trỏ tới ô trống và nói lý do bằng toast, không khoá nút.",
+      "**Do** định dạng mọi số theo `vi-VN` (77,5) và ngăn các set bằng chấm giữa.",
+      "**Do** vẽ trạng thái bằng nền, viền inset và đảo nền; giữ thay đổi sáng tới khi người tập thấy, và cho hàng trượt vào chứ không biến mất.",
+      "**Do** dùng biểu tượng nét 2px kiểu lucide, 20px, `currentColor`.",
+      "**Do** đặt thanh tab 5 mục (Today / Plans / History / Progress / Me) trên mọi màn gốc ngoài buổi tập, với nút chính 64px của màn ngay trên nó; biểu tượng tab là ngoại lệ 22px.",
+      "**Do** vẽ lựa chọn bằng nền mực chữ Trắng Tyvek; để viền cam cho \"hiện tại / hôm nay\".",
+      "**Do** cho mỗi biểu đồ một chuỗi mực, đúng một điểm cam có nhãn giá trị, và nút \"Show as table\"."
+    ],
+    "donts": [
+      "**Don't** dựng bảng set nhiều cột (SET | LẦN TRƯỚC | KG | REPS | ✓) cuộn dài trên nền tối với một màu neon.",
+      "**Don't** thêm cỡ chữ thứ năm; nhấn bằng độ đậm, chữ hoa hoặc đảo nền.",
+      "**Don't** in số liệu đã ghi hay \"lần trước\" bằng màu xám.",
+      "**Don't** dùng xanh cho bất cứ thứ gì ngoài \"đã xong / đã đồng bộ\", hoặc lam cho bất cứ thứ gì ngoài nghỉ.",
+      "**Don't** dùng bóng đổ ra ngoài, gradient hay hiệu ứng nảy.",
+      "**Don't** dùng nhãn chữ hoa 12px làm dòng tiêu đề nhỏ trang trí phía trên tiêu đề; nhãn chỉ đặt tên cho dữ liệu và trường nhập.",
+      "**Don't** thêm vòng tiến độ, huy hiệu hay gamification.",
+      "**Don't** hiện thanh tab trong buổi tập hoặc trên màn đi sâu; đừng giấu điều hướng sau menu hamburger.",
+      "**Don't** dùng viền cam cho trạng thái đã chọn.",
+      "**Don't** dùng lam hay xanh làm chuỗi dữ liệu trong biểu đồ, và đừng để điểm cam không có nhãn giá trị.",
+      "**Don't** dùng `danger` cho gì ngoài xoá và lỗi."
+    ]
+  }
+}

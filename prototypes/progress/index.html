@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E6E6E1">
+<title>Progress and body · prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap&subset=vietnamese" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<style>
+/* Slice: progress charts (UC19) and body measurements (UC18). */
+.view{flex:1;display:flex;flex-direction:column;min-height:0}
+.view.enter .scroll{animation:viewin .24s var(--ease) both}
+@keyframes viewin{from{transform:translateY(12px);opacity:0}}
+.chd{display:flex;align-items:flex-start;gap:8px;padding:14px 16px 0}
+.chd h2{font-size:var(--t-read);font-weight:700;line-height:1.3;flex:1}
+.chd h2 small{display:block;font-size:var(--t-label);font-weight:600}
+.chd .num{font-size:var(--t-num);line-height:1}
+.mg{padding:8px 16px 4px}
+.mg .r{display:grid;grid-template-columns:96px 1fr 56px;align-items:center;gap:10px;min-height:32px}
+.mg .r>span:first-child{font-weight:600;font-size:var(--t-read)}
+.mg .track{height:12px;position:relative}
+.mg .bar{position:absolute;left:0;top:0;bottom:0;background:var(--ink);border-radius:0 4px 4px 0;min-width:2px;transition:width .3s var(--ease)}
+.mg .avg{position:absolute;top:-5px;bottom:-5px;width:2px;margin-left:-1px;background:var(--ink)}
+.mg .v{text-align:right;font:800 var(--t-read) 'Barlow Condensed';font-variant-numeric:tabular-nums}
+.mg .v.zero{font-weight:600}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:6px 16px 12px;font-size:var(--t-label);font-weight:600}
+.legend i{display:inline-block;vertical-align:middle;margin-right:6px}
+.legend .k1{width:14px;height:10px;background:var(--ink);border-radius:0 3px 3px 0}
+.legend .k2{width:3px;height:16px;background:var(--ink)}
+.pickrow{display:flex;gap:8px;padding:10px 16px 0}
+.pickrow select{flex:1}
+.wkpick{display:flex;align-items:center;gap:4px;padding:0 16px}
+.wkpick b{flex:1;text-align:center;font-weight:700}
+.logform{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.numbig{font:800 var(--t-num) 'Barlow Condensed';height:56px;text-align:left;width:100%}
+.entries .v{font-size:var(--t-num)}
+.src{font-size:var(--t-label);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="demo-panel" aria-label="Prototype controls">
+    <h2>Prototype · sample data</h2>
+    <p>Charts (UC19): weekly sets per muscle group, training frequency, estimated 1RM per exercise; body measurements entered by hand (UC18). Twelve weeks of invented data.</p>
+    <div class="demo-list" data-demo></div>
+  </aside>
+  <div class="app" id="app"><div class="view" id="view"></div></div>
+</div>
+<script src="../shared/kit.js"></script>
+<script src="../shared/data.js"></script>
+<script src="../shared/chart.js"></script>
+<script>
+const {$, ic, esc, fmt, parse, plural, openSheet, closeSheet, toast, hideToast, demo, renderDemo, openDemo, shellMarkup, demoBtn, navFoot, resumeBar, syncPill, shortDate, e1rm} = Kit;
+const D = DATA;
+document.getElementById('app').insertAdjacentHTML('beforeend', shellMarkup);
+const S = {online:true, pending:0, session:false, empty:false, range:12, wk:0, ex:'bench', body:[...D.BODY], btype:'weight', unit:'kg', err:null};
+const GROUPS = ['chest','back','shoulders','biceps','triceps','quads','hams','glutes','calves','core'];
+const W = w => S.unit === 'kg' ? w : w * Kit.LB;
+
+const route = () => location.hash.replace(/^#\/?/, '').split('/');
+addEventListener('hashchange', () => { closeSheet(); render(true); });
+function topBar(title, sub){ return `<header class="top"><div class="ttl"><h1>${title}</h1>${sub ? `<div class="sub">${sub}</div>` : ''}</div><div class="right"><div class="sync" id="sync" role="status"></div>${demoBtn}</div></header>${S.session ? resumeBar({name:'Push A', elapsed:'31:12', done:5}) : ''}`; }
+const tabs = cur => `<div class="subtabs" role="tablist"><a href="#" role="tab" aria-current="${cur === 'train'}">Training</a><a href="#body" role="tab" aria-current="${cur === 'body'}">Body</a></div>`;
+function render(enter){
+  const [r] = route();
+  const el = $('#view'); el.className = 'view' + (enter && !Kit.reduce ? ' enter' : '');
+  el.innerHTML = r === 'body' ? bodyView() : trainView();
+  syncPill($('#sync'), S); renderDemo();
+}
+
+/* ---------- Training ---------- */
+function setsByGroup(ws){
+  const m = Object.fromEntries(GROUPS.map(g => [g, 0]));
+  ws.sessions.forEach(s => s.exs.forEach(e => { const c = D.ex(e.id); c.muscle.forEach(g => { if (g in m) m[g] += e.sets.length; }); }));
+  return m;
+}
+function trainView(){
+  if (S.empty) return `${topBar('Progress')}${tabs('train')}<main class="scroll"><section class="bib"><div class="band open"><span class="name">Not enough data yet</span></div><div class="empty"><span class="bigstat num">0</span><p>Charts fill in as you log. One finished workout is enough to start.</p><a class="btn ink" href="../home/index.html">${ic('play')}Go to Today</a></div></section></main>${navFoot('progress')}`;
+  const weeks = D.weeks(S.range);
+  const goal = D.GOALS.find(g => g.type === 'weekly_frequency').target;
+  // weekly sets per muscle group: the chosen week vs the average of the previous 4 full weeks
+  const wi = weeks.length - 1 - S.wk, cur = weeks[wi];
+  const now = setsByGroup(cur);
+  const prev = weeks.slice(Math.max(0, wi - 4), wi).map(setsByGroup);
+  const avg = Object.fromEntries(GROUPS.map(g => [g, prev.length ? prev.reduce((a, m) => a + m[g], 0) / prev.length : 0]));
+  const max = Math.max(...GROUPS.map(g => Math.max(now[g], avg[g])), 1);
+  const freq = weeks.map((w, i) => ({x:shortDate(w.start), y:w.count, label:`${w.count} of ${goal}`, sub:w.deload ? 'deload week · streak paused' : w.current ? 'this week so far' : w.count >= goal ? 'goal met' : 'goal missed', muted:w.deload}));
+  const c = D.ex(S.ex);
+  const pts = D.SESSIONS.filter(s => !s.deload && s.exs.some(e => e.id === S.ex)).reverse().filter(s => D.weekStart(s.start) >= weeks[0].start)
+    .map(s => { const e = s.exs.find(x => x.id === S.ex); const best = e.sets.reduce((a, [w, r]) => Math.max(a, e1rm(w, r)), 0); return {x:shortDate(s.start), y:W(best), label:`${fmt(W(best), 1)} ${S.unit}`}; });
+  const logged = D.CATALOG.filter(x => x.metric === 'weight_reps' && D.SESSIONS.some(s => s.exs.some(e => e.id === x.id)));
+  const totalNow = GROUPS.reduce((a, g) => a + now[g], 0);
+  return `${topBar('Progress')}${tabs('train')}
+  <main class="scroll">
+    <div class="seg" role="group" aria-label="Show the last">${[[4,'4 weeks'],[12,'12 weeks']].map(([k, l]) => `<button data-act="range" data-v="${k}" aria-pressed="${S.range === k}">${l}</button>`).join('')}</div>
+    <section class="block">
+      <div class="chd"><h2>Working sets per muscle group<small>Counts sets, not kilos, so every exercise compares fairly.</small></h2></div>
+      <div class="wkpick" style="margin-top:8px"><button class="icon-btn" data-act="wk" data-d="1" aria-label="Previous week" ${wi <= 0 ? 'disabled' : ''}>${ic('left')}</button><b>${cur.current ? 'This week' : `Week of ${shortDate(cur.start)}`}${cur.deload ? ' · deload' : ''}</b><button class="icon-btn" data-act="wk" data-d="-1" aria-label="Next week" ${S.wk === 0 ? 'disabled' : ''}>${ic('right')}</button></div>
+      <div class="mg" role="table" aria-label="Working sets per muscle group">${GROUPS.map(g => `<div class="r" role="row"><span role="rowheader">${D.G[g]}</span><span class="track" role="cell" aria-label="${now[g]} sets, 4-week average ${fmt(avg[g], 1)}"><span class="bar" style="width:${now[g] / max * 100}%"></span>${avg[g] ? `<span class="avg" style="left:${avg[g] / max * 100}%"></span>` : ''}</span><span class="v ${now[g] ? '' : 'zero'}" role="cell">${now[g]}</span></div>`).join('')}</div>
+      <div class="legend"><span><i class="k1"></i>Sets ${cur.current ? 'so far this week' : 'that week'}</span><span><i class="k2"></i>Average of the 4 weeks before</span></div>
+      ${cur.current ? `<p class="note" style="padding:0 16px 12px">${totalNow} sets so far; the week runs Monday to Sunday.</p>` : ''}
+    </section>
+    <section class="block">
+      <div class="chd"><h2>Workouts per week<small>Goal: ${goal} a week. Deload weeks shown light; they pause your streak.</small></h2></div>
+      ${Chart.chart(freq, {kind:'bar', zero:true, title:'Workouts per week', xHead:'Week of', yHead:'Workouts', yFmt:v => fmt(v, 0), xTicks:[0, Math.floor((freq.length - 1) / 2), freq.length - 1], height:160})}
+    </section>
+    <section class="block">
+      <div class="chd"><h2>Estimated 1RM<small>Best set each session, Epley. Only sets logged the same way are compared.</small></h2>${pts.length ? `<b class="num">${fmt(pts.at(-1).y, 0)}</b>` : ''}</div>
+      <div class="pickrow"><select class="in" id="exsel" aria-label="Exercise">${logged.map(x => `<option value="${x.id}" ${x.id === S.ex ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+      ${Chart.chart(pts, {kind:'line', title:`${c.name} estimated 1RM`, yHead:`e1RM (${S.unit})`, yFmt:v => fmt(v, 0), empty:`No ${esc(c.name)} sets in this range.`})}
+      <a class="row" href="../history/index.html#exercise/${S.ex}" style="border-top:1px solid var(--rule-soft)"><span class="nm">All ${esc(c.name)} records</span>${ic('right', 'chev')}</a>
+    </section>
+  </main>${navFoot('progress')}`;
+}
+
+/* ---------- Body (UC18) ---------- */
+const BT = {weight:{l:'Weight', u:() => S.unit, step:.1}, waist:{l:'Waist', u:() => 'cm', step:.5}, body_fat:{l:'Body fat', u:() => '%', step:.1}};
+function bodyView(){
+  const t = S.btype, list = S.body.filter(b => b.type === t);
+  const pts = [...list].reverse().map(b => ({x:shortDate(b.at), y:t === 'weight' ? W(b.value) : b.value, label:`${fmt(t === 'weight' ? W(b.value) : b.value, 1)} ${BT[t].u()}`, dot:list.length < 6}));
+  const goal = t === 'weight' ? D.GOALS.find(g => g.type === 'body_metric') : null;
+  return `${topBar('Progress')}${tabs('body')}
+  <main class="scroll">
+    <div class="seg" role="group" aria-label="Measurement">${Object.entries(BT).map(([k, v]) => `<button data-act="btype" data-v="${k}" aria-pressed="${t === k}">${v.l}</button>`).join('')}</div>
+    <section class="block">
+      <div class="chd"><h2>${BT[t].l}${goal ? `<small>Goal: ${fmt(W(goal.target), 1)} ${S.unit} by ${shortDate(goal.deadline)}</small>` : ''}</h2>${list[0] ? `<b class="num">${fmt(t === 'weight' ? W(list[0].value) : list[0].value, 1)}</b>` : ''}</div>
+      ${list.length > 1 ? Chart.chart(pts, {kind:'line', title:BT[t].l, yHead:`${BT[t].l} (${BT[t].u()})`, yFmt:v => fmt(v, 1)}) : `<div class="chart empty"><p>${list.length ? 'One entry so far. Add another to see a line.' : `No ${BT[t].l.toLowerCase()} entries yet.`}</p></div>`}
+    </section>
+    <section class="block pad">
+      <form class="logform" id="logf" novalidate>
+        <div><label class="label" for="bv">New entry · ${BT[t].u()}</label><input class="in numbig" id="bv" inputmode="decimal" placeholder="${list[0] ? fmt(t === 'weight' ? W(list[0].value) : list[0].value, 1) : '–'}" ${S.err ? 'aria-invalid="true" aria-describedby="bvErr"' : ''}></div>
+        <button class="btn ink" type="submit" style="height:56px">Save</button>
+      </form>
+      ${S.err ? `<p class="err" id="bvErr" style="font-size:var(--t-label);font-weight:700;color:var(--danger);margin-top:6px">${S.err}</p>` : ''}
+      <div class="field" style="border:0;padding-bottom:0"><label class="label" for="bt">Measured</label><input class="in" id="bt" type="datetime-local" value="2026-11-18T07:10"></div>
+    </section>
+    <h2 class="hdg">Entries</h2>
+    <div class="block entries">${list.length ? list.slice(0, 10).map(b => `<button class="row" data-act="bedit" data-i="${S.body.indexOf(b)}" aria-label="Edit ${BT[t].l.toLowerCase()} from ${shortDate(b.at)}, ${fmt(shown(b), 1)} ${BT[t].u()}"><span class="nm">${shortDate(b.at)}<small>${b.at.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})} · ${b.edited ? 'edited' : 'entered by hand'}</small></span><b class="v num">${fmt(shown(b), 1)}</b>${ic('right', 'chev')}</button>`).join('') : '<div class="row"><span class="nm">Nothing yet<small>Weigh in at the same time of day for a cleaner line.</small></span></div>'}</div>
+    ${list.length ? '<p class="note" style="margin-top:8px">Tap an entry to fix the number or the time.</p>' : ''}
+  </main>${navFoot('progress')}`;
+}
+/* Edit one entry (UC18). A body entry is a single number, so it opens on its own: no list-wide edit mode, no pencil per row.
+   Delete lives here too, one level in, with Undo (DESIGN.md delete policy). */
+const shown = b => b.type === 'weight' ? W(b.value) : b.value;
+const dtl = d => new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
+function checkBody(v, t){
+  if (v == null) return 'Enter a number, like 72.5.';
+  const ok = t === 'weight' ? W(20) < v && v < W(400) : t === 'waist' ? v > 30 && v < 250 : v > 2 && v < 70;
+  return ok ? null : `That doesn’t look like a ${BT[t].l.toLowerCase()} in ${BT[t].u()}. Check the unit.`;
+}
+function editSheet(i, err){
+  const b = S.body[i], t = b.type; S.editI = i;
+  openSheet(`Edit ${BT[t].l.toLowerCase()} · ${shortDate(b.at)}`, `<form id="editf" novalidate>
+      <div class="field" style="border:0;padding-top:0"><label class="label" for="ev">${BT[t].l} · ${BT[t].u()}</label><input class="in numbig" id="ev" inputmode="decimal" value="${err ? esc(err.raw) : fmt(shown(b), 1)}" autofocus ${err ? 'aria-invalid="true" aria-describedby="evErr"' : ''}>
+        ${err ? `<p class="err" id="evErr">${ic('alert')}${err.msg}</p>` : ''}</div>
+      <div class="field" style="border:0;padding-bottom:0"><label class="label" for="et">Measured</label><input class="in" id="et" type="datetime-local" value="${dtl(b.at)}"></div>
+    </form>
+    <div class="block" style="margin-top:16px;background:transparent"><button class="row danger" data-act="bdel" style="padding-left:0">${ic('trash')}<span class="nm">Delete this entry<small>The line redraws without it.</small></span></button></div>`,
+    {foot:`<button class="btn ink wide" type="submit" form="editf">Save changes</button>`});
+}
+
+/* ---------- events ---------- */
+function queue(){ S.pending++; syncPill($('#sync'), S); if (S.online){ clearTimeout(S.qT); S.qT = setTimeout(() => { S.pending = 0; syncPill($('#sync'), S); }, 1300); } }
+document.addEventListener('change', ev => { if (ev.target.id === 'exsel'){ S.ex = ev.target.value; render(); } });
+document.addEventListener('submit', ev => {
+  ev.preventDefault();
+  if (ev.target.id === 'editf'){
+    const b = S.body[S.editI], raw = $('#ev').value, v = parse(raw), msg = checkBody(v, b.type);
+    if (msg){ editSheet(S.editI, {raw, msg}); return; }
+    const val = b.type === 'weight' && S.unit === 'lb' ? v / Kit.LB : v, at = new Date($('#et').value || b.at);
+    closeSheet();
+    if (Math.abs(shown(b) - v) < 1e-9 && +at === +b.at) return;
+    Object.assign(b, {value:val, at, edited:true}); S.body.sort((a, c) => c.at - a.at);
+    queue(); render(); toast(`Updated to ${fmt(v, 1)} ${BT[b.type].u()}.`); return;
+  }
+  const v = parse($('#bv').value), t = S.btype, msg = checkBody(v, t);
+  if (msg){ S.err = msg; render(); $('#bv').focus(); return; }
+  S.err = null;
+  const at = new Date($('#bt').value || D.TODAY);
+  S.body.unshift({type:t, value:t === 'weight' && S.unit === 'lb' ? v / Kit.LB : v, unit:BT[t].u(), at, source:'manual'});
+  S.body.sort((a, b) => b.at - a.at);
+  queue(); render(); toast(`Saved ${fmt(v, 1)} ${BT[t].u()}.`);
+});
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act]'); if (!b) return;
+  switch (b.dataset.act){
+    case 'range': S.range = +b.dataset.v; S.wk = 0; render(); break;
+    case 'wk': S.wk = Math.max(0, Math.min(S.range - 1, S.wk + +b.dataset.d)); render(); break;
+    case 'btype': S.btype = b.dataset.v; S.err = null; render(); break;
+    case 'bedit': editSheet(+b.dataset.i); break;
+    case 'bdel': { const [gone] = S.body.splice(S.editI, 1); S.undo = gone; closeSheet(); queue(); render(); toast(`Deleted ${fmt(shown(gone), 1)} ${BT[gone.type].u()} from ${shortDate(gone.at)}. <button data-act="bundo">Undo</button>`, 5000); break; }
+    case 'bundo': if (S.undo){ S.body.push(S.undo); S.undo = null; S.body.sort((a, b) => b.at - a.at); hideToast(); queue(); render(); } break;
+    case 'close': closeSheet(); break;
+    case 'demo': openDemo(); break;
+    case 'd-online': S.online = !S.online; if (S.online && S.pending) queue(); render(); break;
+    case 'd-session': S.session = !S.session; render(); break;
+    case 'd-empty': S.empty = !S.empty; if (S.empty) S.body = []; else S.body = [...D.BODY]; closeSheet(); render(); break;
+    case 'd-unit': S.unit = S.unit === 'kg' ? 'lb' : 'kg'; render(); break;
+    case 'd-go': closeSheet(); location.hash = b.dataset.h; break;
+  }
+});
+demo(() => `
+  <button data-act="d-online" aria-pressed="${!S.online}">${S.online ? 'Go offline' : 'Offline · reconnect'}</button>
+  <button data-act="d-session" aria-pressed="${S.session}">Workout in progress</button>
+  <button data-act="d-empty" aria-pressed="${S.empty}">New user · nothing logged</button>
+  <button data-act="d-unit" aria-pressed="${S.unit === 'lb'}">Show in ${S.unit === 'kg' ? 'lb' : 'kg'}</button>
+  <span class="label grp">Screens</span>
+  <button data-act="d-go" data-h="">Training charts</button>
+  <button data-act="d-go" data-h="body">Body measurements</button>
+  <span class="label grp">Other slices</span>
+  <a href="../index.html">All prototypes</a>`);
+render();
+</script>
+</body>
+</html>

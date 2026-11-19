@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E6E6E1">
+<title>Plans and exercises · prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap&subset=vietnamese" rel="stylesheet">
+<link rel="stylesheet" href="../shared/base.css">
+<style>
+/* Slice: routines (UC05), programs (UC24), exercise search (UC03), custom exercise (UC04), per-exercise settings (UC14). */
+.view{flex:1;display:flex;flex-direction:column;min-height:0}
+.view.enter .scroll{animation:viewin .24s var(--ease) both}
+@keyframes viewin{from{transform:translateY(12px);opacity:0}}
+.dayrow .n{font-size:var(--t-num);width:24px;text-align:center;line-height:1;flex:none}
+.dayrow .start{min-height:40px;padding:0 12px}
+.exrow{align-items:flex-start;padding-top:12px;padding-bottom:12px}
+.exrow .n{font-size:var(--t-num);width:24px;text-align:center;line-height:1;flex:none;padding-top:2px}
+.exrow .spec{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:var(--t-label);font-weight:600}
+.exrow .spec b{font-family:'Barlow Condensed';font-weight:800;font-size:var(--t-read);letter-spacing:0}
+.exrow{padding-right:28px}
+.exrow .grip,.dayrow .grip{align-self:center}
+/* superset: a dashed bracket on the right edge joins the grouped rows (DESIGN.md: dashed = group) */
+.exrow.ss::after{content:"";position:absolute;right:10px;top:0;bottom:0;width:8px;border-right:1.5px dashed var(--ink)}
+.exrow.ss.ss-first::after{top:14px;border-top:1.5px dashed var(--ink);border-top-right-radius:6px}
+.exrow.ss.ss-last::after{bottom:14px;border-bottom:1.5px dashed var(--ink);border-bottom-right-radius:6px}
+.exrow.ss + .exrow.ss{border-top-style:dashed}
+.sstag{display:block;font-size:var(--t-label);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.reorder-hint{display:flex;align-items:center;gap:6px}
+.reorder-hint svg{width:16px;height:16px}
+.range{display:flex;align-items:center;gap:8px}
+.range .num{font-size:var(--t-num)}
+.tpl .band .setno{font-size:var(--t-num)}
+.facts{display:flex;flex-wrap:wrap;gap:6px 16px;padding:14px 16px 4px}
+.facts div{min-width:64px}
+.facts .num{font-size:var(--t-num);line-height:1;display:block}
+.tpl p.blurb{padding:4px 16px 14px}
+.daycol{padding:4px 16px 12px}
+.daycol h3{font-size:var(--t-read);font-weight:700;margin:8px 0 4px}
+.daycol li{list-style:none;display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid var(--rule-soft)}
+.daycol li span:last-child{font-size:var(--t-label);font-weight:700;letter-spacing:.06em;white-space:nowrap}
+.match{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);font-weight:700;letter-spacing:.06em}
+.match i{width:8px;height:8px;border-radius:50%;background:var(--orange)}
+/* picker sheet: search and muscle chips stay pinned while the results scroll */
+.pickhd{position:sticky;top:0;z-index:1;background:var(--tyvek);display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding:2px 0 8px;margin-bottom:4px;border-bottom:1px solid var(--rule-soft)}
+.lib .tag{font-size:var(--t-label);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.alias{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.alias span{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 4px 0 10px;border-radius:999px;border:1.5px solid var(--ink);font-size:var(--t-label);font-weight:600}
+.alias span.shared{border-color:var(--rule);padding-right:10px}
+.alias button{width:28px;height:28px;display:grid;place-items:center}
+.alias svg{width:14px;height:14px}
+.names{padding:16px}
+.names b{display:block;font-size:var(--t-read)}
+.names .sm{font-size:var(--t-label);font-weight:600}
+.skelrow{display:flex;gap:12px;align-items:center;min-height:56px;padding:0 16px;border-top:1px solid var(--rule-soft)}
+.skelrow:first-child{border-top:0}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="demo-panel" aria-label="Prototype controls">
+    <h2>Prototype · sample data</h2>
+    <p>Routines (UC05), programs (UC24), exercise search (UC03), custom exercises (UC04) and per-exercise settings (UC14). Not wired to Dexie or the API.</p>
+    <div class="demo-list" data-demo></div>
+  </aside>
+  <div class="app" id="app"><div class="view" id="view"></div></div>
+</div>
+<script src="../shared/kit.js"></script>
+<script src="../shared/data.js"></script>
+<script src="../shared/sortable.js"></script>
+<script>
+const {$, $$, ic, esc, fmt, parse, plural, norm, openSheet, closeSheet, sheetOpen, toast, announce, demo, renderDemo, openDemo, shellMarkup, demoBtn, navFoot, resumeBar, syncPill} = Kit;
+const D = DATA;
+document.getElementById('app').insertAdjacentHTML('beforeend', shellMarkup);
+
+const clone = o => JSON.parse(JSON.stringify(o));
+const S = {plans:clone(D.PLANS), custom:[], online:true, pending:0, session:false, empty:false, tplError:false, loading:false, q:'', muscle:null, settings:{}, aliases:{bench:['flat bench']}};
+const ex = id => D.ex(id) || S.custom.find(c => c.id === id);
+const plan = id => S.plans.find(p => p.id === id);
+const LOADS = D.LOAD;
+const STEPS = [0.5, 1, 1.25, 2, 2.5, 5, 10];
+const settingsOf = id => Object.assign({step:ex(id).step, load:ex(id).load, bar:ex(id).bar, auto:true}, S.settings[id]);
+const lastOf = id => { for (const s of D.SESSIONS){ const e = s.exs.find(x => x.id === id); if (e) return {date:s.start, sets:e.sets}; } return null; };
+
+/* ---------- routing ---------- */
+const route = () => location.hash.replace(/^#\/?/, '').split('/');
+addEventListener('hashchange', ev => {
+  closeSheet();
+  const was = (ev.oldURL.split('#')[1] || '').split('/');
+  if (was[0] === 'day' && was[2] === 'new' && S.draftDay && route()[2] !== 'new'){
+    const dr = S.draftDay; S.draftDay = null;
+    if (dr.ex.length || dr.touched){ S.lostDraft = {pid:was[1], dr}; setTimeout(() => toast(`${esc(dr.name)} wasn’t added. <button data-act="draft-back">Keep editing</button>`, 5000), 60); }
+  }
+  render(true);
+});
+function nav(h){ location.hash = h; }
+
+function topBar({back, title, sub, right = ''}){
+  return `<header class="top">${back != null ? `<a class="icon-btn back" href="#${back}" aria-label="Back">${ic('left')}</a>` : ''}
+    <div class="ttl"><h1>${title}</h1>${sub ? `<div class="sub">${sub}</div>` : ''}</div>
+    <div class="right">${right}<div class="sync" id="sync" role="status"></div>${demoBtn}</div></header>
+    ${S.session ? resumeBar({name:'Push A', elapsed:'31:12', done:5}) : ''}`;
+}
+
+function render(enter){
+  const [r, a, b] = route();
+  const v = ({'':plansView, plan:planView, day:dayView, new:newView, templates:templatesView, template:templateView, exercises:libraryView, exercise:exerciseView, custom:customView})[r] || plansView;
+  const el = $('#view');
+  el.className = 'view' + (enter && !Kit.reduce ? ' enter' : '');
+  el.innerHTML = v(a, b);
+  syncPill($('#sync'), S);
+  renderDemo();
+}
+
+/* ---------- Plans root ---------- */
+function plansView(){
+  const active = S.plans.find(p => p.active);
+  const others = S.plans.filter(p => !p.active);
+  if (S.empty) return `${topBar({title:'Plans'})}
+    <main class="scroll"><section class="bib"><div class="band open"><span class="name">No routine yet</span></div>
+      <div class="empty"><span class="bigstat num">0</span><p>Type in the routine you already follow, or start from a program.</p>
+      <div class="acts" style="justify-content:center"><a class="btn ink" href="#new">${ic('edit')}Write my routine</a><a class="btn line" href="#templates">Browse programs</a></div></div></section>
+      ${libraryRow()}</main>
+    ${navFoot('plans')}`;
+  return `${topBar({title:'Plans'})}
+  <main class="scroll">
+    <section class="bib" aria-label="Active routine">
+      <div class="band open"><span class="name">${esc(active.name)} · active</span><a class="icon-btn more" href="#plan/${active.id}" aria-label="Edit ${esc(active.name)}">${ic('edit')}</a></div>
+      <div class="block">${active.days.map((d, i) => `<div class="row dayrow"><b class="n num">${i + 1}</b><a class="nm" href="#day/${active.id}/${d.id}" style="text-decoration:none">${esc(d.name)}<small>${d.ex.map(e => ex(e.id).name).slice(0, 3).join(', ')}${d.ex.length > 3 ? ` +${d.ex.length - 3}` : ''}</small></a>
+        <a class="btn line start" href="../workout-log/index.html" aria-label="Start ${esc(d.name)}">${ic('play')}Start</a></div>`).join('')}</div>
+      <div class="perf"><i></i></div>
+      ${(() => { const li = active.days.findIndex(x => x.id === D.SESSIONS[0].dayId), nx = active.days[(li + 1) % active.days.length], lastName = li >= 0 ? active.days[li].name : null;
+        return `<div class="stub"><span class="label">Next up</span><p class="hint">${lastName ? `${esc(nx.name)} comes after ${esc(lastName)}. ` : ''}Days run in this order; start any of them whenever you like.</p><b class="last num">${esc(nx.name).toUpperCase()}</b></div>`; })()}
+    </section>
+    ${others.length ? `<h2 class="hdg">Other routines</h2><div class="block">${others.map(p => `<a class="row" href="#plan/${p.id}"><span class="nm">${esc(p.name)}<small>${plural(p.days.length, 'day')}${p.template ? ' · from a program' : ''}</small></span>${ic('right', 'chev')}</a>`).join('')}</div>` : ''}
+    <div class="acts" style="margin-top:12px"><a class="btn ink" href="#new">${ic('plus')}New routine</a><a class="btn line" href="#templates">Browse programs</a></div>
+    ${libraryRow()}
+  </main>
+  ${navFoot('plans')}`;
+}
+const libraryRow = () => `<h2 class="hdg">Exercises</h2><div class="block"><a class="row" href="#exercises">${ic('search')}<span class="nm">Exercise library<small>${D.CATALOG.length} exercises${S.custom.length ? ` + ${S.custom.length} of yours` : ''} · step, logging and bar weight per exercise</small></span>${ic('right', 'chev')}</a></div>`;
+
+/* ---------- Plan editor ---------- */
+function planView(id){
+  const p = plan(id); if (!p) return plansView();
+  return `${topBar({back:'', title:esc(p.name), sub:p.active ? 'Active routine' : 'Routine'})}
+  <main class="scroll">
+    <div class="block pad">
+      <div class="field"><label class="label" for="pname">Routine name</label><input class="in" id="pname" value="${esc(p.name)}" data-bind="plan-name" data-id="${p.id}"></div>
+      <div class="field switch"><span>Active routine<small>Today follows the active routine’s days in order.</small></span><button role="switch" aria-checked="${p.active}" data-act="activate" data-id="${p.id}" aria-label="Active routine"></button></div>
+    </div>
+    ${S.session && p.active ? `<div class="banner" style="margin:12px 0 0">${ic('alert')}<p><b>A workout is in progress</b>Changes apply from your next session. Logged workouts keep the numbers they had.</p></div>` : ''}
+    <h2 class="hdg">Days</h2>
+    <div class="block"><ol id="dayList" style="list-style:none">${p.days.map((d, i) => `<li class="row dayrow sort-item"><button class="grip" aria-label="Reorder ${esc(d.name)}" aria-pressed="false" aria-describedby="sortHelp">${ic('grip')}</button><b class="n num">${i + 1}</b><a class="nm" href="#day/${p.id}/${d.id}" style="text-decoration:none">${esc(d.name)}<small>${plural(d.ex.length, 'exercise')} · ${plural(d.ex.reduce((a, e) => a + e.sets, 0), 'working set')}</small></a>${ic('right', 'chev')}</li>`).join('')}</ol>
+      <button class="row add" data-act="day-add" data-id="${p.id}">${ic('plus')}Add a day</button></div>
+    <p class="note reorder-hint" id="sortHelp" style="margin-top:8px">${ic('grip')}Drag the handle to change the order. Today follows it.</p>
+    <div class="block" style="margin-top:24px"><button class="row danger" data-act="plan-del" data-id="${p.id}">${ic('trash')}<span class="nm">Delete routine<small>Past workouts stay in your history.</small></span></button></div>
+  </main>`;
+}
+
+/* ---------- Day editor ---------- */
+/* the target follows how the exercise is logged: a rep range, or a time range for timed holds */
+const target = (pe, c) => c.metric === 'duration' ? `${Kit.dur(pe.durMin ?? 30)}–${Kit.dur(pe.durMax ?? 60)}` : `${pe.repMin}–${pe.repMax}`;
+function exSpec(pe){
+  const c = ex(pe.id), k = D.kind(c);
+  const start = k === 'wr' ? (pe.initialWeight != null ? `start ${fmt(pe.initialWeight)} kg` : lastOf(pe.id) ? 'start from last time' : 'first set by feel')
+    : lastOf(pe.id) ? 'start from last time' : k === 'bw+' ? 'bodyweight to start' : 'first set by feel';
+  return `<span><b>${pe.sets} × ${target(pe, c)}</b></span><span>${Kit.mmss(pe.rest * 1000)} rest</span>${pe.warmup ? '<span>warm-up</span>' : ''}<span>${start}</span>`;
+}
+function dayView(pid, did){
+  const p = plan(pid), isNew = did === 'new', d = isNew ? S.draftDay : p?.days.find(x => x.id === did);
+  if (!p) return plansView();
+  if (!d) return planView(pid);
+  const html = d.ex.map((_, i) => exRow(d, i)).join('');
+  return `${topBar({back:`plan/${p.id}`, title:esc(d.name), sub:isNew ? 'New day · not saved yet' : esc(p.name)})}
+  <main class="scroll">
+    <div class="block pad"><div class="field"><label class="label" for="dname">Day name</label><input class="in" id="dname" value="${esc(d.name)}" data-bind="day-name"></div></div>
+    <h2 class="hdg">Exercises, in order</h2>
+    <div class="block"><div id="exList">${html}</div>${html ? '' : `<div class="empty"><p>No exercises yet. Add the first one you do on this day.</p></div>`}
+      <button class="row add" data-act="pick" data-to="day">${ic('plus')}Add exercise</button></div>
+    <p class="note reorder-hint" id="sortHelp" style="margin-top:8px">${ic('grip')}Drag the handle to reorder. Tap an exercise for sets, reps and rest.</p>
+    <p class="note" style="margin-top:8px">Starting weight is only what you type here. The app never guesses one for an exercise you haven’t logged.</p>
+    ${isNew ? `<p class="note" style="margin-top:8px">Not saved yet: the day is added to ${esc(p.name)} when you tap Done. Going back discards it.</p>` : `<div class="block" style="margin-top:24px">${p.days.length > 1
+      ? `<button class="row danger" data-act="day-del">${ic('trash')}<span class="nm">Remove this day from the routine<small>Its ${plural(d.ex.length, 'exercise')} go with it. Past workouts stay in History.</small></span></button>`
+      : `<div class="row" aria-disabled="true">${ic('trash')}<span class="nm">Remove this day from the routine<small>A routine needs at least one day. Delete the routine instead.</small></span></div>`}</div>`}
+  </main>
+  <div class="foot">${isNew ? `<button class="go ink" data-act="day-done">Done</button>` : `<a class="go ink" href="#plan/${p.id}">Done</a>`}</div>`;
+}
+function exRow(d, i){
+  const pe = d.ex[i], c = ex(pe.id);
+  const first = pe.group && d.ex[i - 1]?.group !== pe.group, last = pe.group && d.ex[i + 1]?.group !== pe.group;
+  const ss = pe.group ? ` ss${first ? ' ss-first' : ''}${last ? ' ss-last' : ''}` : '';
+  return `<div class="row exrow sort-item${ss}"><button class="grip" aria-label="Reorder ${esc(c.name)}" aria-pressed="false" aria-describedby="sortHelp">${ic('grip')}</button><b class="n num">${i + 1}</b>
+    <button class="nm" data-act="ex-edit" data-i="${i}" style="text-align:left">${first ? '<span class="sstag">Superset</span>' : ''}${esc(c.name)}<small>${c.equip} · ${LOADS[settingsOf(pe.id).load] || D.METRIC[c.metric]}</small><span class="spec">${exSpec(pe)}</span></button></div>`;
+}
+function curDay(){ const [, pid, did] = route(); return did === 'new' ? S.draftDay : plan(pid)?.days.find(x => x.id === did); }
+const drafting = () => route()[0] === 'day' && route()[2] === 'new';
+function exSheet(i){
+  const d = curDay(), pe = d.ex[i], c = ex(pe.id), last = lastOf(pe.id);
+  const timed = c.metric === 'duration';
+  const nextIn = d.ex[i + 1];
+  openSheet(c.name, `
+    <div class="field"><span class="label">Working sets</span><div class="stepper"><button data-act="pe" data-k="sets" data-d="-1" aria-label="One set fewer">${ic('minus')}</button><b class="num">${pe.sets}</b><button data-act="pe" data-k="sets" data-d="1" aria-label="One set more">${ic('plus')}</button></div></div>
+    ${timed ? `<div class="field"><span class="label">Target time per set</span><div class="range"><input class="in numin" inputmode="numeric" value="${Kit.dur(pe.durMin ?? 30)}" data-pe="durMin" aria-label="Shortest hold, minutes and seconds"><span class="num">–</span><input class="in numin" inputmode="numeric" value="${Kit.dur(pe.durMax ?? 60)}" data-pe="durMax" aria-label="Longest hold, minutes and seconds"></div>
+      <p class="help">Type 45 for 0:45, or 130 for 1:30. Reach the top on every set and you’ll get a nudge to go longer.</p></div>`
+    : `<div class="field"><span class="label">Rep range</span><div class="range"><input class="in numin" inputmode="numeric" value="${pe.repMin}" data-pe="repMin" aria-label="Fewest reps"><span class="num">–</span><input class="in numin" inputmode="numeric" value="${pe.repMax}" data-pe="repMax" aria-label="Most reps"></div>
+      <p class="help">${c.metric === 'weight_reps' ? 'Hit the top on every set and you’ll get a nudge to go up. Fall under the bottom and you’ll get a back-off.' : c.load === 'added_weight' ? 'Hit the top on every set and you’ll get a nudge to add reps or strap on weight.' : 'Hit the top on every set and you’ll get a nudge to add reps or hold a weight.'}</p></div>`}
+    ${c.metric === 'weight_reps' ? `<div class="field"><label class="label" for="iw">Starting weight · optional</label><div class="inrow"><input class="in numin" id="iw" inputmode="decimal" placeholder="–" value="${pe.initialWeight ?? ''}" data-pe="initialWeight"><span class="label">kg ${LOADS[settingsOf(pe.id).load].toLowerCase()}</span></div>
+      <p class="help">${last ? `Last time: ${fmt(last.sets[0][0])} kg on ${Kit.shortDate(last.date)}. Your next session starts from that, so you can leave this empty.` : 'No history for this exercise. Leave empty to log your first set by feel; the app won’t suggest a number.'}</p></div>` : ''}
+    ${c.metric === 'weight_reps' ? `<div class="field switch"><span>Warm-up sets<small>Suggests 50% × 8, 70% × 5, 85% × 2 before the first working set.</small></span><button role="switch" data-act="pe-warm" aria-checked="${pe.warmup}" aria-label="Warm-up sets"></button></div>` : ''}
+    <div class="field"><span class="label">Rest between sets</span><div class="stepper"><button data-act="pe" data-k="rest" data-d="-15" aria-label="15 seconds less">${ic('minus')}</button><b class="num">${Kit.mmss(pe.rest * 1000)}</b><button data-act="pe" data-k="rest" data-d="15" aria-label="15 seconds more">${ic('plus')}</button></div></div>
+    <div class="menu">
+      ${nextIn ? `<button data-act="pe-ss">${ic('link')}<span>${pe.group && nextIn.group === pe.group ? 'Remove superset' : `Superset with ${esc(ex(nextIn.id).name)}`}<small>Alternate sets, rest after each round.</small></span></button>` : ''}
+      <button data-act="pick" data-to="swap">${ic('swap')}<span>Change exercise<small>Keeps sets, reps and rest.</small></span></button>
+      <a href="#exercise/${pe.id}">${ic('gear')}<span>Exercise settings<small>Weight step, how weight is logged, bar weight.</small></span></a>
+      <button class="danger" data-act="pe-del">${ic('trash')}<span>Remove from ${esc(d.name)}</span></button>
+    </div>`, {onClose:() => render()});
+  S.editing = i;
+}
+
+/* ---------- New routine ---------- */
+function newView(){
+  return `${topBar({back:'', title:'New routine'})}
+  <main class="scroll">
+    <div class="block pad">
+      <div class="field"><label class="label" for="nname">Routine name</label><input class="in" id="nname" placeholder="e.g. Upper / lower" autofocus></div>
+      <div class="field"><span class="label">How many days does it have?</span><div class="seg" id="ndays">${[1,2,3,4,5,6].map(n => `<button data-act="ndays" data-v="${n}" aria-pressed="${(S.ndays || 3) === n}">${n}</button>`).join('')}</div>
+        <p class="help">Days are named Day 1, Day 2… for now. Rename them as you add exercises.</p></div>
+      <div class="field switch"><span>Make it my active routine<small>Today will offer its days in order.</small></span><button role="switch" data-act="nactive" aria-checked="${S.nactive ?? true}" aria-label="Make active"></button></div>
+    </div>
+    <p class="note">Have it on a screenshot or a note? Type it in here for now; importing from a photo comes later.</p>
+  </main>
+  <div class="foot"><button class="go" data-act="create">Create and add exercises</button></div>`;
+}
+
+/* ---------- Programs ---------- */
+function templatesView(){
+  const prof = {perWeek:3, equipment:'Gym', level:'Beginner'};
+  if (S.loading) return `${topBar({back:'', title:'Programs'})}<main class="scroll"><div class="block">${[1,2,3].map(() => `<div class="skelrow"><span class="skel" style="width:60%;height:14px"></span><span class="skel" style="width:40px;height:24px;margin-left:auto"></span></div>`).join('')}</div></main>`;
+  if (S.tplError) return `${topBar({back:'', title:'Programs'})}<main class="scroll"><div class="alert" role="alert">${ic('alert')}<p><b>Programs didn’t load</b>They come from the server the first time. Check your connection and try again.</p></div><div class="acts"><button class="btn ink" data-act="tpl-retry">${ic('refresh')}Try again</button><a class="btn line" href="#new">Write my own instead</a></div></main>`;
+  return `${topBar({back:'', title:'Programs'})}
+  <main class="scroll">
+    <p class="note" style="padding-top:4px">Programs are a starting point. Copy one and it becomes your routine: change any day, exercise or number.</p>
+    ${D.TEMPLATES.map(t => {
+      const fit = t.perWeek === prof.perWeek && t.equipment === prof.equipment;
+      return `<section class="bib tpl"><div class="band ${fit ? '' : 'open'}"><span class="name">${esc(t.name)}</span><b class="setno num">${t.perWeek}×/WK</b></div>
+        <div class="facts"><div><span class="num">${t.days.length}</span><span class="label">${t.days.length < t.perWeek ? 'workouts, A/B' : 'workouts'}</span></div><div><span class="num">${t.minutes}</span><span class="label">min</span></div><div><span class="num">${t.days.reduce((a, d) => a + d.ex.length, 0)}</span><span class="label">exercises</span></div>
+          <div style="margin-left:auto;align-self:center">${fit ? '<span class="match"><i></i>FITS YOUR ANSWERS</span>' : `<span class="label">${t.level} · ${t.equipment}</span>`}</div></div>
+        <p class="blurb">${esc(t.blurb)}</p>
+        <div class="block" style="border-top:1px solid var(--rule-soft);border-radius:0"><a class="row" href="#template/${t.id}"><span class="nm">See the days</span>${ic('right', 'chev')}</a></div></section>`;
+    }).join('')}
+  </main>`;
+}
+function templateView(id){
+  const t = D.TEMPLATES.find(x => x.id === id); if (!t) return templatesView();
+  return `${topBar({back:'templates', title:esc(t.name), sub:`${t.level} · ${t.perWeek} days a week · ${t.equipment}`})}
+  <main class="scroll">
+    <section class="bib tpl"><div class="band open"><span class="name">${esc(t.name)}</span><b class="setno num">${t.perWeek}×/WK</b></div>
+      ${t.days.map(d => `<div class="daycol"><h3>${esc(d.name)}</h3><ul>${d.ex.map(pe => `<li><span>${esc(ex(pe.id).name)}</span><span>${pe.sets} × ${target(pe, ex(pe.id))}</span></li>`).join('')}</ul></div>`).join('')}
+      <div class="perf"><i></i></div>
+      <div class="stub"><span class="label">Starting weights</span><p class="hint">This program has none. Log your first set of each exercise by feel; after that the app remembers.</p><b class="last num">–</b></div>
+    </section>
+    ${t.draft ? `<p class="note">${t.sample ? 'Sample entry for layout review.' : 'Draft program, pending the founder’s review.'}</p>` : ''}
+  </main>
+  <div class="foot"><button class="go" data-act="tpl-use" data-id="${t.id}">Use this program</button></div>`;
+}
+
+/* ---------- Exercise library ---------- */
+function libraryView(){
+  const all = [...S.custom, ...D.CATALOG];
+  const n = norm(S.q.trim());
+  const list = all.filter(c => (!S.muscle || c.muscle.includes(S.muscle)) && (!n || [c.name, c.vi, ...c.alias, ...(S.aliases[c.id] || [])].some(t => norm(t).includes(n))));
+  return `${topBar({back:'', title:'Exercises'})}
+  <main class="scroll lib">
+    <label class="search" style="margin-top:4px">${ic('search')}<input id="q" placeholder="Search by name or nickname" value="${esc(S.q)}" autocomplete="off" aria-label="Search exercises"></label>
+    ${muscleChips('muscle', S.muscle)}
+    <div class="block" id="res">${list.length ? list.slice(0, 40).map(c => {
+      const hit = n && (S.aliases[c.id] || []).find(a => norm(a).includes(n));
+      return `<a class="row" href="#exercise/${c.id}"><span class="nm">${esc(c.name)}<small>${esc(c.vi)} · ${c.equip} · ${c.muscle.map(m => D.G[m]).join(', ')}${hit ? ` · your name “${esc(hit)}”` : ''}</small></span><span class="tag">${c.owner ? 'Yours' : lastOf(c.id) ? 'Logged' : ''}</span></a>`;
+    }).join('') : `<div class="empty"><p>No exercise matches “${esc(S.q)}”${S.muscle ? ` in ${D.G[S.muscle]}` : ''}.</p><a class="btn ink" href="#custom" data-act="custom-q">${ic('plus')}Create “${esc(S.q || 'new exercise')}”</a></div>`}</div>
+    ${list.length ? `<div class="acts"><a class="btn line" href="#custom">${ic('plus')}Create an exercise</a></div>` : ''}
+  </main>`;
+}
+function exerciseView(id){
+  const c = ex(id); if (!c) return libraryView();
+  const st = settingsOf(id), last = lastOf(id), mine = S.aliases[id] || [];
+  const wr = c.metric === 'weight_reps' || c.load === 'added_weight';
+  return `${topBar({back:'exercises', title:esc(c.name), sub:`${c.equip} · ${c.muscle.map(m => D.G[m]).join(', ')}`})}
+  <main class="scroll">
+    <div class="block names"><b>${esc(c.name)}</b><span class="sm">${esc(c.vi)}${c.owner ? ' · only visible to you' : ''}</span>
+      <div class="field" style="margin-top:12px"><span class="label">Names you search by</span>
+        <div class="alias">${c.alias.map(a => `<span class="shared">${esc(a)}</span>`).join('')}${mine.map(a => `<span>${esc(a)}<button data-act="alias-del" data-v="${esc(a)}" aria-label="Remove ${esc(a)}">${ic('x')}</button></span>`).join('')}</div>
+        <div class="inrow" style="margin-top:8px"><input class="in" id="alias" placeholder="e.g. flat bench" style="flex:1"><button class="btn line" data-act="alias-add">Add</button></div></div>
+    </div>
+    ${wr ? `<h2 class="hdg">How you log it</h2>
+    <div class="block pad">
+      <div class="field"><span class="label">Weight step</span><div class="seg">${STEPS.map(v => `<button data-act="st" data-k="step" data-v="${v}" aria-pressed="${st.step === v}">${fmt(v)} kg</button>`).join('')}</div>
+        <p class="help">− and + move by this much. Back-off and warm-up numbers round to it.</p></div>
+      <div class="field"><span class="label">How weight is logged</span><div class="seg">${Object.entries(LOADS).map(([k, v]) => `<button data-act="st" data-k="load" data-v="${k}" aria-pressed="${st.load === k}">${v}</button>`).join('')}</div>
+        <p class="help">${last && st.load !== c.load ? 'Changed from how you logged it before. Charts compare only sets logged the same way.' : 'Only sets logged the same way are compared in charts and PRs.'}</p></div>
+      ${st.load === 'total' && c.equip === 'Barbell' ? `<div class="field"><span class="label">Bar weight</span><div class="seg">${[0, 10, 15, 20].map(v => `<button data-act="st" data-k="bar" data-v="${v}" aria-pressed="${st.bar === v}">${v ? v + ' kg' : 'None'}</button>`).join('')}</div><p class="help">Warm-ups never go below the bar.</p></div>` : ''}
+      <div class="field switch"><span>Start rest timer after each set</span><button role="switch" data-act="st-auto" aria-checked="${st.auto}" aria-label="Auto-start rest timer"></button></div>
+    </div>` : `<p class="note">Logged as ${D.METRIC[c.metric].toLowerCase()}; no weight settings.</p>`}
+    <h2 class="hdg">History</h2>
+    <div class="block">${last ? `<a class="row" href="../history/index.html#exercise/${id}"><span class="nm">Last time · ${Kit.shortDate(last.date)}<small>PRs, every session, e1RM chart</small></span><b class="v num">${fmt(last.sets[0][0])}×${last.sets.map(s => s[1]).join(' · ')}</b></a>` : `<div class="row"><span class="nm">Not logged yet<small>Your first set will be the starting point.</small></span></div>`}</div>
+  </main>`;
+}
+function customView(){
+  const f = S.form || (S.form = {name:S.q || '', muscle:[], equip:'Dumbbell', metric:'weight_reps', load:'per_dumbbell', err:null});
+  return `${topBar({back:'exercises', title:'New exercise'})}
+  <main class="scroll">
+    <div class="block pad">
+      <div class="field"><label class="label" for="cname">Name</label><input class="in" id="cname" value="${esc(f.name)}" data-bind="c-name" ${f.err ? 'aria-invalid="true" aria-describedby="cErr"' : ''} autofocus>
+        ${f.err ? `<p class="err" id="cErr">${ic('alert')}${f.err}</p>` : '<p class="help">Only you will see it. Add a Vietnamese name or nickname later as a search name.</p>'}</div>
+      <div class="field"><span class="label">Muscles</span><div class="seg">${['chest','back','shoulders','biceps','triceps','quads','hams','glutes','calves','core'].map(g => `<button data-act="c-muscle" data-v="${g}" aria-pressed="${f.muscle.includes(g)}">${D.G[g]}</button>`).join('')}</div><p class="help">Counts toward weekly sets for these groups.</p></div>
+      <div class="field"><label class="label" for="ceq">Equipment</label><select class="in" id="ceq" data-bind="c-equip">${['Barbell','Dumbbell','Cable','Machine','Kettlebell','Bodyweight','Band','Other'].map(e => `<option ${f.equip === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+      <div class="field"><span class="label">What you record</span><div class="seg">${Object.entries(D.METRIC).map(([k, v]) => `<button data-act="c-metric" data-v="${k}" aria-pressed="${f.metric === k}">${v}</button>`).join('')}</div>
+        ${f.metric === 'distance' ? '<p class="help">Distance is logged only; there are no suggestions for it yet.</p>' : ''}</div>
+      ${f.metric === 'weight_reps' ? `<div class="field"><span class="label">How weight is logged</span><div class="seg">${Object.entries(LOADS).map(([k, v]) => `<button data-act="c-load" data-v="${k}" aria-pressed="${f.load === k}">${v}</button>`).join('')}</div></div>` : ''}
+    </div>
+  </main>
+  <div class="foot"><button class="go ink" data-act="c-save">Create exercise</button></div>`;
+}
+/* the picker searches and filters exactly like the library: same search, same muscle chips, same row text */
+const GROUPS = ['chest','back','shoulders','biceps','triceps','quads','hams','glutes','calves','core'];
+const muscleChips = (act, cur) => `<div class="chips" role="group" aria-label="Filter by muscle"><button class="chip" data-act="${act}" data-v="" aria-pressed="${!cur}">All</button>${GROUPS.map(g => `<button class="chip" data-act="${act}" data-v="${g}" aria-pressed="${cur === g}">${D.G[g]}</button>`).join('')}</div>`;
+function pickSheet(to){
+  S.pickTo = to; S.pq = ''; S.pm = null;
+  openSheet(to === 'swap' ? 'Change exercise' : 'Add an exercise', `<div class="pickhd"><label class="search">${ic('search')}<input id="pq" autofocus placeholder="Search by name or nickname" autocomplete="off" aria-label="Search exercises"></label><div id="pchips">${muscleChips('pmuscle', null)}</div></div><div class="block" id="pres" style="background:transparent"></div>`, {onClose:null});
+  filterPick('');
+}
+function filterPick(q){
+  S.pq = q;
+  const n = norm(q.trim());
+  const list = [...S.custom, ...D.CATALOG].filter(c => (!S.pm || c.muscle.includes(S.pm)) && (!n || [c.name, c.vi, ...c.alias, ...(S.aliases[c.id] || [])].some(t => norm(t).includes(n))));
+  $('#pres').innerHTML = list.length ? list.slice(0, 30).map(c => {
+      const hit = n && (S.aliases[c.id] || []).find(a => norm(a).includes(n));
+      return `<button class="row" data-act="choose" data-id="${c.id}" style="padding-left:0"><span class="nm">${esc(c.name)}<small>${esc(c.vi)} · ${c.equip} · ${c.muscle.map(m => D.G[m]).join(', ')}${hit ? ` · your name “${esc(hit)}”` : ''}</small></span><span class="end">${c.owner ? 'Yours' : lastOf(c.id) ? 'Logged' : 'New'}</span></button>`;
+    }).join('')
+    : `<div class="empty"><p>No exercise matches${q.trim() ? ` “${esc(q)}”` : ''}${S.pm ? ` in ${D.G[S.pm]}` : ''}.</p><a class="btn line" href="#custom" data-act="custom-q">${ic('plus')}Create “${esc(q.trim() || 'new exercise')}”</a></div>`;
+}
+
+/* ---------- events ---------- */
+document.addEventListener('input', ev => {
+  const t = ev.target;
+  if (t.id === 'q'){ S.q = t.value; const pos = t.selectionStart; render(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); return; }
+  if (t.id === 'pq') return filterPick(t.value);
+  if (t.dataset.bind === 'plan-name'){ plan(t.dataset.id).name = t.value; queue(); }
+  if (t.dataset.bind === 'day-name'){ curDay().name = t.value; queue(); }
+  if (t.dataset.bind === 'c-name'){ S.form.name = t.value; }
+  if (t.dataset.pe === 'durMin' || t.dataset.pe === 'durMax'){ const pe = curDay().ex[S.editing], v = Kit.parseDur(t.value); if (v) pe[t.dataset.pe] = v; if (pe.durMin > pe.durMax) [pe.durMin, pe.durMax] = [pe.durMax, pe.durMin]; queue(); return; }
+  if (t.dataset.pe){ const pe = curDay().ex[S.editing]; const v = parse(t.value); pe[t.dataset.pe] = t.dataset.pe === 'initialWeight' ? v : (v == null ? pe[t.dataset.pe] : Math.round(v)); if (pe.repMin > pe.repMax) [pe.repMin, pe.repMax] = [pe.repMax, pe.repMin]; queue(); }
+});
+document.addEventListener('change', ev => { if (ev.target.dataset.bind === 'c-equip') S.form.equip = ev.target.value; });
+function queue(){ if (drafting()){ if (S.draftDay) S.draftDay.touched = true; return; } S.pending++; syncPill($('#sync'), S); if (S.online){ clearTimeout(S.qT); S.qT = setTimeout(() => { S.pending = 0; syncPill($('#sync'), S); }, 1200); } }
+
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act, d = curDay();
+  switch (a){
+    case 'activate': { const p = plan(b.dataset.id); S.plans.forEach(x => x.active = x === p ? !p.active : false); if (!S.plans.some(x => x.active)) p.active = true; queue(); render(); toast(`${p.name} is your active routine.`); break; }
+    case 'day-del': {
+      const [, pid, did] = route(), p = plan(pid), i = p.days.findIndex(x => x.id === did), [gone] = p.days.splice(i, 1);
+      S.undoDay = {p, gone, i}; queue(); location.hash = `plan/${p.id}`;
+      setTimeout(() => toast(`Removed ${esc(gone.name)} from the routine. <button data-act="undo-day">Undo</button>`, 5000), 60); break;
+    }
+    case 'undo-day': if (S.undoDay){ const u = S.undoDay; u.p.days.splice(u.i, 0, u.gone); S.undoDay = null; queue(); Kit.hideToast(); render(); toast(`${esc(u.gone.name)} is back.`); } break;
+    case 'day-add': { const p = plan(b.dataset.id); S.draftDay = {id:'d' + Date.now(), name:`Day ${p.days.length + 1}`, ex:[]}; nav(`day/${p.id}/new`); break; }
+    case 'day-done': {
+      const p = plan(route()[1]), dr = S.draftDay; if (!dr) break;
+      dr.name = dr.name.trim() || `Day ${p.days.length + 1}`; delete dr.touched;
+      p.days.push(dr); S.draftDay = null; nav(`plan/${p.id}`); queue();
+      setTimeout(() => toast(`Added ${esc(dr.name)}${dr.ex.length ? ` with ${plural(dr.ex.length, 'exercise')}` : ''}.`), 60); break;
+    }
+    case 'draft-back': if (S.lostDraft){ S.draftDay = S.lostDraft.dr; const pid = S.lostDraft.pid; S.lostDraft = null; Kit.hideToast(); nav(`day/${pid}/new`); } break;
+    case 'plan-del': openSheet('Delete this routine?', `<p style="margin-bottom:16px">Its days and exercise settings go. Workouts you already logged stay in History.</p><div class="acts"><button class="btn danger" data-act="plan-del-ok" data-id="${b.dataset.id}">Delete routine</button><button class="btn line" data-act="close">Keep it</button></div>`); break;
+    case 'plan-del-ok': { const i = S.plans.findIndex(p => p.id === b.dataset.id); const [gone] = S.plans.splice(i, 1); if (gone.active && S.plans[0]) S.plans[0].active = true; closeSheet(); queue(); nav(''); toast(`Deleted ${esc(gone.name)}.`); break; }
+    case 'ex-edit': exSheet(+b.dataset.i); break;
+    case 'pe': { const pe = d.ex[S.editing]; const k = b.dataset.k; pe[k] = Math.max(k === 'sets' ? 1 : 15, pe[k] + +b.dataset.d); queue(); exSheet(S.editing); break; }
+    case 'pe-warm': { const pe = d.ex[S.editing]; pe.warmup = !pe.warmup; queue(); exSheet(S.editing); break; }
+    case 'pe-ss': { const pe = d.ex[S.editing], nx = d.ex[S.editing + 1]; if (pe.group && nx.group === pe.group){ nx.group = null; if (!d.ex.some((x, k) => k !== S.editing && x.group === pe.group)) pe.group = null; } else { const g = pe.group || 'G' + Date.now(); pe.group = g; nx.group = g; } queue(); closeSheet(); break; }
+    case 'pe-del': { const [gone] = d.ex.splice(S.editing, 1); queue(); closeSheet(); toast(`Removed ${esc(ex(gone.id).name)}. <button data-act="undo-del">Undo</button>`, 4000); S.undo = {d, gone, i:S.editing}; break; }
+    case 'undo-del': if (S.undo){ S.undo.d.ex.splice(S.undo.i, 0, S.undo.gone); S.undo = null; Kit.hideToast(); render(); } break;
+    case 'pick': pickSheet(b.dataset.to); break;
+    case 'choose': {
+      const id = b.dataset.id;
+      if (S.pickTo === 'swap'){ d.ex[S.editing].id = id; d.ex[S.editing].initialWeight = null; toast(`Changed to ${esc(ex(id).name)}.`); }
+      else { d.ex.push({id, sets:3, repMin:8, repMax:12, durMin:30, durMax:60, rest:90, warmup:false, initialWeight:null, group:null}); S.editing = d.ex.length - 1; toast(`Added ${esc(ex(id).name)}. Tap it to set reps and rest.`); }
+      queue(); closeSheet(); render(); break;
+    }
+    case 'custom-q': S.form = null; S.q = S.q || $('#pq')?.value || ''; break;
+    case 'ndays': S.ndays = +b.dataset.v; render(); break;
+    case 'nactive': S.nactive = !(S.nactive ?? true); render(); break;
+    case 'create': {
+      const name = $('#nname').value.trim() || 'My routine', n = S.ndays || 3, id = 'p' + Date.now();
+      if (S.nactive ?? true) S.plans.forEach(p => p.active = false);
+      S.plans.push({id, name, source:'manual', active:S.nactive ?? true, days:Array.from({length:n}, (_, i) => ({id:'d' + i, name:`Day ${i + 1}`, ex:[]}))});
+      S.empty = false; queue(); nav(`day/${id}/d0`); toast(`Created ${esc(name)}. Add the exercises for Day 1.`); break;
+    }
+    case 'tpl-use': {
+      const t = D.TEMPLATES.find(x => x.id === b.dataset.id), id = 'p' + Date.now();
+      S.plans.forEach(p => p.active = false);
+      S.plans.push({id, name:t.name, source:'template', template:t.id, active:true, days:t.days.map((dd, i) => ({id:'t' + i, name:dd.name, ex:clone(dd.ex)}))});
+      S.empty = false; queue(); nav(`plan/${id}`); toast('Copied. It’s yours now; edit anything, the original stays as it was.', 3600); break;
+    }
+    case 'tpl-retry': S.tplError = false; S.loading = true; render(); setTimeout(() => { S.loading = false; render(); }, 900); break;
+    case 'muscle': S.muscle = b.dataset.v || null; render(); break;
+    case 'pmuscle': S.pm = b.dataset.v || null; $('#pchips').innerHTML = muscleChips('pmuscle', S.pm); $(`#pchips [data-v="${S.pm || ''}"]`).focus(); filterPick($('#pq').value); $('#sheetBody').scrollTop = 0; break;
+    case 'alias-add': { const v = $('#alias').value.trim(); if (!v) { $('#alias').focus(); break; } const id = route()[1]; (S.aliases[id] = S.aliases[id] || []).push(v); queue(); render(); toast(`Search “${esc(v)}” now finds this exercise.`); break; }
+    case 'alias-del': { const id = route()[1]; S.aliases[id] = S.aliases[id].filter(x => x !== b.dataset.v); queue(); render(); break; }
+    case 'st': { const id = route()[1]; const k = b.dataset.k; S.settings[id] = Object.assign(settingsOf(id), {[k]: k === 'load' ? b.dataset.v : +b.dataset.v}); queue(); render(); break; }
+    case 'st-auto': { const id = route()[1]; const st = settingsOf(id); st.auto = !st.auto; S.settings[id] = st; queue(); render(); break; }
+    case 'c-muscle': { const f = S.form; const v = b.dataset.v; f.muscle = f.muscle.includes(v) ? f.muscle.filter(x => x !== v) : [...f.muscle, v]; render(); break; }
+    case 'c-metric': S.form.metric = b.dataset.v; render(); break;
+    case 'c-load': S.form.load = b.dataset.v; render(); break;
+    case 'c-save': {
+      const f = S.form;
+      if (!f.name.trim()){ f.err = 'Give it a name.'; render(); $('#cname').focus(); break; }
+      if ([...S.custom, ...D.CATALOG].some(c => norm(c.name) === norm(f.name.trim()))){ f.err = 'You already have an exercise with this name.'; render(); $('#cname').focus(); break; }
+      const id = 'u' + Date.now();
+      S.custom.unshift({id, name:f.name.trim(), vi:'Your exercise', alias:[], equip:f.equip, muscle:f.muscle.length ? f.muscle : ['core'], metric:f.metric, load:f.metric === 'weight_reps' ? f.load : null, step:2.5, bar:0, owner:true});
+      S.form = null; S.q = ''; queue(); nav(`exercise/${id}`); toast('Created. It’s ready for your routines and workouts.'); break;
+    }
+    case 'close': closeSheet(); break;
+    case 'demo': openDemo(); break;
+    case 'd-online': S.online = !S.online; if (S.online) queue(); render(); break;
+    case 'd-session': S.session = !S.session; render(); break;
+    case 'd-empty': S.empty = !S.empty; closeSheet(); nav(''); render(); break;
+    case 'd-tplerr': S.tplError = !S.tplError; closeSheet(); nav('templates'); render(); break;
+    case 'd-go': closeSheet(); nav(b.dataset.h); break;
+  }
+});
+/* drag to reorder: days in a routine, exercises in a day. A superset split apart by a move releases the stray. */
+function moveIn(arr, from, to){ const [x] = arr.splice(from, 1); arr.splice(to, 0, x); }
+function normalizeGroups(list){
+  const seen = new Set();
+  list.forEach((e, i) => {
+    if (!e.group || list[i - 1]?.group === e.group) return;
+    if (seen.has(e.group)){ const old = e.group, g = 'G' + Date.now() + '-' + i; for (let k = i; list[k]?.group === old; k++) list[k].group = g; }
+    seen.add(e.group);
+  });
+  const n = {}; list.forEach(e => { if (e.group) n[e.group] = (n[e.group] || 0) + 1; });
+  list.forEach(e => { if (e.group && n[e.group] < 2) e.group = null; });
+}
+Sortable.attach('#dayList', {item:'.sort-item', handle:'.grip', announce, name:i => plan(route()[1]).days[i].name,
+  onMove(from, to){ moveIn(plan(route()[1]).days, from, to); queue(); render(); }});
+Sortable.attach('#exList', {item:'.sort-item', handle:'.grip', announce, name:i => ex(curDay().ex[i].id).name,
+  onMove(from, to){
+    const d = curDay(), had = d.ex[from].group;
+    moveIn(d.ex, from, to); normalizeGroups(d.ex); queue(); render();
+    if (had && !d.ex[to].group) toast(`${esc(ex(d.ex[to].id).name)} left its superset.`);
+  }});
+demo(() => `
+  <button data-act="d-online" aria-pressed="${!S.online}">${S.online ? 'Go offline' : 'Offline · reconnect'}</button>
+  <button data-act="d-session" aria-pressed="${S.session}">Workout in progress</button>
+  <button data-act="d-empty" aria-pressed="${S.empty}">New user · no routine</button>
+  <button data-act="d-tplerr" aria-pressed="${S.tplError}">Programs fail to load</button>
+  <span class="label grp">Screens</span>
+  <button data-act="d-go" data-h="">Plans</button>
+  <button data-act="d-go" data-h="plan/ppl">Routine editor</button>
+  <button data-act="d-go" data-h="day/ppl/pushA">Day editor · Push A</button>
+  <button data-act="d-go" data-h="new">New routine</button>
+  <button data-act="d-go" data-h="templates">Programs</button>
+  <button data-act="d-go" data-h="template/full-body-3day">Program detail</button>
+  <button data-act="d-go" data-h="exercises">Exercise library</button>
+  <button data-act="d-go" data-h="exercise/bench">Exercise settings · bench</button>
+  <button data-act="d-go" data-h="custom">Create an exercise</button>
+  <span class="label grp">Other slices</span>
+  <a href="../index.html">All prototypes</a>`);
+render();
+</script>
+</body>
+</html>
