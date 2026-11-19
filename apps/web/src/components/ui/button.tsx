@@ -21,13 +21,14 @@ const buttonVariants = cva(
         line: 'shadow-[inset_0_0_0_1.5px_var(--color-ink)]',
         orange: 'bg-orange text-ink',
         danger: 'bg-danger text-on-signal',
-        text: 'underline decoration-[1.5px] underline-offset-[3px]',
+        text: 'underline underline-offset-[3px]',
         ghost: 'active:bg-rule-soft',
       },
       size: {
         default: 'min-h-11 rounded-sm px-4 text-read',
         wide: 'min-h-11 w-full rounded-sm px-4 text-read',
-        go: 'h-16 w-full min-w-0 rounded-lg px-3 text-num leading-none tracking-[0.01em] uppercase numeral',
+        // .go: Barlow Condensed 800 chữ hoa, giãn chữ .01em, khoảng cách icon 10px, chữ dài thì cắt
+        go: 'h-16 w-full min-w-0 gap-2.5 overflow-hidden rounded-lg px-3 font-numeral text-num leading-none font-extrabold text-ellipsis tracking-[0.01em] uppercase',
         icon: 'size-11 rounded-sm',
       },
     },

@@ -20,7 +20,11 @@ export function SyncPillView({
     return (
       <span
         role="status"
-        title={m.sync_offline_hint()}
+        title={
+          pending
+            ? m.sync_offline_pending_hint({ count: pending })
+            : m.sync_offline_hint()
+        }
         className={cn(base, 'bg-ink text-tyvek')}
       >
         <OfflineIcon className="size-3.5 flex-none" aria-hidden />

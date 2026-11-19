@@ -35,13 +35,13 @@ export function AppShell({
     <div className="flex min-h-dvh justify-center">
       <div
         className={cn(
-          'relative flex h-dvh w-full max-w-[440px] flex-col overflow-clip bg-ground',
+          'relative flex h-dvh w-full max-w-[440px] flex-col overflow-clip bg-ground min-[900px]:border-x min-[900px]:border-rule',
           className,
         )}
       >
         {top}
         {banner}
-        <main className="flex-1 overflow-y-auto overscroll-contain px-3 pb-6 [&>*+*]:mt-3">
+        <main className="flex-1 overflow-y-auto overscroll-contain px-3 pb-6 [scrollbar-color:var(--color-rule)_transparent] [scrollbar-width:thin] [&>*+*]:mt-3">
           {children}
         </main>
         {foot}

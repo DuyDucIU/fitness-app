@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Dialog as SheetPrimitive } from 'radix-ui';
-import { XIcon } from 'lucide-react';
 
+import { CloseIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { m } from '@/paraglide/messages.js';
 
@@ -41,7 +41,7 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        'fixed inset-0 z-40 bg-ink/42 duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        'fixed inset-0 z-40 mx-auto max-w-[440px] bg-ink/42 duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
         className,
       )}
       {...props}
@@ -49,21 +49,35 @@ function SheetOverlay({
   );
 }
 
+/** Phần tử được focus khi mở sheet: ô có `data-autofocus`, nếu không có thì nút đóng (kit.js › openSheet). */
+function focusOnOpen(event: Event) {
+  const content = event.currentTarget as HTMLElement | null;
+  const target =
+    content?.querySelector<HTMLElement>('[data-autofocus], [autofocus]') ??
+    content?.querySelector<HTMLElement>('[data-slot="sheet-close"]');
+  if (target) {
+    event.preventDefault();
+    target.focus({ preventScroll: true });
+  }
+}
+
 function SheetContent({
   className,
   children,
-  showCloseButton = true,
+  onOpenAutoFocus,
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content> & {
-  showCloseButton?: boolean;
-}) {
+}: React.ComponentProps<typeof SheetPrimitive.Content>) {
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
+        onOpenAutoFocus={(event) => {
+          onOpenAutoFocus?.(event);
+          if (!event.defaultPrevented) focusOnOpen(event);
+        }}
         className={cn(
-          'fixed inset-x-0 bottom-0 z-41 mx-auto flex max-h-[88dvh] w-full max-w-[440px] flex-col rounded-t-sheet bg-tyvek pb-(--safe-bottom) text-ink outline-none ease-snap data-open:animate-in data-open:duration-300 data-open:slide-in-from-bottom data-closed:animate-out data-closed:duration-200 data-closed:slide-out-to-bottom',
+          'fixed inset-x-0 bottom-0 z-41 mx-auto flex max-h-[88dvh] w-full max-w-[440px] flex-col rounded-t-sheet bg-tyvek pb-(--safe-bottom) text-ink outline-none ease-snap data-open:animate-in data-open:duration-280 data-open:slide-in-from-bottom data-closed:animate-out data-closed:duration-280 data-closed:slide-out-to-bottom',
           className,
         )}
         {...props}
@@ -73,30 +87,39 @@ function SheetContent({
           className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-rule"
         />
         {children}
-        {showCloseButton && (
-          <SheetPrimitive.Close data-slot="sheet-close" asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-3 right-2"
-            >
-              <XIcon />
-              <span className="sr-only">{m.common_close()}</span>
-            </Button>
-          </SheetPrimitive.Close>
-        )}
       </SheetPrimitive.Content>
     </SheetPortal>
   );
 }
 
-function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
+/**
+ * Đầu sheet (.sheet .hd): tiêu đề rồi nút đóng, nên nút đóng đứng trước thân sheet trong
+ * thứ tự Tab như prototype.
+ */
+function SheetHeader({
+  className,
+  children,
+  showCloseButton = true,
+  ...props
+}: React.ComponentProps<'div'> & { showCloseButton?: boolean }) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn('flex flex-col gap-1 py-3 pr-14 pl-4', className)}
+      className={cn(
+        'flex items-center gap-2 pt-4 pr-2 pb-2 pl-4 [&>[data-slot=sheet-title]]:flex-1',
+        className,
+      )}
       {...props}
-    />
+    >
+      {children}
+      {showCloseButton && (
+        <SheetPrimitive.Close data-slot="sheet-close" asChild>
+          <Button variant="ghost" size="icon" aria-label={m.common_close()}>
+            <CloseIcon />
+          </Button>
+        </SheetPrimitive.Close>
+      )}
+    </div>
   );
 }
 

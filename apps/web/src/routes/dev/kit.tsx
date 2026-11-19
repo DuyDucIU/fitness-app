@@ -259,7 +259,11 @@ export function Component() {
             </SheetHeader>
             <SheetBody>
               <Field label="Weight">
-                <NumberInput value={weight} onValueChange={setWeight} />
+                <NumberInput
+                  data-autofocus
+                  value={weight}
+                  onValueChange={setWeight}
+                />
               </Field>
             </SheetBody>
             <SheetFooter>

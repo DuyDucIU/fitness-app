@@ -43,6 +43,15 @@
     }
   ],
   "sync_offline_hint": "Đang ngoại tuyến. Mọi thứ bạn ghi đều được lưu trên máy này.",
+  "sync_offline_pending_hint": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} thay đổi đã lưu trên máy này, đang chờ có mạng"
+      }
+    }
+  ],
   "me_language": "Ngôn ngữ",
   "error_validation_failed": "Có chỗ chưa đúng, kiểm tra lại rồi thử lần nữa nhé.",
   "error_unauthorized": "Bạn đã bị đăng xuất. Đăng nhập lại để tiếp tục.",

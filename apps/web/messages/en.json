@@ -45,6 +45,16 @@
     }
   ],
   "sync_offline_hint": "Offline. Everything you log is saved on this device.",
+  "sync_offline_pending_hint": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} change saved on this device, waiting for a connection",
+        "countPlural=other": "{count} changes saved on this device, waiting for a connection"
+      }
+    }
+  ],
   "me_language": "Language",
   "error_validation_failed": "Some of that didn't look right. Check and try again.",
   "error_unauthorized": "You've been signed out. Sign in again to continue.",

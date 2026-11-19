@@ -32,7 +32,8 @@ const rowVariants = cva(
         /** Hàng "hiện tại" (viền cam dành cho hiện tại, nền cam nhạt). */
         current: 'bg-orange-tint',
         /** Hàng đảo nền mực (vd hàng PR). */
-        inverse: 'on-dark bg-ink text-tyvek',
+        inverse:
+          'on-dark bg-ink text-tyvek [&_[data-slot=row-end]]:text-orange',
         danger: 'text-danger',
         /** Hàng "Thêm…" viền đứt, căn giữa. */
         add: 'justify-center gap-2 border-dashed border-rule font-bold',
@@ -108,7 +109,10 @@ export function RowEnd({
   children?: React.ReactNode;
 }) {
   return (
-    <span className="ml-auto flex flex-none items-center gap-2 text-right text-label font-bold tracking-[0.06em] uppercase">
+    <span
+      data-slot="row-end"
+      className="ml-auto flex flex-none items-center gap-2 text-right text-label font-bold tracking-[0.06em] uppercase"
+    >
       {children}
       {chevron && <ChevronIcon className="-mr-1 size-5" aria-hidden />}
     </span>

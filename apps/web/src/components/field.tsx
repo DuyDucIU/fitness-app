@@ -122,13 +122,17 @@ export function NumberInput({
   );
 }
 
-/** Ô tìm kiếm có icon kính lúp (prototypes/shared/base.css › .search). */
+/**
+ * Ô tìm kiếm có icon kính lúp (prototypes/shared/base.css › .search). Bọc bằng `<label>`
+ * như prototype để chạm vào cả ô cũng focus. Thêm viền dày khi focus vì ô bên trong tắt
+ * outline (prototype không có trạng thái focus nào, thiếu cho người dùng bàn phím).
+ */
 export function SearchInput({
   className,
   ...props
 }: Omit<React.ComponentProps<'input'>, 'type'>) {
   return (
-    <div
+    <label
       className={cn(
         'flex h-12 items-center gap-2.5 rounded-sm border-[1.5px] border-ink bg-white px-3 focus-within:shadow-[inset_0_0_0_1.5px_var(--color-ink)]',
         className,
@@ -140,6 +144,6 @@ export function SearchInput({
         className="min-w-0 flex-1 bg-transparent text-read outline-none placeholder:text-[#6b6b66]"
         {...props}
       />
-    </div>
+    </label>
   );
 }

@@ -13,6 +13,11 @@ export interface ToastApi {
     options?: { action?: ToastState['action']; durationMs?: number },
   ) => void;
   hide: () => void;
+  /**
+   * Đọc ngay một câu cho trình đọc màn hình qua vùng `aria-live="assertive"` ẩn
+   * (kit.js › announce), vd khi một set vừa được lưu hay đồng hồ nghỉ kết thúc.
+   */
+  announce: (text: string) => void;
 }
 
 export const ToastContext = React.createContext<ToastApi | null>(null);
@@ -21,4 +26,9 @@ export function useToast(): ToastApi {
   const ctx = React.useContext(ToastContext);
   if (!ctx) throw new Error('useToast phải nằm trong <ToastProvider>');
   return ctx;
+}
+
+/** Hàm `announce` của ToastProvider. */
+export function useAnnounce(): ToastApi['announce'] {
+  return useToast().announce;
 }
