@@ -157,7 +157,7 @@ function bibHTML(day, i){
 }
 function exLine(pe, n, inSS){
   const c = D.ex(pe.id);
-  const reps = c.metric === 'duration' ? 'time' : `${pe.repMin}–${pe.repMax}`;
+  const reps = c.metric === 'duration' ? `${Kit.dur(pe.durMin ?? 30)}–${Kit.dur(pe.durMax ?? 60)}` : `${pe.repMin}–${pe.repMax}`;
   let sets = pe.sets, r = reps;
   if (S.deload && (S.deload.mode === 'half_reps' || S.deload.mode === 'half_both')) sets = Math.max(1, Math.ceil(pe.sets / 2));
   return `<li${inSS ? ' style="border-top:0"' : ''}><b class="n num">${n}</b><span class="nm">${esc(c.name)}</span><span class="v">${sets} × ${r}${S.deload && S.deload.mode !== 'half_reps' && c.metric === 'weight_reps' ? ' · ½ KG' : ''}</span></li>`;

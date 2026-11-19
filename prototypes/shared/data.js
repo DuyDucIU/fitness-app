@@ -55,14 +55,21 @@ const CATALOG = [
 const LOAD = {total:'Total', per_side:'Per side', per_dumbbell:'Per dumbbell', stack:'Stack', added_weight:'Added weight'};
 const METRIC = {weight_reps:'Weight × reps', reps:'Reps only', duration:'Time', distance:'Distance'};
 const ex = id => CATALOG.find(c => c.id === id);
+/* How a set is logged, from metric_type + load input:
+   wr   = weight × reps (weight_reps)
+   bw+  = reps, with optional added weight (reps + added_weight: pull-up, dips). 0 kg = bodyweight only
+   reps = reps only (reps, no load: crunch, hanging leg raise)
+   time = a timed hold (duration: plank). Sets are [null, null, seconds] */
+const kind = c => c.metric === 'weight_reps' ? 'wr' : c.metric === 'duration' ? 'time' : c.metric === 'distance' ? 'dist' : c.load === 'added_weight' ? 'bw+' : 'reps';
 
 /* The user's active plan (UC05) and the template catalog (UC24). initialWeight is static from the plan — the engine never guesses one (R8). */
-const P = (id, sets, repMin, repMax, o = {}) => ({id, sets, repMin, repMax, rest:o.rest ?? 120, warmup:!!o.warmup, initialWeight:o.w ?? null, group:o.group ?? null});
+/* timed exercises carry a target time range (target_duration_min_s / max_s) instead of a rep range */
+const P = (id, sets, repMin, repMax, o = {}) => ({id, sets, repMin, repMax, durMin:o.dur?.[0] ?? null, durMax:o.dur?.[1] ?? null, rest:o.rest ?? 120, warmup:!!o.warmup, initialWeight:o.w ?? null, group:o.group ?? null});
 const PLANS = [
   {id:'ppl', name:'My push / pull / legs', source:'manual', active:true, days:[
     {id:'pushA', name:'Push A', ex:[P('bench',4,6,8,{rest:150,warmup:true}), P('ohp',3,6,10,{warmup:true}), P('incl',3,8,12,{rest:90}), P('fly',3,10,15,{rest:75,group:'A'}), P('push',3,10,15,{rest:75,group:'A'})]},
     {id:'pullA', name:'Pull A', ex:[P('deadlift',3,3,5,{rest:180,warmup:true}), P('pullup',4,6,10), P('cablerow',3,8,12,{rest:90}), P('facepull',3,12,15,{rest:60,group:'B'}), P('hammer',3,8,12,{rest:60,group:'B'})]},
-    {id:'legs', name:'Legs', ex:[P('squat',4,5,8,{rest:180,warmup:true}), P('rdl',3,8,10,{rest:120}), P('legpress',3,10,12,{rest:90}), P('legcurl',3,10,15,{rest:75}), P('calf',4,10,15,{rest:60}), P('hlr',3,10,15,{rest:60})]},
+    {id:'legs', name:'Legs', ex:[P('squat',4,5,8,{rest:180,warmup:true}), P('rdl',3,8,10,{rest:120}), P('legpress',3,10,12,{rest:90}), P('legcurl',3,10,15,{rest:75}), P('calf',4,10,15,{rest:60}), P('hlr',3,10,15,{rest:60}), P('plank',3,null,null,{rest:60,dur:[30,60]})]},
   ]},
 ];
 const TEMPLATES = [
@@ -77,7 +84,7 @@ const TEMPLATES = [
     days:[{name:'Upper A', ex:[P('bench',4,6,8), P('row',4,6,10), P('dbohp',3,8,12), P('latpd',3,8,12)]},{name:'Lower A', ex:[P('squat',4,5,8), P('rdl',3,8,10), P('legcurl',3,10,15), P('calf',4,10,15)]},{name:'Upper B', ex:[P('inclbb',4,6,10), P('cablerow',3,8,12), P('lat',3,12,15), P('push',3,10,15)]},{name:'Lower B', ex:[P('deadlift',3,3,5), P('legpress',3,10,12), P('lunge',3,8,12), P('scalf',4,12,15)]}]},
   {id:'home-2day', name:'Dumbbells at home, 2 days', level:'Beginner', perWeek:2, minutes:40, equipment:'Home', goal:'General strength', draft:true, sample:true,
     blurb:'Sample entry for layout review only; not in packages/templates yet.',
-    days:[{name:'Day A', ex:[P('goblet',3,8,12), P('dbbench',3,8,12), P('dbrow',3,8,12), P('plank',3,1,1)]},{name:'Day B', ex:[P('lunge',3,8,12), P('dbohp',3,8,12), P('dbcurl',3,10,12), P('pushup',3,8,15)]}]},
+    days:[{name:'Day A', ex:[P('goblet',3,8,12), P('dbbench',3,8,12), P('dbrow',3,8,12), P('plank',3,null,null,{dur:[30,60],rest:60})]},{name:'Day B', ex:[P('lunge',3,8,12), P('dbohp',3,8,12), P('dbcurl',3,10,12), P('pushup',3,8,15)]}]},
 ];
 
 /* History generator — deterministic. Finals match workout-log's "last time" numbers. */
@@ -111,6 +118,13 @@ const SESSIONS = [];
     const back = Math.floor((n - 1 - i) / 3); // sessions ago for this day
     const exs = pd.ex.map(pe => {
       const c = ex(pe.id);
+      if (c.metric === 'duration'){
+        // plank: holds grow 5 s every other session; the last Legs day reached the 1:00 top on every set
+        const base = Math.min(pe.durMax, pe.durMax - 5 * Math.ceil(back / 2));
+        let ts = back === 0 ? [base, base, base] : [base, base - 5, base - 10].map(t => Math.max(20, t));
+        if (t.deload) ts = ts.map(x => Math.round(x * 0.6 / 5) * 5);
+        return {id:pe.id, sets:ts.map(x => [null, null, x])};
+      }
       if (dIdx === 0 && back === 0 && LASTPUSH[pe.id]) return {id:pe.id, sets:LASTPUSH[pe.id].map(s => s.slice())};
       // accessories on Push A have sat at last time's numbers for a few sessions; only bench moves on 12 Nov
       if (dIdx === 0 && back >= 1 && back <= 3 && LASTPUSH[pe.id] && pe.id !== 'bench'){ const ps = LASTPUSH[pe.id].map(x => x.slice()); if (back > 1) ps[ps.length - 1][1] -= 1; prev[pe.id] = ps; return {id:pe.id, sets:ps}; }
@@ -143,14 +157,27 @@ const SESSIONS = [];
 /* Personal records — recomputed from history in time order (server is the source of truth; client values are provisional). */
 const PRS = [];
 (function(){
-  const best = {};
+  const best = {}, reps = {}, added = {};
   [...SESSIONS].reverse().forEach(s => s.exs.forEach(e => {
-    const c = ex(e.id); if (c.metric !== 'weight_reps' && c.load !== 'added_weight') return;
+    const c = ex(e.id), k = kind(c), seen = e.id in best || e.id in reps || e.id in added;
+    const pr = o => { if (seen) PRS.push({ex:e.id, date:s.start, session:s.id, ...o}); };
     e.sets.forEach(([w, r]) => {
-      const v = e1rm(w, r);
-      if (!best[e.id] || v > best[e.id] + 0.05){
-        if (best[e.id]) PRS.push({ex:e.id, type:'e1RM', w, r, value:v, date:s.start, session:s.id, prev:best[e.id]});
-        best[e.id] = v;
+      if (k === 'wr'){
+        // e1RM, only for weight × reps
+        const v = e1rm(w, r);
+        if (!best[e.id] || v > best[e.id] + 0.05){
+          if (best[e.id]) PRS.push({ex:e.id, type:'e1RM', w, r, value:v, date:s.start, session:s.id, prev:best[e.id]});
+          best[e.id] = v;
+        }
+      } else if (k === 'reps' || (k === 'bw+' && !w)){
+        // most reps at bodyweight
+        if (r > (reps[e.id] ?? 0)){ if (e.id in reps) pr({type:'max_reps', w:0, r, value:r}); reps[e.id] = r; }
+      } else if (k === 'bw+'){
+        // heaviest added weight for at least this many reps
+        const list = added[e.id] || (added[e.id] = []);
+        const top = Math.max(0, ...list.filter(x => x[1] >= r).map(x => x[0]));
+        if (w > top) pr({type:'weight_at_reps', w, r, value:w});
+        list.push([w, r]);
       }
     });
   }));
@@ -200,6 +227,6 @@ function streak(target = 3){
   return {current:cur, best};
 }
 
-window.DATA = {TODAY, CATALOG, LOAD, METRIC, G, ex, PLANS, TEMPLATES, SESSIONS, PRS, BODY, GOALS, DELOADS, weekStart, weeks, streak, e1rm,
+window.DATA = {TODAY, CATALOG, LOAD, METRIC, G, ex, kind, PLANS, TEMPLATES, SESSIONS, PRS, BODY, GOALS, DELOADS, weekStart, weeks, streak, e1rm,
   user:{name:'Sam', email:'sample.lifter@example.com', unit:'kg', tz:'Asia/Ho_Chi_Minh', guidance:'standard', warmupDefault:true, rpe:false}};
 })();

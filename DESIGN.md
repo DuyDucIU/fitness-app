@@ -427,6 +427,21 @@ Tấm Trắng Tyvek góc 10px gồm bốn phần: dải, mặt số, răng cưa,
 
 **Hai khu set:** set khởi động và working set nằm ở hai khối tách nhau, cách 8px, mỗi khối có dòng đầu 44px (tiêu đề 16px 700 + dòng phụ 12px: "0/3 · không tính" / "2/4 · 6–8 reps"). Khối khởi động là vật liệu "mở": không nền, viền inset 1,5px `rule`, như dải khởi động viền rỗng; có nút chữ "Bỏ qua" ở góc phải. Khối working set là khối Trắng Tyvek đặc, chứa hàng "Thêm set". Số liệu trong cả hai khối vẫn mực đen.
 
+**Mặt số theo cách ghi bài:** tấm số áo, dải band và nút chính giữ nguyên; chỉ mặt số đổi theo `metric_type` và quy ước ghi tạ.
+- **Tạ × reps** (`weight_reps`): hai ô "80 × 8", như trên.
+- **Reps, có thể đeo thêm tạ** (`reps` + `added_weight`: pull-up, dips, chin-up, push-up): ô trái là tạ đeo thêm, ghi "+5", và "BW" khi 0 kg (chỉ trọng lượng cơ thể). Ô trống cũng tính là BW, không bao giờ chặn nút log. Hàng set ghi "+5 × 8" / "BW × 12".
+- **Chỉ reps** (`reps`, không tạ: crunch, hanging leg raise): một ô số duy nhất ở giữa. Hàng set ghi "12 reps".
+- **Bấm giờ** (`duration`: plank): một ô m:ss, nút ± 5 giây. Gõ "45" là 0:45, "130" là 1:30. Nút chính đổi thành "Start set 1" rồi "Stop · log set 1". Ngay trên nút có lựa chọn "Log 1:00 without the timer" để ghi giờ đã gõ, và "Cancel, don't log" khi đang chạy. Khi đang giữ, dải band cam được lấp dần bằng mực tới trần thời gian mục tiêu; chạm trần thì kêu và nháy. **Không dùng lam**: lam chỉ dành cho nghỉ. Đồng hồ tính theo mốc bắt đầu, nên vẫn đúng sau khi app xuống nền.
+- Khởi động (R5), back-off (R3), e1RM, quay lại sau nghỉ (R6) và deload (R7) chỉ áp dụng cho tạ × reps. Các kiểu còn lại chỉ có R1, và lời gợi ý đổi theo kiểu: "add reps or strap on some weight" / "add reps or hold a weight" / "time to hold a little longer".
+- **PR theo kiểu bài:** e1RM cho tạ × reps; "most reps" khi ở BW hoặc với bài chỉ reps; "heaviest for N" (`weight_at_reps`) cho tạ đeo thêm. Bài bấm giờ chưa có loại PR trong schema.
+
+**RPE (tuỳ chọn):** chỉ hiện khi bật trong onboarding hoặc Me, mặc định tắt. Không bao giờ thêm bước vào đường log.
+- Câu hỏi "How hard was set 1 · +5 × 7?" xuất hiện ở cuống tấm số trong lúc nghỉ, sau khi set đã được ghi. Gồm 5 nút 6–10 cao 56px, giải thích bằng số rep còn lại ("2 left"); với bài bấm giờ thì dùng chữ ("hard").
+- Chọn nút nào thì nút đó tô mực. Hàng set ghi "@8" sau số.
+- Bỏ qua bằng cách log set tiếp theo. Câu hỏi đi theo sang bài kế trong superset, và mất khi tự chuyển sang bài khác.
+- Sửa RPE trong chế độ sửa set.
+- RPE 10 đúng ở đáy rep range cũng kích hoạt back-off (R3). Ngưỡng này nằm trong `ENGINE_DEFAULTS`.
+
 **Điều khiển nghỉ** nằm trong vùng đáy, ngay trên nút chính: hai nút cao 48px, viền 2px lam, chữ lam, khi nhấn đảo sang nền lam chữ trắng.
 
 ### Ví số áo (Signature Component, Today)

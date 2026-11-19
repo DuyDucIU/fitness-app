@@ -161,10 +161,13 @@ function planView(id){
 }
 
 /* ---------- Day editor ---------- */
+/* the target follows how the exercise is logged: a rep range, or a time range for timed holds */
+const target = (pe, c) => c.metric === 'duration' ? `${Kit.dur(pe.durMin ?? 30)}–${Kit.dur(pe.durMax ?? 60)}` : `${pe.repMin}–${pe.repMax}`;
 function exSpec(pe){
-  const c = ex(pe.id);
-  const reps = c.metric === 'duration' ? 'time' : `${pe.repMin}–${pe.repMax}`;
-  return `<span><b>${pe.sets} × ${reps}</b></span><span>${Kit.mmss(pe.rest * 1000)} rest</span>${pe.warmup ? '<span>warm-up</span>' : ''}<span>${pe.initialWeight != null ? `start ${fmt(pe.initialWeight)} kg` : lastOf(pe.id) ? 'start from last time' : 'first set by feel'}</span>`;
+  const c = ex(pe.id), k = D.kind(c);
+  const start = k === 'wr' ? (pe.initialWeight != null ? `start ${fmt(pe.initialWeight)} kg` : lastOf(pe.id) ? 'start from last time' : 'first set by feel')
+    : lastOf(pe.id) ? 'start from last time' : k === 'bw+' ? 'bodyweight to start' : 'first set by feel';
+  return `<span><b>${pe.sets} × ${target(pe, c)}</b></span><span>${Kit.mmss(pe.rest * 1000)} rest</span>${pe.warmup ? '<span>warm-up</span>' : ''}<span>${start}</span>`;
 }
 function dayView(pid, did){
   const p = plan(pid), isNew = did === 'new', d = isNew ? S.draftDay : p?.days.find(x => x.id === did);
@@ -200,11 +203,13 @@ function exSheet(i){
   const nextIn = d.ex[i + 1];
   openSheet(c.name, `
     <div class="field"><span class="label">Working sets</span><div class="stepper"><button data-act="pe" data-k="sets" data-d="-1" aria-label="One set fewer">${ic('minus')}</button><b class="num">${pe.sets}</b><button data-act="pe" data-k="sets" data-d="1" aria-label="One set more">${ic('plus')}</button></div></div>
-    ${timed ? '' : `<div class="field"><span class="label">Rep range</span><div class="range"><input class="in numin" inputmode="numeric" value="${pe.repMin}" data-pe="repMin" aria-label="Fewest reps"><span class="num">–</span><input class="in numin" inputmode="numeric" value="${pe.repMax}" data-pe="repMax" aria-label="Most reps"></div>
-      <p class="help">Hit the top on every set and you’ll get a nudge to go up. Fall under the bottom and you’ll get a back-off.</p></div>`}
+    ${timed ? `<div class="field"><span class="label">Target time per set</span><div class="range"><input class="in numin" inputmode="numeric" value="${Kit.dur(pe.durMin ?? 30)}" data-pe="durMin" aria-label="Shortest hold, minutes and seconds"><span class="num">–</span><input class="in numin" inputmode="numeric" value="${Kit.dur(pe.durMax ?? 60)}" data-pe="durMax" aria-label="Longest hold, minutes and seconds"></div>
+      <p class="help">Type 45 for 0:45, or 130 for 1:30. Reach the top on every set and you’ll get a nudge to go longer.</p></div>`
+    : `<div class="field"><span class="label">Rep range</span><div class="range"><input class="in numin" inputmode="numeric" value="${pe.repMin}" data-pe="repMin" aria-label="Fewest reps"><span class="num">–</span><input class="in numin" inputmode="numeric" value="${pe.repMax}" data-pe="repMax" aria-label="Most reps"></div>
+      <p class="help">${c.metric === 'weight_reps' ? 'Hit the top on every set and you’ll get a nudge to go up. Fall under the bottom and you’ll get a back-off.' : c.load === 'added_weight' ? 'Hit the top on every set and you’ll get a nudge to add reps or strap on weight.' : 'Hit the top on every set and you’ll get a nudge to add reps or hold a weight.'}</p></div>`}
     ${c.metric === 'weight_reps' ? `<div class="field"><label class="label" for="iw">Starting weight · optional</label><div class="inrow"><input class="in numin" id="iw" inputmode="decimal" placeholder="–" value="${pe.initialWeight ?? ''}" data-pe="initialWeight"><span class="label">kg ${LOADS[settingsOf(pe.id).load].toLowerCase()}</span></div>
       <p class="help">${last ? `Last time: ${fmt(last.sets[0][0])} kg on ${Kit.shortDate(last.date)}. Your next session starts from that, so you can leave this empty.` : 'No history for this exercise. Leave empty to log your first set by feel; the app won’t suggest a number.'}</p></div>` : ''}
-    <div class="field switch"><span>Warm-up sets<small>Suggests 50% × 8, 70% × 5, 85% × 2 before the first working set.</small></span><button role="switch" data-act="pe-warm" aria-checked="${pe.warmup}" aria-label="Warm-up sets" ${c.metric !== 'weight_reps' ? 'disabled' : ''}></button></div>
+    ${c.metric === 'weight_reps' ? `<div class="field switch"><span>Warm-up sets<small>Suggests 50% × 8, 70% × 5, 85% × 2 before the first working set.</small></span><button role="switch" data-act="pe-warm" aria-checked="${pe.warmup}" aria-label="Warm-up sets"></button></div>` : ''}
     <div class="field"><span class="label">Rest between sets</span><div class="stepper"><button data-act="pe" data-k="rest" data-d="-15" aria-label="15 seconds less">${ic('minus')}</button><b class="num">${Kit.mmss(pe.rest * 1000)}</b><button data-act="pe" data-k="rest" data-d="15" aria-label="15 seconds more">${ic('plus')}</button></div></div>
     <div class="menu">
       ${nextIn ? `<button data-act="pe-ss">${ic('link')}<span>${pe.group && nextIn.group === pe.group ? 'Remove superset' : `Superset with ${esc(ex(nextIn.id).name)}`}<small>Alternate sets, rest after each round.</small></span></button>` : ''}
@@ -253,7 +258,7 @@ function templateView(id){
   return `${topBar({back:'templates', title:esc(t.name), sub:`${t.level} · ${t.perWeek} days a week · ${t.equipment}`})}
   <main class="scroll">
     <section class="bib tpl"><div class="band open"><span class="name">${esc(t.name)}</span><b class="setno num">${t.perWeek}×/WK</b></div>
-      ${t.days.map(d => `<div class="daycol"><h3>${esc(d.name)}</h3><ul>${d.ex.map(pe => `<li><span>${esc(ex(pe.id).name)}</span><span>${pe.sets} × ${ex(pe.id).metric === 'duration' ? 'time' : `${pe.repMin}–${pe.repMax}`}</span></li>`).join('')}</ul></div>`).join('')}
+      ${t.days.map(d => `<div class="daycol"><h3>${esc(d.name)}</h3><ul>${d.ex.map(pe => `<li><span>${esc(ex(pe.id).name)}</span><span>${pe.sets} × ${target(pe, ex(pe.id))}</span></li>`).join('')}</ul></div>`).join('')}
       <div class="perf"><i></i></div>
       <div class="stub"><span class="label">Starting weights</span><p class="hint">This program has none. Log your first set of each exercise by feel; after that the app remembers.</p><b class="last num">–</b></div>
     </section>
@@ -345,6 +350,7 @@ document.addEventListener('input', ev => {
   if (t.dataset.bind === 'plan-name'){ plan(t.dataset.id).name = t.value; queue(); }
   if (t.dataset.bind === 'day-name'){ curDay().name = t.value; queue(); }
   if (t.dataset.bind === 'c-name'){ S.form.name = t.value; }
+  if (t.dataset.pe === 'durMin' || t.dataset.pe === 'durMax'){ const pe = curDay().ex[S.editing], v = Kit.parseDur(t.value); if (v) pe[t.dataset.pe] = v; if (pe.durMin > pe.durMax) [pe.durMin, pe.durMax] = [pe.durMax, pe.durMin]; queue(); return; }
   if (t.dataset.pe){ const pe = curDay().ex[S.editing]; const v = parse(t.value); pe[t.dataset.pe] = t.dataset.pe === 'initialWeight' ? v : (v == null ? pe[t.dataset.pe] : Math.round(v)); if (pe.repMin > pe.repMax) [pe.repMin, pe.repMax] = [pe.repMax, pe.repMin]; queue(); }
 });
 document.addEventListener('change', ev => { if (ev.target.dataset.bind === 'c-equip') S.form.equip = ev.target.value; });
@@ -381,7 +387,7 @@ document.addEventListener('click', ev => {
     case 'choose': {
       const id = b.dataset.id;
       if (S.pickTo === 'swap'){ d.ex[S.editing].id = id; d.ex[S.editing].initialWeight = null; toast(`Changed to ${esc(ex(id).name)}.`); }
-      else { d.ex.push({id, sets:3, repMin:8, repMax:12, rest:90, warmup:false, initialWeight:null, group:null}); S.editing = d.ex.length - 1; toast(`Added ${esc(ex(id).name)}. Tap it to set reps and rest.`); }
+      else { d.ex.push({id, sets:3, repMin:8, repMax:12, durMin:30, durMax:60, rest:90, warmup:false, initialWeight:null, group:null}); S.editing = d.ex.length - 1; toast(`Added ${esc(ex(id).name)}. Tap it to set reps and rest.`); }
       queue(); closeSheet(); render(); break;
     }
     case 'custom-q': S.form = null; S.q = S.q || $('#pq')?.value || ''; break;

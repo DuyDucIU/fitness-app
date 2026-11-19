@@ -113,6 +113,25 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .adj button{width:48px;height:44px;border-radius:var(--r-sm);border:1.5px solid var(--ink);display:grid;place-items:center}
 .adj button:active{background:var(--ink);color:var(--tyvek)}
 .adj .label{min-width:44px;text-align:center}
+/* one-number faces: reps only, and timed holds */
+.face.one{grid-template-columns:1fr}
+.face.one .cell{max-width:280px;margin:0 auto;width:100%}
+.big[readonly]{caret-color:transparent}
+/* a timed set is running: the orange band fills with ink toward the top of the target time. Blue stays for rest only. */
+.band.hold .over{display:flex;background:var(--ink);color:var(--tyvek)}
+.band.hold.hit{animation:flash .9s steps(1) 2}
+.restctl button.plain{border-color:var(--ink);color:var(--ink)}
+.restctl button.plain:active{background:var(--ink);color:var(--tyvek)}
+/* RPE: optional, asked about the set you just logged while you rest; never in the way of the log button */
+.stub.rpe-q{grid-template-columns:1fr;gap:8px;padding-top:8px}
+.rpe-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.rpe-row button{min-height:56px;border-radius:var(--r-sm);border:1.5px solid var(--rule);background:var(--tyvek);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1;padding:4px 2px}
+.rpe-row b{font:800 26px/1 'Barlow Condensed',sans-serif}
+.rpe-row small{font-size:var(--t-label);font-weight:600;white-space:nowrap}
+.rpe-row button[aria-pressed=true]{background:var(--ink);color:var(--tyvek);border-color:var(--ink)}
+.stub.rpe-q .hint{font-size:var(--t-label);font-weight:600;grid-row:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rpe-q .clear{font-weight:700;text-decoration:underline;text-underline-offset:3px;min-height:32px}
+.row .rpe{font:600 var(--t-label) 'Be Vietnam Pro',sans-serif;letter-spacing:.04em;margin-left:6px;vertical-align:.3em}
 .unit-note{font-size:var(--t-label);font-weight:600;text-align:center;margin-top:-2px;padding-bottom:4px}
 
 .perf{position:relative;height:18px}
@@ -342,6 +361,7 @@ const I = {
   off:'<path d="M2 2l20 20M8.5 16.4a5 5 0 0 1 7 0M5 12.9a10 10 0 0 1 5.2-2.8M16.9 11.3a10 10 0 0 1 2.2 1.6M2 8.8a15 15 0 0 1 4.2-2.6M10.7 5a15 15 0 0 1 11.3 3.8M12 20h.01"/>',
   cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/><path d="m9.5 14 2 2 3.5-3.5"/>',
   grip:'<circle cx="9" cy="6" r="1" fill="currentColor"/><circle cx="15" cy="6" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="18" r="1" fill="currentColor"/><circle cx="15" cy="18" r="1" fill="currentColor"/>',
+  play:'<path d="M7 4v16l13-8z"/>', stop:'<rect x="6" y="6" width="12" height="12" rx="1.5"/>', x:'<path d="M18 6 6 18M6 6l12 12"/>',
   skip:'<path d="m5 4 10 8-10 8V4zM19 5v14"/>', plus30:'<path d="M12 8v4l2 2"/><circle cx="12" cy="12" r="9"/>', save:'<path d="M20 6 9 17l-5-5"/>'
 };
 const ic = (k, cls='') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[k]}</svg>`;
@@ -352,36 +372,83 @@ const LOAD = {total:'Total', per_side:'Per side', per_dumbbell:'Per dumbbell', s
    the same source the Plans picker and the Exercise library use. Only the shape is adapted for this screen. */
 const D = window.DATA;
 const G = D.G, GROUPS = ['chest','back','shoulders','biceps','triceps','quads','hams','glutes','calves','core'];
-/* "last time" = the newest non-deload session with this exercise; best = top e1RM ever, for PR detection */
-function historyOf(id){
-  let last = null, best = 0;
+/* How each exercise is logged (DATA.kind): wr = weight × reps, bw+ = reps with optional added weight (0 = bodyweight),
+   reps = reps only, time = a timed hold. Only wr gets warm-ups, back-off, e1RM and return-from-break numbers (SRS appendix A). */
+/* "last time" = the newest non-deload session with this exercise. For PRs (UC17): best e1RM (wr), most reps at bodyweight
+   (reps, bw+ at 0 kg), and every added-weight set (bw+), to find the heaviest for a given rep count. Timed holds have no PR type yet. */
+function historyOf(id, k){
+  let last = null, best = 0, bestReps = 0; const added = [];
   for (const s of D.SESSIONS){
     const e = s.exs.find(x => x.id === id); if (!e) continue;
     if (!last && !s.deload) last = {date:shortDate(s.start), sets:e.sets.map(x => x.slice())};
-    e.sets.forEach(([w, r]) => { best = Math.max(best, e1rm(w, r)); });
+    e.sets.forEach(([w, r]) => {
+      if (k === 'wr') best = Math.max(best, e1rm(w, r));
+      else if (k === 'reps' || (k === 'bw+' && !w)) bestReps = Math.max(bestReps, r);
+      else if (k === 'bw+') added.push([w, r]);
+    });
   }
-  return {last, best};
+  return {last, best, bestReps, added};
 }
-/* this prototype logs weight × reps (added weight counts); timed and reps-only exercises are listed but not loggable here */
-const loggable = c => c.metric === 'weight_reps' || c.load === 'added_weight';
-const CATALOG = D.CATALOG.map(c => ({key:c.id, name:c.name, vi:c.vi, alias:c.alias, equip:c.equip, muscle:c.muscle, metric:c.metric,
-  load:c.load, step:c.step ?? 1, bar:c.bar ?? 0, ...historyOf(c.id)}));
+const CATALOG = D.CATALOG.map(c => { const k = D.kind(c); return {key:c.id, name:c.name, vi:c.vi, alias:c.alias, equip:c.equip, muscle:c.muscle, metric:c.metric, kind:k,
+  load:c.load, step:c.step ?? 1, bar:c.bar ?? 0, ...historyOf(c.id, k)}; });
+/* durations: m:ss on screen; typed as "1:30", or digits where 1–2 digits are seconds and 3–4 are m ss ("130" = 1:30) */
+const dur = sec => sec == null ? '' : mmss(sec * 1000);
+function parseDur(v){
+  const t = String(v ?? '').trim(); if (!t) return null;
+  if (t.includes(':')){ const [m, x] = t.split(':').map(y => parseInt(y || '0', 10)); return Number.isFinite(m) && Number.isFinite(x) ? m * 60 + x : null; }
+  const d = t.replace(/\D/g, ''); if (!d) return null;
+  return d.length <= 2 ? +d : +d.slice(0, -2) * 60 + +d.slice(-2);
+}
 const cat = k => CATALOG.find(c => c.key === k);
 let uid = 0;
 function makeEx(key, plan = {}){
-  const c = cat(key);
+  const c = cat(key), k = c.kind;
   const repMin = plan.repMin ?? 8, repMax = plan.repMax ?? 12, n = plan.sets ?? 3;
+  const durMin = plan.durMin ?? 30, durMax = plan.durMax ?? 60;
   const list = [];
-  if (plan.warmup && c.last){
+  if (plan.warmup && c.last && k === 'wr'){ // R5: warm-ups are for weight × reps only
     const top = c.last.sets[0][0];
     [[.5,8],[.7,5],[.85,2]].forEach(([p, r]) => list.push({kind:'warmup', w:Math.max(c.bar, ladder(top*p, c.step)), r, done:false}));
   }
   for (let i = 0; i < n; i++){
     const prev = c.last?.sets[i] || c.last?.sets.at(-1);
-    list.push({kind:'working', w: prev ? prev[0] : null, r: prev ? prev[1] : null, done:false});
+    list.push({kind:'working', done:false,
+      w: k === 'wr' ? (prev ? prev[0] : null) : k === 'bw+' ? (prev ? prev[0] : 0) : null,
+      r: k === 'time' ? null : prev ? prev[1] : null,
+      t: k === 'time' ? (prev ? prev[2] : null) : null});
   }
-  return {id:++uid, key, name:c.name, equip:c.equip, load:c.load, step:c.step, bar:c.bar, repMin, repMax, rest:plan.rest ?? 120,
-    autoRest:true, last:c.last, best:c.best, group:plan.group ?? null, sets:list, sug:null, planned:!plan.adhoc};
+  const e = {id:++uid, key, name:c.name, equip:c.equip, kind:k, load:c.load, step:c.step, bar:c.bar, repMin, repMax, durMin, durMax, rest:plan.rest ?? 120,
+    autoRest:true, last:c.last, best:c.best, bestReps:c.bestReps, added:c.added.map(x => x.slice()), group:plan.group ?? null, sets:list, sug:null, planned:!plan.adhoc};
+  if (!plan.adhoc) e.sug = r1(e); // an ad hoc exercise has no rep range of its own, so no R1
+  return e;
+}
+/* R1: every working set reached the top last time → a direction only, never a number. Wording follows how it's logged. */
+const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six'];
+function r1(e){
+  const ls = e.last?.sets; if (!ls?.length) return null;
+  if (e.kind === 'time') return ls.every(x => x[2] >= e.durMax) ? {kind:'increase', text:`Every set reached ${dur(e.durMax)} last time. Time to go a little longer.`} : null;
+  if (!ls.every(x => x[1] >= e.repMax)) return null;
+  const how = e.kind === 'wr' ? 'Time to add weight or reps, your call.' : e.kind === 'bw+' ? 'Add reps or strap on some weight, your call.' : 'Add reps or hold a weight, your call.';
+  return {kind:'increase', text:`All ${WORDS[ls.length] || ls.length} sets hit ${e.repMax} reps last time. ${how}`};
+}
+/* text for a set and for last time's sets */
+const wText = (e, w) => e.kind === 'bw+' ? (w ? '+' + fmt(w) : 'BW') : fmt(w);
+function setTxt(e, s){
+  if (e.kind === 'time') return s.t == null ? '–:––' : dur(s.t);
+  if (e.kind === 'reps') return `${s.r ?? '–'} reps`;
+  return `${s.w == null && e.kind === 'wr' ? '–' : wText(e, s.w)} × ${s.r ?? '–'}`;
+}
+function lastTxt(e){
+  const ls = e.last.sets;
+  if (e.kind === 'time') return ls.map(x => dur(x[2])).join(' · ');
+  if (e.kind === 'reps') return ls.map(x => x[1]).join(' · ');
+  return `${wText(e, ls[0][0])}×${ls.map(x => x[1]).join(' · ')}`;
+}
+function spoken(e, s){
+  if (e.kind === 'time') return `${Math.floor(s.t / 60) ? Math.floor(s.t / 60) + ' minutes ' : ''}${s.t % 60} seconds`;
+  if (e.kind === 'reps') return `${s.r} reps`;
+  if (e.kind === 'bw+') return `${s.w ? `plus ${fmt(s.w)} kilograms` : 'bodyweight'}, ${s.r} reps`;
+  return `${fmt(s.w)} kilograms, ${s.r} reps`;
 }
 
 const S = {};
@@ -389,7 +456,18 @@ function hideToast(){ clearTimeout(S.toastT); $('#toast')?.classList.remove('sho
 function seed(mode = 'mid'){
   uid = 0; hideToast();
   Object.assign(S, {name:'Push A', started:Date.now() - (31*60+12)*1000, cur:0, edit:null, rest:null, online:S.online ?? true,
-    pending:0, syncing:false, finished:false, freestyle:false, prs:[], swapAnim:false});
+    pending:0, syncing:false, finished:false, freestyle:false, prs:[], swapAnim:false, timing:null, rpeFor:null, rpeOn:S.rpeOn ?? D.user.rpe});
+  if (mode === 'bw'){
+    /* bodyweight and timed: pull-ups with added weight, dips at bodyweight, hanging leg raise (reps only), plank (timed) */
+    S.name = 'Pull A + core';
+    S.exs = [
+      makeEx('pullup', {sets:4, repMin:6, repMax:10, rest:120}),
+      makeEx('dips', {sets:3, repMin:8, repMax:12, rest:90}),
+      makeEx('hlr', {sets:3, repMin:10, repMax:15, rest:60}),
+      makeEx('plank', {sets:3, durMin:30, durMax:60, rest:60}),
+    ];
+    return;
+  }
   if (mode === 'free'){ Object.assign(S, {name:'Freestyle', started:Date.now(), exs:[], freestyle:true}); return; }
   S.exs = [
     makeEx('bench', {sets:4, repMin:6, repMax:8, rest:150, warmup:true}),
@@ -398,8 +476,7 @@ function seed(mode = 'mid'){
     makeEx('fly', {sets:3, repMin:10, repMax:15, rest:75, group:'A'}),
     makeEx('push', {sets:3, repMin:10, repMax:15, rest:75, group:'A'}),
   ];
-  // R1 for overhead press: every working set hit the top of the range last time → a direction, not a number
-  S.exs[1].sug = {kind:'increase', text:'All three sets hit 10 reps last time. Time to add weight or reps, your call.'};
+  // R1 for overhead press comes from makeEx: every working set hit the top of the range last time → a direction, not a number
   if (mode === 'mid'){
     const b = S.exs[0];
     b.sets.forEach((s, i) => { if (i < 5) s.done = true; });
@@ -450,8 +527,12 @@ function renderChips(){
 }
 function bigSize(v){ const l = String(v || '–').length; return l <= 2 ? 132 : l === 3 ? 104 : l === 4 ? 80 : 66; }
 /* both bib numbers always share one size, set by the longer one */
-function pairSize(s){ return Math.min(bigSize(fmt(s.w)), bigSize(s.r ?? '')); }
-function resizeFace(){ const s = curSet(); if (!s) return; const f = pairSize(s) + 'px'; ['#inW', '#inR'].forEach(q => { const el = $(q); if (el) el.style.fontSize = f; }); }
+function pairSize(s, e = ex()){
+  if (e.kind === 'time') return bigSize(s.t == null ? '' : dur(s.t));
+  if (e.kind === 'reps') return bigSize(s.r ?? '');
+  return Math.min(bigSize(wText(e, s.w)), bigSize(s.r ?? ''));
+}
+function resizeFace(){ const s = curSet(); if (!s || S.timing) return; const f = pairSize(s) + 'px'; ['#inW', '#inR', '#inT'].forEach(q => { const el = $(q); if (el) el.style.fontSize = f; }); }
 
 function renderMain(){
   const m = $('#main');
@@ -474,36 +555,48 @@ function renderMain(){
   else if (set.kind === 'warmup') bandCls = 'warm';
   const resting = S.rest && S.edit == null && !S.prFlash;
   if (resting){ bandCls = 'rest'; right = `${setTag ? `<b class="setno num tag" aria-label="${setTag}">${setTag.replace(/^SET /, '')}</b>` : ''}<b class="setno num"><small>REST</small><span data-rt>${mmss(S.rest.end - Date.now())}</span></b>`; }
+  const holding = S.timing && S.edit == null && set;
+  if (holding){ bandCls = 'hold' + (S.timing.hit ? ' hit' : ''); name = `${e.name} · timing`; right = `<b class="setno num"><small>TARGET</small>${dur(e.durMin)}–${dur(e.durMax)}</b>`; }
   if (S.prFlash){ bandCls = 'pr'; name = `New PR · ${S.prFlash.name}`; right = `<b class="setno num">${S.prFlash.v}</b>`; }
   const more = hidden => `<button class="icon-btn more" data-act="exmenu" ${hidden ? 'tabindex="-1" aria-hidden="true"' : `aria-label="Options for ${e.name}"`}>${ic('more')}</button>`;
   const layer = (cls, hidden) => `<div class="layer ${cls}"${hidden ? ' aria-hidden="true"' : ''}><span class="name">${name}</span>${right}${more(hidden)}</div>`;
-  const pLeft = resting ? Math.max(0, (S.rest.end - Date.now()) / S.rest.total) : 0;
+  const pLeft = holding ? Math.min(1, (Date.now() - S.timing.start) / 1000 / e.durMax) : resting ? Math.max(0, (S.rest.end - Date.now()) / S.rest.total) : 0;
   const bandHTML = `<div class="band ${bandCls}" id="band" style="--p:${pLeft}">${layer('base')}${layer('over', true)}</div>`;
 
   const fs = set ? pairSize(set) : 0;
-  const face = set ? `<div class="face">
-      <div class="cell"><input class="big" id="inW" inputmode="decimal" aria-label="Weight (${LOAD[e.load].toLowerCase()})" value="${fmt(set.w)}" placeholder="–" style="font-size:${fs}px">
-        <div class="adj"><button data-act="w-" aria-label="Decrease by ${fmt(e.step)} kg">${ic('minus')}</button><span class="label">kg</span><button data-act="w+" aria-label="Increase by ${fmt(e.step)} kg">${ic('plus')}</button></div></div>
-      <div class="x num" aria-hidden="true">×</div>
-      <div class="cell"><input class="big" id="inR" inputmode="numeric" aria-label="Reps" value="${set.r ?? ''}" placeholder="–" style="font-size:${fs}px">
-        <div class="adj"><button data-act="r-" aria-label="One rep fewer">${ic('minus')}</button><span class="label">reps</span><button data-act="r+" aria-label="One rep more">${ic('plus')}</button></div></div>
+  /* the face changes with how the exercise is logged; the bib, band and log button stay the same */
+  const cellW = () => `<div class="cell"><input class="big" id="inW" inputmode="decimal" aria-label="${e.kind === 'bw+' ? 'Added weight in kilograms. BW means bodyweight only' : `Weight (${LOAD[e.load].toLowerCase()})`}" value="${set.w == null ? '' : wText(e, set.w)}" placeholder="–" style="font-size:${fs}px">
+        <div class="adj"><button data-act="w-" aria-label="${e.kind === 'bw+' ? 'Less added weight' : `Decrease by ${fmt(e.step)} kg`}">${ic('minus')}</button><span class="label">${e.kind === 'bw+' ? '+kg' : 'kg'}</span><button data-act="w+" aria-label="${e.kind === 'bw+' ? `Add ${fmt(e.step)} kg` : `Increase by ${fmt(e.step)} kg`}">${ic('plus')}</button></div></div>`;
+  const cellR = () => `<div class="cell"><input class="big" id="inR" inputmode="numeric" aria-label="Reps" value="${set.r ?? ''}" placeholder="–" style="font-size:${fs}px">
+        <div class="adj"><button data-act="r-" aria-label="One rep fewer">${ic('minus')}</button><span class="label">reps</span><button data-act="r+" aria-label="One rep more">${ic('plus')}</button></div></div>`;
+  const tNow = holding ? Math.floor((Date.now() - S.timing.start) / 1000) : set?.t;
+  const cellT = () => `<div class="cell"><input class="big" id="inT" inputmode="numeric" aria-label="Time, minutes and seconds" value="${tNow == null ? '' : dur(tNow)}" placeholder="–:––" style="font-size:${bigSize(tNow == null ? '' : dur(tNow))}px" ${holding ? 'readonly' : ''}>
+        <div class="adj"><button data-act="t-" aria-label="5 seconds less" ${holding ? 'disabled' : ''}>${ic('minus')}</button><span class="label">${holding ? 'timing' : 'time'}</span><button data-act="t+" aria-label="5 seconds more" ${holding ? 'disabled' : ''}>${ic('plus')}</button></div></div>`;
+  const note = e.kind === 'time' ? `${e.equip} · target ${dur(e.durMin)}–${dur(e.durMax)} · time it or type it`
+    : e.kind === 'reps' ? `${e.equip} · reps only · ${e.repMin}–${e.repMax} reps`
+    : e.kind === 'bw+' ? `${e.equip} · BW = bodyweight only · ${e.repMin}–${e.repMax} reps`
+    : `${e.equip} · ${e.load === 'total' && e.bar ? `incl. ${e.bar} kg bar` : LOAD[e.load].toLowerCase()} · step ${fmt(e.step)} kg · ${e.repMin}–${e.repMax} reps`;
+  const face = set ? `<div class="face ${e.kind === 'time' || e.kind === 'reps' ? 'one' : ''}">
+      ${e.kind === 'time' ? cellT() : e.kind === 'reps' ? cellR() : `${cellW()}<div class="x num" aria-hidden="true">×</div>${cellR()}`}
     </div>
-    <p class="unit-note">${e.equip} · ${e.load === 'total' && e.bar ? `incl. ${e.bar} kg bar` : LOAD[e.load].toLowerCase()} · step ${fmt(e.step)} kg · ${e.repMin}–${e.repMax} reps</p>`
+    <p class="unit-note">${note}</p>`
     : `<div class="freebib"><span class="num">${wList.length}/${wList.length}</span><p>Every set of ${e.name} is done.</p><button class="btn line" data-act="addset">${ic('plus')}Add a set</button></div>`;
 
   let stub;
-  if (e.sug && !e.sug.seen && S.edit == null){
+  const rf = S.rpeFor;
+  if (S.edit != null && S.rpeOn && set?.kind === 'working') stub = rpeStub(e, set, true);
+  else if (e.sug && !e.sug.seen && S.edit == null && !holding){
     const acts = e.sug.kind === 'back_off'
       ? `<button class="btn ink" data-act="sug-ok">OK, ${fmt(e.sug.to)} kg</button><button class="btn line" data-act="sug-keep">Keep ${fmt(e.sug.from)} kg</button>`
       : `<button class="btn line" data-act="sug-ok">Got it</button>`;
     stub = `<div class="stub tip" role="note"><p class="hint">${e.sug.text}</p><div class="acts">${acts}</div></div>`;
+  } else if (S.rpeOn && rf && rf.s.rpe == null && S.edit == null && !holding){
+    stub = rpeStub(rf.e, rf.s, false);
   } else if (set?.kind === 'warmup' && S.edit == null){
     const top = working(e)[0]?.w;
     stub = `<div class="stub tip" role="note"><p class="hint">Warm up for <b>${fmt(top)} kg</b>: 50% × 8, 70% × 5, 85% × 2.${e.bar ? ` Never below the ${e.bar} kg bar.` : ''}</p><div class="acts"><button class="btn line" data-act="skipwarm">Skip warm-up</button></div></div>`;
   } else if (e.last){
-    const ls = e.last.sets.map(s => s[1]).join(' · ');
-    const top = e.last.sets[0][0];
-    stub = `<div class="stub"><span class="label">Last time · ${e.last.date}</span><p class="hint">${hintFor(e)}</p><b class="last num">${fmt(top)}×${ls}</b></div>`;
+    stub = `<div class="stub"><span class="label">Last time · ${e.last.date}</span><p class="hint">${hintFor(e)}</p><b class="last num">${lastTxt(e)}</b></div>`;
   } else {
     stub = `<div class="stub"><span class="label">No history yet</span><p class="hint">New exercise. Log your first set by feel, and next time the app will remember.</p><span></span></div>`;
   }
@@ -515,9 +608,9 @@ function renderMain(){
     const lab = s.kind === 'warmup' ? `WU ${i + 1}` : `SET ${wList.indexOf(s) + 1}`;
     const isCur = i === idx;
     const pr = s.pr && !s.prSeen;
-    const st = pr ? `PR · e1RM ${fmt(Math.round(s.pr * 10) / 10)} kg` : s.done ? `<span class="ok">${ic('check')}</span>` : isCur ? 'now' : '';
+    const st = pr ? `PR · ${s.pr.short}` : s.done ? `<span class="ok">${ic('check')}</span>` : isCur ? 'now' : '';
     return `<button class="row ${isCur ? 'cur' : ''} ${s.kind === 'warmup' ? 'warm' : ''} ${pr ? 'prrow' : ''} ${s.justDone ? 'enter' : ''}" data-act="${pr ? 'pr-seen' : s.done ? 'edit' : 'pick'}" data-i="${i}">
-      <span class="k">${lab}</span><span class="v num ${s.done ? '' : 'plan'}">${s.w == null ? '–' : fmt(s.w)} × ${s.r ?? '–'}</span><span class="st">${st}</span></button>`;
+      <span class="k">${lab}</span><span class="v num ${s.done ? '' : 'plan'}">${setTxt(e, s)}${s.rpe ? `<span class="rpe">@${s.rpe}</span>` : ''}</span><span class="st">${st}</span></button>`;
   };
   const wuRows = foldWarm ? warmRow : e.sets.map((s, i) => s.kind === 'warmup' ? rowHTML(s, i) : '').join('');
   const wkRows = e.sets.map((s, i) => s.kind === 'working' ? rowHTML(s, i) : '').join('');
@@ -526,7 +619,7 @@ function renderMain(){
       <div class="sec-hd"><h3>Warm-up</h3><span class="m">${foldWarm ? 'done' : `${wDone}/${warms.length} · not counted`}</span>
         <span class="r">${!foldWarm && S.edit == null ? `<button class="skip" data-act="skipwarm">Skip</button>` : ''}</span></div>${wuRows}</section>` : '';
   const wkSection = `<section class="sets" aria-label="Working sets for ${e.name}">
-      <div class="sec-hd"><h3>Working sets</h3><span class="m">${kDone}/${wList.length} · ${e.repMin}–${e.repMax} reps</span></div>
+      <div class="sec-hd"><h3>Working sets</h3><span class="m">${kDone}/${wList.length} · ${e.kind === 'time' ? `${dur(e.durMin)}–${dur(e.durMax)}` : `${e.repMin}–${e.repMax} reps`}</span></div>
       ${wkRows}<button class="row add" data-act="addset">${ic('plus')}Add set</button></section>`;
 
   m.innerHTML = `<section class="bib ${S.swapAnim ? 'swap' : ''}" aria-label="Current set">
@@ -538,20 +631,37 @@ function renderMain(){
 function labelOf(e, i){ const s = e.sets[i]; return s.kind === 'warmup' ? `warm-up ${i + 1}` : working(e).indexOf(s) + 1; }
 function hintFor(e){
   const ls = e.last.sets, top = ls[0][0];
+  if (e.kind === 'time') return ls.every(x => x[2] >= e.durMax) ? `Every set reached the ${dur(e.durMax)} top.` : `Build every set to ${dur(e.durMax)}.`;
   const allTop = ls.every(s => s[1] >= e.repMax);
   const miss = ls.filter(s => s[1] < e.repMax).length;
   if (allTop) return 'You topped out on every set last time.';
+  if (e.kind !== 'wr') return miss === 1 ? `One set came up short. Get all ${ls.length} to ${e.repMax}${e.kind === 'bw+' ? ', then add reps or weight' : ''}.`
+    : `Build to ${e.repMax} reps a set${e.kind === 'bw+' && top ? ` at +${fmt(top)} kg` : ''}.`;
   if (miss === 1) return `One set came up short. Hit ${e.repMax} on all ${ls.length} and it's time to go heavier.`;
   return `Stay at ${fmt(top)} kg and build to ${e.repMax} reps a set.`;
+}
+/* RPE (optional, off by default, set in onboarding or Me): 6–10, explained as reps left in the tank so nobody needs the theory */
+function rpeStub(x, s, editing){
+  const opts = x.kind === 'time' ? [[6, 'easy'], [7, 'steady'], [8, 'hard'], [9, 'very hard'], [10, 'max']] : [[6, '4+ left'], [7, '3 left'], [8, '2 left'], [9, '1 left'], [10, '0 left']];
+  const n = working(x).indexOf(s) + 1;
+  const q = editing ? `RPE for set ${n}` : `How hard was ${x === ex() ? '' : x.name + ', '}set ${n} · ${setTxt(x, s)}?`;
+  return `<div class="stub rpe-q" role="group" aria-labelledby="rpeQ"><span class="label" id="rpeQ">${q}</span>
+    <div class="rpe-row">${opts.map(([v, l]) => `<button data-act="rpe" data-v="${v}" aria-pressed="${s.rpe === v}" aria-label="RPE ${v}, ${x.kind === 'time' ? l : l.replace('left', 'reps left')}"><b>${v}</b><small>${l}</small></button>`).join('')}</div>
+    <p class="hint">${x.kind === 'time' ? 'Optional. How hard it felt.' : 'Optional. RPE = how many more reps you had in you.'}${editing && s.rpe ? ` <button class="clear" data-act="rpe" data-v="">Clear RPE</button>` : editing ? '' : ' Skip it by logging your next set.'}</p></div>`;
 }
 function renderGo(){
   const go = $('#go');
   go.className = 'go';
   /* rest controls sit in the thumb zone, right above the log button */
   const ce = S.exs?.[S.cur];
-  $('#restctl').innerHTML = S.rest && S.edit == null
+  let ctl = S.rest && S.edit == null
     ? `<button data-act="rest+">${ic('plus30')}Add 30 sec</button><button data-act="rest-skip">${ic('skip')}Skip rest</button>`
     : (ce && !ce.autoRest && S.edit == null && ce.sets.some(s => s.done) ? `<button data-act="rest-start">${ic('plus30')}Start ${mmss(ce.rest * 1000)} rest</button>` : '');
+  /* timed set: the log button starts and stops the clock; typing a time and logging it stays one tap away */
+  const ts = ce && ce.kind === 'time' && S.edit == null ? ce.sets[nextIdx(ce)] : null;
+  if (ts && S.timing) ctl = `<button class="plain" data-act="tcancel">${ic('x')}Cancel, don’t log</button>`;
+  else if (ts && !S.rest && ts.t) ctl = `<button class="plain" data-act="log">Log ${dur(ts.t)} without the timer</button>`;
+  $('#restctl').innerHTML = ctl;
   if (S.freestyle && !S.exs.length){ go.className = 'go ink'; go.innerHTML = `${ic('plus')}Add first exercise`; go.dataset.act = 'add'; return; }
   const e = ex();
   if (S.edit != null){ go.className = 'go ink'; go.innerHTML = `${ic('save')}Save set ${labelOf(e, S.edit)}`; go.dataset.act = 'save'; return; }
@@ -564,6 +674,12 @@ function renderGo(){
   }
   const s = e.sets[idx];
   go.dataset.act = 'log';
+  if (e.kind === 'time'){
+    const n = working(e).indexOf(s) + 1;
+    if (S.timing){ go.className = 'go ink'; go.dataset.act = 'tstop'; go.innerHTML = `${ic('stop')}Stop · log set <b class="num">${n}</b>`; }
+    else { go.dataset.act = 'tstart'; go.innerHTML = `${ic('play')}Start set <b class="num">${n}</b>`; }
+    return;
+  }
   go.innerHTML = s.kind === 'warmup' ? `Log warm-up <b class="num">${idx + 1}</b>` : `Log set <b class="num">${working(e).indexOf(s) + 1}</b>`;
 }
 
@@ -572,6 +688,7 @@ function curSet(){ const e = ex(); return e.sets[S.edit ?? nextIdx(e)]; }
 function bump(field, dir){
   const e = ex(), s = curSet(); if (!s) return;
   if (field === 'w'){ const base = s.w ?? (e.bar || 0); s.w = Math.max(e.load === 'total' ? e.bar : 0, ladder(base + dir * e.step, e.step)); }
+  else if (field === 't') s.t = Math.max(5, Math.round(((s.t ?? e.durMin) + dir * 5) / 5) * 5);
   else s.r = Math.max(0, (s.r ?? 0) + dir);
   if (S.edit == null) syncPlanned(e, s);
   render();
@@ -585,12 +702,11 @@ function logSet(){
   const e = ex(), idx = nextIdx(e), s = e.sets[idx];
   if (!s) return;
   /* the log button is never disabled: if a number is missing, focus the empty field and say why */
-  if (s.w == null || s.r == null){
-    const el = s.w == null ? $('#inW') : $('#inR');
-    const msg = s.w == null ? 'Enter the weight for this set first.' : 'Enter the reps for this set first.';
-    el?.focus(); announce(msg); toast(msg);
-    return;
-  }
+  if (e.kind === 'bw+' && s.w == null) s.w = 0; // empty added weight = bodyweight
+  const miss = e.kind === 'time' ? (s.t ? null : ['#inT', 'Enter the time, or tap Start and let the clock run.'])
+    : e.kind === 'wr' && s.w == null ? ['#inW', 'Enter the weight for this set first.']
+    : s.r == null ? ['#inR', 'Enter the reps for this set first.'] : null;
+  if (miss){ $(miss[0])?.focus(); announce(miss[1]); toast(miss[1]); return; }
   /* a pending back-off: logging what the bib shows is the answer */
   hideToast();
   if (e.sug && !e.sug.seen && e.sug.kind === 'back_off'){ e.sug.seen = true; e.sug.status = s.w === e.sug.to ? 'accepted' : 'dismissed'; }
@@ -599,11 +715,11 @@ function logSet(){
   let rest = s.kind === 'working';
   // provisional PR computed on the client (UC17)
   if (s.kind === 'working'){
-    const v = e1rm(s.w, s.r);
-    if (v > e.best + 0.05){ s.pr = v; e.best = v; S.prs.push({name:e.name, w:s.w, r:s.r, v}); flashPR({name:e.name, v:`${fmt(s.w)} × ${s.r}`}); }
-    // R3 back-off: at or under the bottom of the range
+    const pr = prOf(e, s);
+    if (pr){ s.pr = pr; S.prs.push({name:e.name, text:pr.val, type:pr.type}); flashPR({name:e.name, v:pr.val}); }
+    // R3 back-off: under the bottom of the range. Weight × reps only (SRS appendix A)
     const left = e.sets.filter(x => !x.done && x.kind === 'working');
-    if (s.r < e.repMin && left.length){
+    if (e.kind === 'wr' && s.r < e.repMin && left.length){
       const to = Math.max(e.bar || 0, ladder(s.w - e.step, e.step));
       left.forEach(x => { x.w = to; });
       e.sug = {kind:'back_off', from:s.w, to, text:`That set was ${s.r} reps, under your ${e.repMin} minimum. Drop to <b>${fmt(to)} kg</b> for the ${left.length === 1 ? 'last set' : `last ${left.length} sets`} and keep your form tight.`};
@@ -622,9 +738,50 @@ function logSet(){
   }
   if (rest && e.autoRest && S.exs.some(x => remaining(x) > 0)) startRest(e.rest);
   else if (s.kind === 'working') S.rest = null;
+  S.rpeFor = s.kind === 'working' ? {e, s} : null; // RPE is asked about this set while you rest
   S.swapAnim = true;
-  announce(`Logged ${fmt(s.w)} kilograms, ${s.r} reps.`);
+  announce(`Logged ${spoken(e, s)}.`);
   render();
+}
+/* provisional PRs on the device (UC17), by type. Server recomputes and is the source of truth. */
+function prOf(e, s){
+  const had = !!e.last;
+  if (e.kind === 'wr'){
+    const v = e1rm(s.w, s.r), was = e.best;
+    if (v > was + 0.05){ e.best = v; if (was) return {type:'e1RM', short:`e1RM ${fmt(Math.round(v * 10) / 10)} kg`, val:`${fmt(s.w)} × ${s.r}`}; }
+    return null;
+  }
+  if (e.kind === 'reps' || (e.kind === 'bw+' && !s.w)){
+    const was = e.bestReps;
+    if (s.r > was){ e.bestReps = s.r; if (had && was) return {type:'max_reps', short:'most reps', val:`${s.r} reps`}; }
+    return null;
+  }
+  if (e.kind === 'bw+'){
+    const top = Math.max(0, ...e.added.filter(x => x[1] >= s.r).map(x => x[0]));
+    e.added.push([s.w, s.r]);
+    if (had && s.w > top) return {type:'weight_at_reps', short:`heaviest for ${s.r}`, val:`+${fmt(s.w)} × ${s.r}`};
+    return null;
+  }
+  return null; // timed holds: the schema has no duration PR type yet
+}
+/* R3 also fires at exactly the bottom of the range when that set was all-out. ENGINE_DEFAULTS proposal: RPE 10 = 0 reps left. */
+function rpeBackoff(x, s){
+  if (x.kind !== 'wr' || s.r !== x.repMin || s.rpe < 10) return;
+  const left = x.sets.filter(y => !y.done && y.kind === 'working'); if (!left.length) return;
+  const to = Math.max(x.bar || 0, ladder(s.w - x.step, x.step));
+  left.forEach(y => { y.w = to; });
+  x.sug = {kind:'back_off', from:s.w, to, text:`${s.r} reps with nothing left, right at your ${x.repMin} minimum. Drop to <b>${fmt(to)} kg</b> for the ${left.length === 1 ? 'last set so it doesn’t' : `last ${left.length} sets so they don’t`} fall short.`};
+}
+/* timed sets: the clock runs from a start timestamp, so it stays right after the app was in the background */
+function beep(){
+  try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); [0, .28].forEach(t => { const o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; g.gain.setValueAtTime(.18, audio.currentTime + t); g.gain.exponentialRampToValueAtTime(.001, audio.currentTime + t + .22); o.connect(g).connect(audio.destination); o.start(audio.currentTime + t); o.stop(audio.currentTime + t + .24); }); } catch {}
+  if ('vibrate' in navigator) navigator.vibrate([180, 90, 180]);
+}
+function stopTiming(log){
+  const tm = S.timing; if (!tm) return;
+  S.timing = null;
+  if (log){ const s = tm.e.sets[tm.idx]; s.t = Math.max(1, Math.round((Date.now() - tm.start) / 1000)); logSet(); }
+  else render();
 }
 function startRest(sec){ S.rest = {end: Date.now() + sec * 1000, total: sec * 1000}; }
 function flashPR(p){ S.prFlash = p; announce(`New PR: ${p.name}, ${p.v}`); clearTimeout(S.prT); S.prT = setTimeout(() => { S.prFlash = null; render(); }, 2400); }
@@ -642,8 +799,7 @@ function restDone(){
   S.rest = null;
   const b = $('#band'); if (b){ b.classList.remove('rest'); b.classList.add('flash'); }
   $('#restctl').innerHTML = '';
-  try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); [0, .28].forEach(t => { const o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; g.gain.setValueAtTime(.18, audio.currentTime + t); g.gain.exponentialRampToValueAtTime(.001, audio.currentTime + t + .22); o.connect(g).connect(audio.destination); o.start(audio.currentTime + t); o.stop(audio.currentTime + t + .24); }); } catch {}
-  if ('vibrate' in navigator) navigator.vibrate([180, 90, 180]);
+  beep();
   announce('Rest is over.');
   setTimeout(render, 2800);
 }
@@ -651,6 +807,12 @@ function tick(){
   const el = Math.floor((Date.now() - S.started) / 1000);
   const h = Math.floor(el / 3600), mm = Math.floor(el % 3600 / 60), ss = el % 60;
   $('#clock').textContent = `${h ? h + ':' : ''}${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+  if (S.timing){
+    const el = Math.floor((Date.now() - S.timing.start) / 1000), e = S.timing.e, inT = $('#inT');
+    if (inT){ inT.value = dur(el); inT.style.fontSize = bigSize(dur(el)) + 'px'; }
+    $('#band')?.style.setProperty('--p', Math.min(1, el / e.durMax));
+    if (!S.timing.hit && el >= e.durMax){ S.timing.hit = true; beep(); announce(`${dur(e.durMax)}. Top of your target.`); $('#band')?.classList.add('hit'); }
+  }
   if (S.rest){
     const left = S.rest.end - Date.now();
     if (left <= 0) restDone();
@@ -681,8 +843,8 @@ function exMenu(){
     <button data-act="pair">${ic('link')}<span>${e.group ? 'Remove from superset' : 'Superset with next exercise'}<small>${e.group ? 'Train it on its own, rest after every set.' : 'Alternate sets, rest only after each round.'}</small></span></button>
     <button data-act="session">${ic('list')}<span>Reorder exercises</span></button>
     </div>
-    <div class="field"><span class="label">Weight step</span><div class="seg">${[1,1.25,2,2.5,5].map(v => `<button data-act="step" data-v="${v}" aria-pressed="${e.step === v}">${fmt(v)} kg</button>`).join('')}</div></div>
-    <div class="field"><span class="label">How weight is logged</span><div class="seg">${Object.entries(LOAD).map(([k, v]) => `<button data-act="load" data-v="${k}" aria-pressed="${e.load === k}">${v}</button>`).join('')}</div></div>
+    ${e.kind === 'wr' || e.kind === 'bw+' ? `<div class="field"><span class="label">${e.kind === 'bw+' ? 'Added weight step' : 'Weight step'}</span><div class="seg">${[1,1.25,2,2.5,5].map(v => `<button data-act="step" data-v="${v}" aria-pressed="${e.step === v}">${fmt(v)} kg</button>`).join('')}</div></div>` : ''}
+    ${e.kind === 'wr' ? `<div class="field"><span class="label">How weight is logged</span><div class="seg">${Object.entries(LOAD).map(([k, v]) => `<button data-act="load" data-v="${k}" aria-pressed="${e.load === k}">${v}</button>`).join('')}</div></div>` : ''}
     <div class="field"><div class="switch"><span>Start rest timer after each set</span><button role="switch" data-act="auto" aria-checked="${e.autoRest}" aria-label="Auto-start rest timer"></button></div></div>
     <div class="field"><span class="label">Rest time</span><div class="stepper"><button data-act="restlen" data-v="-15" aria-label="15 seconds less">${ic('minus')}</button><b class="num">${mmss(e.rest * 1000)}</b><button data-act="restlen" data-v="15" aria-label="15 seconds more">${ic('plus')}</button></div></div>
     <div class="menu"><button class="danger" data-act="remove">${ic('trash')}<span>Remove from this session<small>Sets you've already logged are kept.</small></span></button></div>`);
@@ -710,7 +872,7 @@ const muscleChips = () => `<div class="mchips" role="group" aria-label="Filter b
 function filterPicker(q){
   const n = norm(q.trim()), esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   const list = CATALOG.filter(c => (!S.pm || c.muscle.includes(S.pm)) && (!n || [c.name, c.vi, ...c.alias].some(t => norm(t).includes(n))));
-  $('#res').innerHTML = list.length ? list.map(c => `<button data-act="choose" data-k="${c.key}"${loggable(c) ? '' : ' aria-disabled="true"'}><span class="nm">${esc(c.name)}<small>${esc(c.vi)} · ${c.equip}${c.muscle.length ? ' · ' + c.muscle.map(m => G[m]).join(', ') : ''}</small></span><span class="tag">${c.owner ? 'YOURS' : !loggable(c) ? 'NOT IN DEMO' : c.last ? 'LAST ' + c.last.date.toUpperCase() : 'NEW'}</span></button>`).join('')
+  $('#res').innerHTML = list.length ? list.map(c => `<button data-act="choose" data-k="${c.key}"><span class="nm">${esc(c.name)}<small>${esc(c.vi)} · ${c.equip}${c.muscle.length ? ' · ' + c.muscle.map(m => G[m]).join(', ') : ''}</small></span><span class="tag">${c.owner ? 'YOURS' : c.last ? 'LAST ' + c.last.date.toUpperCase() : 'NEW'}</span></button>`).join('')
     : `<div class="empty"><p>No exercise matches${q.trim() ? ` “${esc(q)}”` : ''}${S.pm ? ` in ${G[S.pm]}` : ''}.</p><button class="btn line" data-act="custom" data-q="${esc(q.trim())}">${ic('plus')}Create “${esc(q.trim() || 'new exercise')}”</button></div>`;
 }
 function choose(key){
@@ -718,7 +880,7 @@ function choose(key){
     /* UC09: the new exercise is ad hoc and "last time" comes from its own history; logged sets of the old one stay */
     const old = ex();
     const left = working(old).filter(s => !s.done).length || 3;
-    const e = makeEx(key, {sets:left, repMin:old.repMin, repMax:old.repMax, rest:old.rest, group:old.group, adhoc:true});
+    const e = makeEx(key, {sets:left, repMin:old.repMin, repMax:old.repMax, durMin:old.durMin, durMax:old.durMax, rest:old.rest, group:old.group, adhoc:true});
     if (old.sets.some(s => s.done)){ old.sets = old.sets.filter(s => s.done); old.group = null; S.exs.splice(S.cur + 1, 0, e); S.cur++; }
     else S.exs[S.cur] = e;
     toast(`Swapped to ${e.name}. Last-time numbers now come from this exercise.`);
@@ -743,11 +905,11 @@ function showSummary(){
   $('#summary').innerHTML = `<div class="scroll">
     <section class="bib sum-bib"><div class="band ink"><div class="layer"><span class="name">${S.name} · done</span><b class="setno num">${shortDate(new Date())}</b></div></div>
       <div class="face"><div class="stat"><span class="num">${done.length}</span><span class="label">working sets</span></div><div class="stat"><span class="num">${mins}</span><span class="label">minutes</span></div></div></section>
-    ${S.prs.length ? `<div class="pr-list" aria-label="New PRs">${S.prs.map(p => `<div><b>PR · ${p.name}</b><span class="num">${fmt(p.w)} × ${p.r}</span></div>`).join('')}</div>` : ''}
+    ${S.prs.length ? `<div class="pr-list" aria-label="New PRs">${S.prs.map(p => `<div><b>PR · ${p.name}</b><span class="num">${p.text}</span></div>`).join('')}</div>` : ''}
     <div class="syncbox ${syncCls}" role="status"><span class="ic">${ic(!S.online ? 'off' : 'cloud')}</span><p>${syncTxt}</p></div>
     <div class="ex-done" aria-label="Exercises in this session">${S.exs.map(e => {
       const d = e.sets.filter(s => s.done && s.kind === 'working'), left = e.sets.filter(s => !s.done && s.kind === 'working').length;
-      return `<div class="row"><span style="flex:1;font-weight:600">${e.name}</span>${d.length ? `<span class="v num">${d.map(s => `${fmt(s.w)}×${s.r}`).join(' · ')}</span>` : ''}${left ? `<span class="skip" style="width:100%">${d.length ? `Skipped ${sets(left)}` : 'Skipped'}</span>` : ''}</div>`;
+      return `<div class="row"><span style="flex:1;font-weight:600">${e.name}</span>${d.length ? `<span class="v num">${d.map(s => setTxt(e, s).replace(' × ', '×')).join(' · ')}</span>` : ''}${left ? `<span class="skip" style="width:100%">${d.length ? `Skipped ${sets(left)}` : 'Skipped'}</span>` : ''}</div>`;
     }).join('')}</div>
     </div><div class="foot"><button class="go ink" data-act="restart">Back to home</button></div>`;
   $('#summary').classList.add('open');
@@ -761,9 +923,12 @@ function demoHTML(){
     <button data-act="d-backoff">Back-off: log the current set at 4 reps</button>
     <button data-act="d-pr">PR: log the current set at 85 × 8</button>
     <button data-act="d-rest">Skip to the end of rest</button>
+    <button data-act="d-rpe" aria-pressed="${S.rpeOn}">Log RPE: ${S.rpeOn ? 'on' : 'off'}</button>
+    ${S.rpeOn ? '<button data-act="d-rpe10">RPE back-off: log at the bottom of the range, then rate it 10</button>' : ''}
     <span class="label grp">Start over</span>
     <button data-act="d-reset">Mid-session Push A</button>
     <button data-act="d-fresh">Start of Push A (with warm-up)</button>
+    <button data-act="d-bw">Pull-ups, dips, leg raise, plank (bodyweight and timed)</button>
     <button data-act="d-free">Freestyle session (empty)</button>`;
 }
 function renderDemo(){ document.querySelector('[data-demo]').innerHTML = demoHTML(); }
@@ -775,29 +940,40 @@ document.addEventListener('click', ev => {
   const e = S.exs?.[S.cur];
   switch (a){
     case 'log': logSet(); break;
+    case 'tstart': S.rest = null; S.timing = {start:Date.now(), e, idx:nextIdx(e), hit:false}; announce('Timing. Tap stop when you’re done.'); render(); break;
+    case 'tstop': stopTiming(true); break;
+    case 'tcancel': stopTiming(false); break;
+    case 't+': bump('t', 1); break; case 't-': bump('t', -1); break;
+    case 'rpe': {
+      const t = S.edit != null ? {e, s:e.sets[S.edit]} : S.rpeFor; if (!t) break;
+      t.s.rpe = b.dataset.v ? +b.dataset.v : null;
+      if (S.edit == null){ S.pending++; queueSync(); rpeBackoff(t.e, t.s); announce(`RPE ${t.s.rpe} saved.`); }
+      render(); break;
+    }
     case 'w+': bump('w', 1); break; case 'w-': bump('w', -1); break;
     case 'r+': bump('r', 1); break; case 'r-': bump('r', -1); break;
-    case 'jump': if (i !== S.cur){ S.cur = i; S.edit = null; S.swapAnim = true; hideToast(); render(); } break;
+    case 'jump': if (i !== S.cur){ S.timing = null;
+      // walking to another exercise drops the RPE question; inside a superset it follows you to the next exercise
+      if (S.rpeFor && !(S.rpeFor.e.group && S.rpeFor.e.group === S.exs[i]?.group)) S.rpeFor = null;
+      S.cur = i; S.edit = null; S.swapAnim = true; hideToast(); render(); } break;
     case 'rest+': S.rest.end += 30000; S.rest.total += 30000; tick(); break;
     case 'rest-skip': S.rest = null; render(); break;
     case 'rest-start': startRest(e.rest); render(); break;
-    case 'edit': S.edit = i; render(); break;
+    case 'edit': S.timing = null; S.edit = i; render(); break;
     case 'pick': if (S.edit != null){ S.edit = null; render(); } break;
     case 'save': S.edit = null; S.pending++; queueSync(); toast('Set updated. It will sync again.'); render(); break;
     case 'pr-seen': e.sets[i].prSeen = true; toast('Opens this exercise’s PR history (not in this prototype).'); render(); break;
     case 'sug-ok': e.sug.seen = true; e.sug.status = 'accepted'; render(); break;
     case 'skipwarm': e.sets = e.sets.filter(x => x.kind !== 'warmup' || x.done); S.swapAnim = true; render(); break;
     case 'sug-keep': e.sets.filter(x => !x.done && x.kind === 'working').forEach(x => x.w = e.sug.from); e.sug.seen = true; e.sug.status = 'dismissed'; render(); break;
-    case 'addset': { const l = working(e).at(-1); e.sets.push({kind:'working', w:l?.w ?? null, r:l?.r ?? null, done:false}); render(); break; }
+    case 'addset': { const l = working(e).at(-1); e.sets.push({kind:'working', w:l?.w ?? (e.kind === 'bw+' ? 0 : null), r:l?.r ?? null, t:l?.t ?? null, done:false}); render(); break; }
     case 'exmenu': exMenu(); break;
     case 'session': sessionSheet(); break;
     case 'add': picker('add'); break;
     case 'replace': picker('replace'); break;
-    case 'choose':
-      if (!loggable(cat(b.dataset.k))){ toast('Timed and reps-only logging isn’t in this prototype yet.'); break; }
-      choose(b.dataset.k); break;
+    case 'choose': choose(b.dataset.k); break;
     case 'pmuscle': S.pm = b.dataset.v || null; $('#pchips').innerHTML = muscleChips(); $(`#pchips [data-v="${S.pm || ''}"]`).focus(); filterPicker($('#q').value); $('#sheetBody').scrollTop = 0; break;
-    case 'custom': CATALOG.unshift({key:'c' + Date.now(), name:b.dataset.q || 'Custom exercise', vi:'Your exercise', alias:[], equip:'Custom', muscle:S.pm ? [S.pm] : [], metric:'weight_reps', load:'total', step:2.5, bar:0, last:null, best:0, owner:true});
+    case 'custom': CATALOG.unshift({key:'c' + Date.now(), name:b.dataset.q || 'Custom exercise', vi:'Your exercise', alias:[], equip:'Custom', muscle:S.pm ? [S.pm] : [], metric:'weight_reps', kind:'wr', load:'total', step:2.5, bar:0, last:null, best:0, bestReps:0, added:[], owner:true});
       choose(CATALOG[0].key); break;
     case 'pair': { const nb = S.exs[S.cur + 1]; if (e.group){ const g = e.group; S.exs.forEach(x => { if (x.group === g) x.group = null; }); } else if (nb){ const g = 'G' + Date.now(); e.group = g; nb.group = g; } closeSheet(); render(); break; }
     case 'step': e.step = +b.dataset.v; exMenu(); render(); break;
@@ -812,20 +988,25 @@ document.addEventListener('click', ev => {
     case 'close': closeSheet(); break;
     case 'demo': openSheet('Prototype · sample data', `<p style="margin-bottom:12px">Everything here is mock data for design review, not real data.</p><div class="demo-list" data-demo>${demoHTML()}</div>`); break;
     case 'd-online': S.online = !S.online; if (S.online) queueSync(); renderDemo(); render(); break;
-    case 'd-backoff': { const s = curSet(); if (s && !S.freestyle){ if (s.kind === 'warmup'){ e.sets.forEach(x => { if (x.kind === 'warmup') x.done = true; }); } const t = curSet(); t.r = 4; closeSheet(); logSet(); } break; }
-    case 'd-pr': { const s = curSet(); if (s && !S.freestyle){ e.sets.forEach(x => { if (x.kind === 'warmup') x.done = true; }); const t = curSet(); t.w = 85; t.r = 8; closeSheet(); logSet(); } break; }
+    case 'd-backoff': case 'd-pr': case 'd-rpe10': if (e?.kind !== 'wr'){ closeSheet(); toast('Try this one on Push A: it’s for weight × reps.'); break; }
+      if (a === 'd-pr') { const s = curSet(); if (s && !S.freestyle){ e.sets.forEach(x => { if (x.kind === 'warmup') x.done = true; }); const t = curSet(); t.w = 85; t.r = 8; closeSheet(); logSet(); } break; }
+      if (a === 'd-rpe10') { e.sets.forEach(x => { if (x.kind === 'warmup') x.done = true; }); const t = curSet(); if (!t) break; t.r = e.repMin; closeSheet(); logSet(); if (S.rpeFor){ S.rpeFor.s.rpe = 10; rpeBackoff(S.rpeFor.e, S.rpeFor.s); render(); toast('Rated RPE 10 at the bottom of the range.'); } break; }
+      { const s = curSet(); if (s && !S.freestyle){ if (s.kind === 'warmup'){ e.sets.forEach(x => { if (x.kind === 'warmup') x.done = true; }); } const t = curSet(); t.r = 4; closeSheet(); logSet(); } break; }
     case 'd-rest': if (S.rest){ S.rest.end = Date.now() + 1200; } closeSheet(); break;
     case 'd-reset': $('#summary').classList.remove('open'); seed('mid'); closeSheet(); render(); renderDemo(); break;
     case 'd-fresh': $('#summary').classList.remove('open'); seed('fresh'); closeSheet(); render(); renderDemo(); break;
     case 'd-free': $('#summary').classList.remove('open'); seed('free'); closeSheet(); render(); renderDemo(); break;
+    case 'd-bw': $('#summary').classList.remove('open'); seed('bw'); closeSheet(); render(); renderDemo(); break;
+    case 'd-rpe': { S.rpeOn = !S.rpeOn; renderDemo(); const dl = $('#sheetBody .demo-list'); if (dl) dl.innerHTML = demoHTML(); render(); break; }
   }
 });
 document.addEventListener('input', ev => {
   if (ev.target.id === 'q') return filterPicker(ev.target.value);
-  if (ev.target.id === 'inW' || ev.target.id === 'inR'){
-    const s = curSet(); if (!s) return;
-    const v = parse(ev.target.value);
-    if (ev.target.id === 'inW'){ s.w = v; if (S.edit == null) syncPlanned(ex(), s); } else s.r = v == null ? null : Math.round(v);
+  if (ev.target.id === 'inW' || ev.target.id === 'inR' || ev.target.id === 'inT'){
+    const s = curSet(); if (!s || S.timing) return;
+    const e = ex(), v = parse(ev.target.value);
+    if (ev.target.id === 'inT') s.t = parseDur(ev.target.value);
+    else if (ev.target.id === 'inW'){ s.w = e.kind === 'bw+' ? (v ?? 0) : v; if (S.edit == null) syncPlanned(e, s); } else s.r = v == null ? null : Math.round(v);
     resizeFace();
     renderGo();
   }
@@ -835,7 +1016,9 @@ document.addEventListener('focusout', ev => {
   /* only reformat the value; re-rendering here would swallow the next tap */
   const t = ev.target; if (!t.classList?.contains('big')) return;
   const s = curSet(); if (!s) return;
-  t.value = t.id === 'inW' ? fmt(s.w) : (s.r ?? ''); resizeFace();
+  if (S.timing) return;
+  const e = ex();
+  t.value = t.id === 'inW' ? (s.w == null ? '' : wText(e, s.w)) : t.id === 'inT' ? dur(s.t) : (s.r ?? ''); resizeFace();
 });
 document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape' && $('#sheet').classList.contains('open')) closeSheet();

@@ -7,6 +7,31 @@ const fmt = (n, d = 2) => n == null || Number.isNaN(n) ? '' : Number(n).toLocale
 const parse = s => { const v = parseFloat(String(s).replace(/\s/g, '').replace(',', '.')); return Number.isFinite(v) ? v : null; };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+/* durations: shown as m:ss; typed as "1:30", or digits only where 1–2 digits are seconds and 3–4 digits are m ss ("130" = 1:30) */
+const dur = sec => sec == null ? '–' : mmss(sec * 1000);
+function parseDur(v){
+  const t = String(v ?? '').trim(); if (!t) return null;
+  if (t.includes(':')){ const [m, s] = t.split(':').map(x => parseInt(x || '0', 10)); return Number.isFinite(m) && Number.isFinite(s) ? m * 60 + s : null; }
+  const d = t.replace(/\D/g, ''); if (!d) return null;
+  return d.length <= 2 ? +d : +d.slice(0, -2) * 60 + +d.slice(-2);
+}
+/* one set as text, by how the exercise is logged (DATA.kind): 80 × 8 · +5 × 8 · BW × 12 · 12 reps · 0:45 */
+function setText(k, set, conv = x => x){
+  const [w, r, t] = set;
+  if (k === 'time') return dur(t);
+  if (k === 'reps') return `${r ?? '–'} reps`;
+  if (k === 'bw+') return `${w ? '+' + fmt(conv(w)) : 'BW'} × ${r ?? '–'}`;
+  return `${w == null ? '–' : fmt(conv(w))} × ${r ?? '–'}`;
+}
+/* a whole exercise's sets, compact: 80×8 · 8 · 7 (first load, then reps) */
+function setsText(k, sets, conv = x => x){
+  if (!sets?.length) return '';
+  if (k === 'time') return sets.map(s => dur(s[2])).join(' · ');
+  if (k === 'reps') return sets.map(s => s[1]).join(' · ');
+  const same = sets.every(s => s[0] === sets[0][0]);
+  const load = w => k === 'bw+' ? (w ? '+' + fmt(conv(w)) : 'BW') : fmt(conv(w));
+  return same ? `${load(sets[0][0])}×${sets.map(s => s[1]).join(' · ')}` : sets.map(s => `${load(s[0])}×${s[1]}`).join(' · ');
+}
 const plural = (n, w, p) => `${fmt(n)} ${n === 1 ? w : (p || w + 's')}`;
 const shortDate = d => d.toLocaleDateString(LOCALE, {month:'short', day:'numeric'});
 const longDate = d => d.toLocaleDateString(LOCALE, {weekday:'long', month:'short', day:'numeric'});
@@ -130,7 +155,7 @@ function menuSheet(){}
 const resumeBar = s => `<a class="resume" href="${ROOT}workout-log/index.html" aria-label="Workout in progress: ${esc(s.name)}, ${s.elapsed}. Resume">
   <span class="name">${esc(s.name)} · in progress<span>${s.done} sets logged</span></span><b class="num">${s.elapsed}</b><span class="btn">Resume</span></a>`;
 
-window.Kit = {LOCALE, $, $$, fmt, parse, esc, mmss, plural, shortDate, longDate, norm, e1rm, ladder, reduce, LB, I, ic,
+window.Kit = {LOCALE, $, $$, fmt, parse, esc, mmss, dur, parseDur, setText, setsText, plural, shortDate, longDate, norm, e1rm, ladder, reduce, LB, I, ic,
   syncPill, openSheet, closeSheet, sheetOpen, toast, hideToast, announce, demo, renderDemo, openDemo, pressed, shellMarkup, demoBtn,
   ROOT, DEST, href, navFoot, menuSheet, resumeBar};
 })();

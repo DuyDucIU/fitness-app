@@ -173,7 +173,7 @@ function defaultsView(){
         <div class="row"><span class="nm">How much the app explains<small>${GUIDE_TXT[d.guidance]}</small></span>
           <div class="seg" style="flex-wrap:nowrap">${Object.keys(GUIDE).map(k => `<button data-act="guide" data-v="${k}" aria-pressed="${d.guidance === k}" aria-label="${GUIDE[k]}">${GUIDE[k][0]}</button>`).join('')}</div></div>
         <div class="row switch"><span class="nm">Warm-up suggestions<small>50% × 8, 70% × 5, 85% × 2 before your first working set.</small></span><button role="switch" data-act="sw" data-k="warmup" aria-checked="${d.warmup}" aria-label="Warm-up suggestions"></button></div>
-        <div class="row switch"><span class="nm">Log RPE<small>How hard a set felt, 1 to 10. Optional on every set.</small></span><button role="switch" data-act="sw" data-k="rpe" aria-checked="${d.rpe}" aria-label="Log RPE"></button></div>
+        <div class="row switch"><span class="nm">Log RPE<small>How hard a set felt, 6 to 10, as reps left in the tank. Optional on every set.</small></span><button role="switch" data-act="sw" data-k="rpe" aria-checked="${d.rpe}" aria-label="Log RPE"></button></div>
         <div class="row"><span class="nm">Weekly goal<small>Your streak grows each week you hit it. Deload weeks don’t count against you.</small></span>
           <div class="stepper"><button data-act="wk" data-d="-1" aria-label="One fewer">${ic('minus')}</button><b class="num" style="min-width:36px">${d.weekly}</b><button data-act="wk" data-d="1" aria-label="One more">${ic('plus')}</button></div></div>
       </div>

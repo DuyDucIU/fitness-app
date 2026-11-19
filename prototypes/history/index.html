@@ -67,15 +67,18 @@ const ex = id => D.ex(id);
 const PRTYPE = {e1RM:'Estimated 1RM', weight_at_reps:'Heaviest at reps', max_reps:'Most reps', session_volume:'Most sets in a session'};
 const W = w => S.unit === 'kg' ? w : Math.round(w * Kit.LB * 2) / 2;
 
-/* PRs: provisional on the device, the server is the source of truth (it may quietly remove one). Sample adds non-e1RM types. */
+/* PRs: provisional on the device, the server is the source of truth (it may quietly remove one).
+   The type follows how the exercise is logged: e1RM for weight × reps, most reps at bodyweight, heaviest added weight for a rep count.
+   Timed holds have no PR type in the schema yet. The sample adds a few extra types for layout. */
 function prsFor(id){
-  const list = D.PRS.filter(p => p.ex === id).map(p => ({type:'e1RM', value:p.value, w:p.w, r:p.r, date:p.date, session:p.session}));
-  if (id === 'bench') list.unshift({type:'weight_at_reps', w:80, r:8, date:new Date(2026, 10, 12), session:S.sessions.find(s => s.dayId === 'pushA').id, value:80});
-  if (id === 'pullup') list.unshift({type:'max_reps', r:10, w:0, date:new Date(2026, 10, 14), value:10});
-  if (id === 'squat') list.unshift({type:'session_volume', value:5, date:new Date(2026, 10, 9)});
+  const list = D.PRS.filter(p => p.ex === id).map(p => ({...p}));
+  if (id === 'bench') list.unshift({ex:'bench', type:'weight_at_reps', w:80, r:8, date:new Date(2026, 10, 12), session:S.sessions.find(s => s.dayId === 'pushA').id, value:80});
+  if (id === 'squat') list.unshift({ex:'squat', type:'session_volume', value:5, date:new Date(2026, 10, 9)});
   return list;
 }
-const prLabel = p => p.type === 'e1RM' ? `${fmt(W(p.value), 1)} ${S.unit}` : p.type === 'weight_at_reps' ? `${fmt(W(p.w))} × ${p.r}` : p.type === 'max_reps' ? `${p.r} reps` : plural(p.value, 'set');
+const kindOf = id => D.kind(ex(id));
+const prLabel = p => p.type === 'e1RM' ? `${fmt(W(p.value), 1)} ${S.unit}` : p.type === 'weight_at_reps' ? Kit.setText(kindOf(p.ex), [p.w, p.r], W) : p.type === 'max_reps' ? `${p.r} reps` : plural(p.value, 'set');
+const prShort = p => p.type === 'e1RM' ? `PR · e1RM ${fmt(W(p.value), 1)}` : `PR · ${PRTYPE[p.type].toLowerCase()}`;
 function prCountIn(s){ return D.PRS.filter(p => p.session === s.id).length; }
 
 const route = () => location.hash.replace(/^#\/?/, '').split('/');
@@ -149,12 +152,16 @@ function sessionView(id){
       ${s.deload ? '<p class="note" style="padding:0 16px 12px">Deload week: lighter on purpose. These sets don’t count toward PRs.</p>' : ''}
     </section>
     ${s.exs.map((e, ei) => {
-      const c = ex(e.id);
+      const c = ex(e.id), k = D.kind(c);
       return `<section class="block exblock"><div class="hd"><a href="#exercise/${e.id}">${esc(c.name)}<small>${c.equip} · ${D.LOAD[c.load] || D.METRIC[c.metric]}</small></a>${editing ? '' : ic('right', 'chev')}</div>
         ${(used => e.sets.map(([w, r], si) => {
           const pr = prs.find(p => p.ex === e.id && p.w === w && p.r === r && !used.has(p) && used.add(p));
-          if (editing) return `<div class="row"><span class="k">SET ${si + 1}</span><span class="edit-in"><input class="in numin" inputmode="decimal" value="${fmt(w)}" data-e="${ei}" data-s="${si}" data-k="0" aria-label="${esc(c.name)} set ${si + 1} weight"><span class="x">×</span><input class="in numin" inputmode="numeric" value="${r}" data-e="${ei}" data-s="${si}" data-k="1" aria-label="${esc(c.name)} set ${si + 1} reps"></span><button class="icon-btn" data-act="set-del" data-e="${ei}" data-s="${si}" aria-label="Delete set ${si + 1}" style="margin-left:auto">${ic('trash')}</button></div>`;
-          return `<div class="row ${pr ? 'inv' : ''}"><span class="k">SET ${si + 1}</span><span class="v num">${fmt(W(w))} × ${r}</span><span class="end">${pr ? `PR · e1RM ${fmt(W(pr.value), 1)}` : ''}</span></div>`;
+          /* edit fields follow how the exercise is logged: weight × reps, added weight × reps, reps only, or a time */
+          const fW = `<input class="in numin" inputmode="decimal" value="${k === 'bw+' ? (w ? fmt(w) : '') : fmt(w)}" ${k === 'bw+' ? 'placeholder="BW"' : ''} data-e="${ei}" data-s="${si}" data-k="0" aria-label="${esc(c.name)} set ${si + 1} ${k === 'bw+' ? 'added weight, empty for bodyweight' : 'weight'}">`;
+          const fR = `<input class="in numin" inputmode="numeric" value="${r}" data-e="${ei}" data-s="${si}" data-k="1" aria-label="${esc(c.name)} set ${si + 1} reps">`;
+          const fT = `<input class="in numin" inputmode="numeric" value="${Kit.dur(e.sets[si][2])}" data-e="${ei}" data-s="${si}" data-k="2" aria-label="${esc(c.name)} set ${si + 1} time">`;
+          if (editing) return `<div class="row"><span class="k">SET ${si + 1}</span><span class="edit-in">${k === 'time' ? fT : k === 'reps' ? `${fR}<span class="label">reps</span>` : `${fW}<span class="x">×</span>${fR}`}</span><button class="icon-btn" data-act="set-del" data-e="${ei}" data-s="${si}" aria-label="Delete set ${si + 1}" style="margin-left:auto">${ic('trash')}</button></div>`;
+          return `<div class="row ${pr ? 'inv' : ''}"><span class="k">SET ${si + 1}</span><span class="v num">${Kit.setText(k, e.sets[si], W)}</span><span class="end">${pr ? prShort(pr) : ''}</span></div>`;
         }).join(''))(new Set())}</section>`;
     }).join('')}
     ${editing ? '<p class="note">Saving recalculates PRs and your streak once it syncs.</p>' : ''}
@@ -181,7 +188,7 @@ function exerciseView(id){
     <h2 class="hdg">Records</h2>
     <div class="block">${prs.length ? Object.keys(PRTYPE).map(t => { const p = prs.find(x => x.type === t); return p ? `<a class="row" href="#session/${p.session || hist.at(-1).id}"><span class="nm">${PRTYPE[t]}<small>${shortDate(p.date)}</small></span><b class="v num">${prLabel(p)}</b></a>` : ''; }).join('') : '<div class="row"><span class="nm">No records yet<small>Your first logged set sets the bar.</small></span></div>'}</div>
     <h2 class="hdg">Every session</h2>
-    <div class="block">${[...hist].reverse().slice(0, 12).map(s => { const e = s.exs.find(x => x.id === id); return `<a class="row" href="#session/${s.id}"><span class="nm">${shortDate(s.start)}<small>${esc(s.name)}${s.deload ? ' · deload' : ''}</small></span><b class="v num" style="font-size:var(--t-read)">${fmt(W(e.sets[0][0]))} × ${e.sets.map(x => x[1]).join(' · ')}</b></a>`; }).join('')}</div>
+    <div class="block">${[...hist].reverse().slice(0, 12).map(s => { const e = s.exs.find(x => x.id === id); return `<a class="row" href="#session/${s.id}"><span class="nm">${shortDate(s.start)}<small>${esc(s.name)}${s.deload ? ' · deload' : ''}</small></span><b class="v num" style="font-size:var(--t-read)">${Kit.setsText(D.kind(c), e.sets, W).replace('×', ' × ')}</b></a>`; }).join('')}</div>
     <div class="acts"><a class="btn line" href="../plans/index.html#exercise/${id}">${ic('gear')}Exercise settings</a></div>
   </main>`;
 }
@@ -190,8 +197,11 @@ function exerciseView(id){
 function queue(){ S.pending++; syncPill($('#sync'), S); if (S.online){ clearTimeout(S.qT); S.qT = setTimeout(() => { S.pending = 0; syncPill($('#sync'), S); }, 1300); } }
 document.addEventListener('input', ev => {
   const t = ev.target; if (t.dataset.e == null) return;
-  const s = S.sessions.find(x => x.id === S.edit); const v = parse(t.value);
-  if (v != null) s.exs[+t.dataset.e].sets[+t.dataset.s][+t.dataset.k] = +t.dataset.k ? Math.round(v) : v;
+  const s = S.sessions.find(x => x.id === S.edit), k = +t.dataset.k, se = s.exs[+t.dataset.e], set = se.sets[+t.dataset.s];
+  if (k === 2){ const v = Kit.parseDur(t.value); if (v) set[2] = v; return; }
+  const v = parse(t.value);
+  if (k === 0 && D.kind(ex(se.id)) === 'bw+') set[0] = v ?? 0; // empty added weight = bodyweight
+  else if (v != null) set[k] = k ? Math.round(v) : v;
 });
 document.addEventListener('focusin', ev => { if (ev.target.classList?.contains('numin')) setTimeout(() => ev.target.select(), 0); });
 document.addEventListener('click', ev => {
