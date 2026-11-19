@@ -5,7 +5,7 @@ import { ApiError, errorMessage } from './errors';
 describe('errorMessage', () => {
   it('dịch theo mã lỗi API', () => {
     expect(errorMessage(new ApiError('unauthorized', 401))).toBe(
-      "You've been signed out. Sign in again to continue.",
+      'Signed out. Sign in again any time to pick up where you left off.',
     );
   });
 
@@ -17,7 +17,7 @@ describe('errorMessage', () => {
 
   it('lỗi mạng của fetch', () => {
     expect(errorMessage(new TypeError('Failed to fetch'))).toBe(
-      "Can't reach the server. Everything is saved on this device.",
+      'No connection. Try again when you’re connected.',
     );
   });
 });

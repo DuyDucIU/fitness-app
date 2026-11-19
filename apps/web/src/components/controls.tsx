@@ -5,7 +5,6 @@ import { MinusIcon, PlusIcon } from '@/components/icons';
 import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { formatNumber } from '@/lib/format';
-import { m } from '@/paraglide/messages.js';
 
 export interface SegmentedOption<T extends string> {
   value: T;
@@ -85,6 +84,8 @@ export function Stepper({
   min = 0,
   max = Number.POSITIVE_INFINITY,
   maxFractionDigits = 2,
+  decreaseLabel,
+  increaseLabel,
   'aria-label': ariaLabel,
 }: {
   value: number;
@@ -93,6 +94,9 @@ export function Stepper({
   min?: number;
   max?: number;
   maxFractionDigits?: number;
+  /** Nhãn theo ngữ cảnh như prototype, vd "One set fewer" / "15 seconds less". */
+  decreaseLabel: string;
+  increaseLabel: string;
   'aria-label': string;
 }) {
   // Làm tròn để cộng dồn bước 2.5 không sinh 7.499999.
@@ -110,7 +114,7 @@ export function Stepper({
       <button
         type="button"
         className={button}
-        aria-label={m.common_decrease()}
+        aria-label={decreaseLabel}
         disabled={value <= min}
         onClick={() => onValueChange(clamp(value - step))}
       >
@@ -125,7 +129,7 @@ export function Stepper({
       <button
         type="button"
         className={button}
-        aria-label={m.common_increase()}
+        aria-label={increaseLabel}
         disabled={value >= max}
         onClick={() => onValueChange(clamp(value + step))}
       >

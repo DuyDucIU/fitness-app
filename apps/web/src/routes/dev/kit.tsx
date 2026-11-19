@@ -174,7 +174,7 @@ export function Component() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label={m.common_more_options()}
+          aria-label={m.common_options_for({ name: 'Bench press' })}
         >
           <MoreIcon />
         </Button>
@@ -250,8 +250,8 @@ export function Component() {
         <Field label="Name" error="Name is required">
           <TextInput placeholder="Full body A" />
         </Field>
-        <Field label={m.common_search()}>
-          <SearchInput placeholder={m.common_search()} />
+        <Field label="Search">
+          <SearchInput placeholder="Search by name or nickname" />
         </Field>
       </Block>
 
@@ -306,7 +306,13 @@ export function Component() {
           checked={rpe}
           onCheckedChange={setRpe}
         />
-        <Stepper aria-label="Reps" value={reps} onValueChange={setReps} />
+        <Stepper
+          aria-label="Sets"
+          decreaseLabel="One set fewer"
+          increaseLabel="One set more"
+          value={reps}
+          onValueChange={setReps}
+        />
       </Block>
 
       <SectionHeading>Sheet · Toast</SectionHeading>
