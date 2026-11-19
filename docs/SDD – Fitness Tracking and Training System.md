@@ -129,7 +129,7 @@ Giao diện có hai ngôn ngữ **tiếng Anh và tiếng Việt** ngay từ MVP
 | Quy ước key | Phẳng, `snake_case`, tiền tố theo phạm vi: `common_`, `nav_`, `home_`, `log_`, `plans_`, `history_`, `progress_`, `me_`, `error_` (khớp mã lỗi API), `engine_` (khớp mã lý do của engine). Số nhiều dùng variants của Paraglide (`Intl.PluralRules`), không ghép chuỗi bằng tay |
 | Kiểm tra bản dịch | `npm run check:i18n` (`inlang check` của inlang CLI): thiếu bản dịch, bản dịch rỗng, thiếu hoặc thừa biến `{…}`, thiếu dạng số nhiều thì lỗi. Chạy trong `npm run lint` của `apps/web`, nên có trong `verify` và CI — cần vì Paraglide tự rơi về ngôn ngữ gốc khi bản kia thiếu message |
 | Truy cập message | `npm run lint:i18n` (plugin ESLint của Paraglide, rule `no-dynamic-message-access`): cấm `m[key]` động, để key sai bị bắt lúc lint và message không dùng được tree-shake. Ánh xạ mã → message (vd mã lỗi API) viết tường minh bằng `switch` |
-| Chặn chuỗi cứng | ESLint `i18next/no-literal-string` (chỉ bắt chuỗi trong JSX) cho `apps/web/src`, bỏ qua file test |
+| Chặn chuỗi cứng | ESLint `i18next/no-literal-string` cho `apps/web/src` (bỏ qua file test và `src/routes/dev`): bắt text trong JSX và các thuộc tính mang chữ (`aria-label`, `title`, `placeholder`, `alt`, `label`, `sub`, `help`, `error`, `stat`). Không thấy chuỗi nằm trong object literal (vd `options` của nhóm lựa chọn) — phần đó dựa vào review |
 | Định dạng | Unit test module định dạng ở cả hai locale |
 | Xem trước | Route `/dev/kit` chỉ có khi dev: hiển thị mọi primitive, có nút chuyển EN/VI để soát dấu và độ dài chữ |
 

@@ -50,6 +50,11 @@ export default defineConfig([
               'placeholder',
               'alt',
               'label',
+              // Prop mang chữ hiển thị của primitive trong src/components
+              'sub',
+              'help',
+              'error',
+              'stat',
             ],
           },
         },
