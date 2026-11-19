@@ -21,15 +21,31 @@ describe('chương trình mẫu', () => {
   it('từ chối repMin > repMax', () => {
     const bad = `
 id: x
-name: x
+name: { en: x, vi: x }
 experienceLevel: beginner
 daysPerWeek: 3
 equipmentAccess: gym
 goal: general
 days:
-  - name: A
+  - name: { en: A, vi: A }
     exercises:
       - { exercise: Squat, sets: 3, repMin: 10, repMax: 5 }
+`;
+    expect(() => parseProgramTemplate(bad)).toThrow();
+  });
+
+  it('từ chối tên thiếu bản tiếng Việt', () => {
+    const bad = `
+id: x
+name: { en: x }
+experienceLevel: beginner
+daysPerWeek: 3
+equipmentAccess: gym
+goal: general
+days:
+  - name: { en: A, vi: A }
+    exercises:
+      - { exercise: Squat, sets: 3, repMin: 5, repMax: 8 }
 `;
     expect(() => parseProgramTemplate(bad)).toThrow();
   });

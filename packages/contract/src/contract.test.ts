@@ -16,15 +16,29 @@ describe('contract', () => {
     ).toBe(false);
   });
 
+  const validMe = {
+    id: '6f1d2c0a-8d63-4a0e-9b1b-3f6c3d6c9b11',
+    email: 'a@example.com',
+    displayName: null,
+    unitPref: 'kg',
+    locale: 'en',
+    timezone: 'Asia/Ho_Chi_Minh',
+    rpeEnabled: false,
+  };
+
+  it('me: chấp nhận response hợp lệ', () => {
+    expect(MeResponseSchema.safeParse(validMe).success).toBe(true);
+  });
+
   it('me: từ chối unitPref ngoài kg|lb', () => {
-    const result = MeResponseSchema.safeParse({
-      id: '6f1d2c0a-8d63-4a0e-9b1b-3f6c3d6c9b11',
-      email: 'a@example.com',
-      displayName: null,
-      unitPref: 'stone',
-      timezone: 'Asia/Ho_Chi_Minh',
-      rpeEnabled: false,
-    });
-    expect(result.success).toBe(false);
+    expect(
+      MeResponseSchema.safeParse({ ...validMe, unitPref: 'stone' }).success,
+    ).toBe(false);
+  });
+
+  it('me: từ chối locale ngoài en|vi', () => {
+    expect(
+      MeResponseSchema.safeParse({ ...validMe, locale: 'fr' }).success,
+    ).toBe(false);
   });
 });
