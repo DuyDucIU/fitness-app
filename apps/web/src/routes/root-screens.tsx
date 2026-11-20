@@ -1,8 +1,12 @@
 import type * as React from 'react';
+import { Link } from 'react-router';
 
+import { useAuth } from '@/auth/auth-context';
+import { ReauthBanner } from '@/auth/reauth-banner';
 import { AppShell, Foot, SectionHeading, TopBar } from '@/components/app-shell';
 import { UpdateBanner } from '@/components/app-update';
-import { Block } from '@/components/block';
+import { Block, Row, RowEnd, RowTitle } from '@/components/block';
+import { MeIcon } from '@/components/icons';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { SyncPill } from '@/components/sync-pill';
 import { m } from '@/paraglide/messages.js';
@@ -23,7 +27,12 @@ function RootScreen({
   return (
     <AppShell
       top={<TopBar title={title} right={<SyncPill />} />}
-      banner={banner}
+      banner={
+        <>
+          <ReauthBanner />
+          {banner}
+        </>
+      }
       foot={<Foot tabs />}
     >
       {children}
@@ -48,8 +57,22 @@ export function ProgressPage() {
 }
 
 export function MePage() {
+  const state = useAuth();
+  const email =
+    state.status === 'signed-out' || state.status === 'loading'
+      ? undefined
+      : state.user.email;
   return (
     <RootScreen title={m.nav_me()}>
+      <Block>
+        <Row asChild>
+          <Link to="/me/account">
+            <MeIcon className="size-5 flex-none" aria-hidden />
+            <RowTitle sub={email}>{m.me_account()}</RowTitle>
+            <RowEnd chevron />
+          </Link>
+        </Row>
+      </Block>
       <SectionHeading>{m.me_language()}</SectionHeading>
       <Block pad>
         <LanguageSwitcher />

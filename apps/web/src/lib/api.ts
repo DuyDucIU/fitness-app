@@ -5,6 +5,7 @@ import {
   type MeResponse,
   MeResponseSchema,
 } from '@fitness/contract';
+import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 
 import { env } from './env';
 import { ApiError } from './errors';
@@ -21,7 +22,9 @@ async function request<T>(
 ): Promise<T> {
   const headers: Record<string, string> = {};
   if (options.auth) {
-    const { data } = await getSupabase().auth.getSession();
+    const { data, error } = await getSupabase().auth.getSession();
+    // Offline với token hết hạn: chưa refresh được, không phải mất phiên (SDD 9.1).
+    if (isAuthRetryableFetchError(error)) throw new ApiError('network', 0);
     if (!data.session) throw new ApiError('unauthorized', 401);
     headers.Authorization = `Bearer ${data.session.access_token}`;
   }

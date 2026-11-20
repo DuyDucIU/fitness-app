@@ -70,5 +70,8 @@ export default defineConfig({
     environment: 'jsdom',
     // fake-indexeddb + matcher của jest-dom (SDD 11.7).
     setupFiles: ['./vitest.setup.ts'],
+    alias: {
+      'virtual:pwa-register/react': fromRoot('./src/test/pwa-register-stub.ts'),
+    },
   },
 });

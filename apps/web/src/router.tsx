@@ -1,5 +1,9 @@
-import { createBrowserRouter, type RouteObject } from 'react-router';
+import type { RouteObject } from 'react-router';
 
+import type { Auth } from '@/auth/auth';
+import { PublicOnly, RequireOwner } from '@/auth/guards';
+import { SignInPage, SignUpPage } from '@/routes/auth/auth-screen';
+import { AccountPage } from '@/routes/me-account';
 import {
   HistoryPage,
   MePage,
@@ -14,19 +18,43 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
   ? [{ path: '/dev/kit', lazy: () => import('@/routes/dev/kit') }]
   : [];
 
-/** React Router Data mode, SPA thuần không SSR (SDD 3.1). */
-export const router = createBrowserRouter([
-  {
-    // Route gốc không có path: chỉ để mọi route con dùng chung màn lỗi đã dịch.
-    ErrorBoundary: RouteError,
-    children: [
-      { path: '/', Component: TodayPage },
-      { path: '/plans', Component: PlansPage },
-      { path: '/history', Component: HistoryPage },
-      { path: '/progress', Component: ProgressPage },
-      { path: '/me', Component: MePage },
-      ...devRoutes,
-      { path: '*', Component: NotFoundPage },
-    ],
-  },
-]);
+/**
+ * Cây route của app (React Router Data mode, SPA thuần không SSR — SDD 3.1). Nhận module
+ * auth để test dựng được router thật với Supabase giả.
+ */
+export function createRoutes(auth: Auth): RouteObject[] {
+  return [
+    {
+      // Route gốc không có path: mọi route con dùng chung màn lỗi đã dịch, và chỉ render
+      // sau khi đã biết trạng thái đăng nhập (đọc phiên + chủ máy, không cần mạng).
+      ErrorBoundary: RouteError,
+      loader: async () => {
+        await auth.ready;
+        return null;
+      },
+      HydrateFallback: () => null,
+      children: [
+        {
+          Component: PublicOnly,
+          children: [
+            { path: '/sign-in', Component: SignInPage },
+            { path: '/sign-up', Component: SignUpPage },
+          ],
+        },
+        {
+          Component: RequireOwner,
+          children: [
+            { path: '/', Component: TodayPage },
+            { path: '/plans', Component: PlansPage },
+            { path: '/history', Component: HistoryPage },
+            { path: '/progress', Component: ProgressPage },
+            { path: '/me', Component: MePage },
+            { path: '/me/account', Component: AccountPage },
+          ],
+        },
+        ...devRoutes,
+        { path: '*', Component: NotFoundPage },
+      ],
+    },
+  ];
+}
