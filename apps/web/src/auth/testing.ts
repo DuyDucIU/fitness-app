@@ -1,4 +1,9 @@
-/** Supabase giả cho test: chỉ import từ file test. */
+/** Supabase giả và auth dựng sẵn cho test: chỉ import từ file test. */
+import { vi } from 'vitest';
+
+import { db } from '@/db/db';
+
+import { createAuth, OWNER_KEY } from './auth';
 import {
   AuthFailure,
   type AuthGateway,
@@ -54,4 +59,64 @@ export function fakeGateway(options: { stored?: SessionLookup } = {}) {
     /** Supabase tự huỷ phiên (refresh token bị từ chối). */
     revokeSession: end,
   };
+}
+
+/**
+ * Auth thật trên Supabase giả và Dexie thật (fake-indexeddb).
+ * - `owner`: máy đã có chủ từ trước khi mở app.
+ * - `reconnect()`: giả lập trình duyệt có mạng trở lại.
+ */
+export async function createTestAuth(
+  options: {
+    stored?: SessionLookup;
+    owner?: AuthUser;
+    fetchMe?: () => Promise<unknown>;
+    signIn?: AuthGateway['signIn'];
+    signUp?: AuthGateway['signUp'];
+  } = {},
+) {
+  if (options.owner) {
+    await db.meta.put({ key: OWNER_KEY, value: options.owner });
+  }
+  const fake = fakeGateway({ stored: options.stored });
+  if (options.signIn) fake.gateway.signIn = options.signIn;
+  if (options.signUp) fake.gateway.signUp = options.signUp;
+  const clearCaches = vi.fn();
+  const fetchMe = vi.fn(options.fetchMe ?? (async () => ({})));
+  let reconnectListener = () => {};
+  const auth = createAuth({
+    gateway: fake.gateway,
+    db,
+    fetchMe,
+    clearCaches,
+    onReconnect: (listener) => {
+      reconnectListener = listener;
+      return () => {};
+    },
+  });
+  await auth.ready;
+  return {
+    auth,
+    fake,
+    clearCaches,
+    fetchMe,
+    reconnect: () => reconnectListener(),
+  };
+}
+
+/** Xoá IndexedDB giữa các test. */
+export async function clearDb() {
+  await Promise.all(db.tables.map((table) => table.clear()));
+}
+
+/** Một thay đổi chưa đồng bộ trong outbox. */
+export async function addPendingChange() {
+  await db.outbox.add({
+    entity: 'set_logs',
+    entityId: 'set-1',
+    op: 'upsert',
+    payload: {},
+    createdAt: 0,
+    attempts: 0,
+  });
 }

@@ -13,7 +13,11 @@ export function RequireOwner() {
   const location = useLocation();
   if (state.status === 'signed-out') {
     const next = location.pathname + location.search;
-    const search = next === '/' ? '' : `?next=${encodeURIComponent(next)}`;
+    // Vừa đăng xuất: người đăng nhập tiếp theo có thể là người khác, không giữ trang cũ.
+    const search =
+      next === '/' || state.afterSignOut
+        ? ''
+        : `?next=${encodeURIComponent(next)}`;
     return <Navigate to={`/sign-in${search}`} replace />;
   }
   return <Outlet />;

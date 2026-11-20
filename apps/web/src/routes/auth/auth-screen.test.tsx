@@ -1,9 +1,10 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { AN, PASSWORD } from '@/auth/testing';
-import { clearDb, openApp } from '@/test/open-app';
+import { AuthFailure } from '@/auth/gateway';
+import { AN, clearDb, PASSWORD } from '@/auth/testing';
+import { openApp } from '@/test/open-app';
 
 afterEach(clearDb);
 
@@ -47,6 +48,28 @@ describe('đăng nhập', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('Couldn’t sign in');
     expect(alert).toHaveTextContent('Wrong email or password.');
+  });
+
+  it('không tới được Supabase: báo mất kết nối', async () => {
+    const user = userEvent.setup();
+    await openApp('/sign-in', {
+      signIn: async () => {
+        throw new AuthFailure('network');
+      },
+    });
+    await user.type(await screen.findByLabelText('Email'), AN.email);
+    await user.type(screen.getByLabelText('Password'), PASSWORD);
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No connection. Try again when you’re connected.',
+    );
+  });
+
+  it('đang offline: báo cần mạng cho lần đăng nhập đầu', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    await openApp('/sign-in');
+    expect(await screen.findByText('You’re offline')).toBeInTheDocument();
+    vi.restoreAllMocks();
   });
 
   it('nút chưa làm (Google, quên mật khẩu): báo Coming soon', async () => {

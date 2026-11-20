@@ -3,43 +3,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/db/db';
 import { ApiError } from '@/lib/errors';
 
-import { createAuth } from './auth';
-import type { SessionLookup } from './gateway';
-import { AN, BINH, fakeGateway, PASSWORD } from './testing';
+import {
+  AN,
+  BINH,
+  PASSWORD,
+  addPendingChange,
+  clearDb,
+  createTestAuth as setup,
+} from './testing';
 
-async function setup(
-  options: {
-    stored?: SessionLookup;
-    fetchMe?: () => Promise<unknown>;
-  } = {},
-) {
-  const fake = fakeGateway(options);
-  const clearCaches = vi.fn();
-  const auth = createAuth({
-    gateway: fake.gateway,
-    db,
-    fetchMe: options.fetchMe ?? (async () => ({})),
-    clearCaches,
-  });
-  await auth.ready;
-  return { auth, fake, clearCaches };
-}
-
-/** Một thay đổi chưa đồng bộ trong outbox. */
-async function addPendingChange() {
-  await db.outbox.add({
-    entity: 'set_logs',
-    entityId: 'set-1',
-    op: 'upsert',
-    payload: {},
-    createdAt: 0,
-    attempts: 0,
-  });
-}
-
-afterEach(async () => {
-  await Promise.all(db.tables.map((table) => table.clear()));
-});
+afterEach(clearDb);
 
 describe('đăng nhập', () => {
   it('máy mới: chưa đăng nhập', async () => {
@@ -67,15 +40,7 @@ describe('đăng ký', () => {
   });
 
   it('project bật xác nhận email (chưa có phiên): báo cần xác nhận, vẫn chưa đăng nhập', async () => {
-    const fake = fakeGateway();
-    fake.gateway.signUp = async () => null;
-    const auth = createAuth({
-      gateway: fake.gateway,
-      db,
-      fetchMe: async () => ({}),
-      clearCaches: vi.fn(),
-    });
-    await auth.ready;
+    const { auth } = await setup({ signUp: async () => null });
 
     await expect(auth.signUp('chi@example.com', PASSWORD)).resolves.toBe(
       'confirm-email',
@@ -86,8 +51,7 @@ describe('đăng ký', () => {
 
 describe('tạo user trên server (GET /me)', () => {
   it('gọi /me sau khi đăng nhập', async () => {
-    const fetchMe = vi.fn(async () => ({}));
-    const { auth } = await setup({ fetchMe });
+    const { auth, fetchMe } = await setup();
     await auth.signIn(AN.email, PASSWORD);
     await vi.waitFor(() => expect(fetchMe).toHaveBeenCalled());
   });
@@ -101,6 +65,34 @@ describe('tạo user trên server (GET /me)', () => {
     await auth.signIn(AN.email, PASSWORD);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(auth.getState()).toEqual({ status: 'signed-in', user: AN });
+  });
+
+  it('mở app lúc offline: gọi /me khi có mạng trở lại', async () => {
+    const { fetchMe, reconnect } = await setup({
+      owner: AN,
+      stored: { kind: 'unreachable' },
+    });
+    expect(fetchMe).not.toHaveBeenCalled();
+    reconnect();
+    await vi.waitFor(() => expect(fetchMe).toHaveBeenCalledTimes(1));
+  });
+
+  it('/me lỗi mạng: thử lại khi có mạng, thành công rồi thì thôi', async () => {
+    let fail = true;
+    const { auth, fetchMe, reconnect } = await setup({
+      fetchMe: async () => {
+        if (fail) throw new ApiError('network', 0);
+        return {};
+      },
+    });
+    await auth.signIn(AN.email, PASSWORD);
+    await vi.waitFor(() => expect(fetchMe).toHaveBeenCalledTimes(1));
+    fail = false;
+    reconnect();
+    await vi.waitFor(() => expect(fetchMe).toHaveBeenCalledTimes(2));
+    reconnect();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(fetchMe).toHaveBeenCalledTimes(2);
   });
 
   it('server từ chối token (401): coi như mất phiên', async () => {
@@ -194,6 +186,29 @@ describe('mở lại app', () => {
   });
 });
 
+describe('mở lại app với phiên của user khác chủ máy', () => {
+  it('chủ máy đã đồng bộ hết: xoá dữ liệu cũ, user của phiên thành chủ máy', async () => {
+    await db.syncState.put({ key: 'pullCursor', value: 'an-cursor' });
+    const { auth } = await setup({
+      owner: AN,
+      stored: { kind: 'session', user: BINH },
+    });
+    expect(auth.getState()).toEqual({ status: 'signed-in', user: BINH });
+    expect(await db.syncState.get('pullCursor')).toBeUndefined();
+  });
+
+  it('chủ máy còn thay đổi chưa đồng bộ: bỏ phiên lạ, giữ chủ máy và dữ liệu', async () => {
+    await addPendingChange();
+    const { auth, fake } = await setup({
+      owner: AN,
+      stored: { kind: 'session', user: BINH },
+    });
+    expect(auth.getState()).toEqual({ status: 'reauth-needed', user: AN });
+    expect(await db.outbox.count()).toBe(1);
+    expect(await fake.gateway.getSession()).toEqual({ kind: 'none' });
+  });
+});
+
 describe('đăng xuất', () => {
   it('máy quên chủ máy và xoá dữ liệu trên máy', async () => {
     const { auth, clearCaches } = await setup();
@@ -202,7 +217,10 @@ describe('đăng xuất', () => {
 
     await auth.signOut();
 
-    expect(auth.getState()).toEqual({ status: 'signed-out' });
+    expect(auth.getState()).toEqual({
+      status: 'signed-out',
+      afterSignOut: true,
+    });
     expect(await db.outbox.count()).toBe(0);
     expect(clearCaches).toHaveBeenCalled();
     // Mở lại app: vẫn là máy chưa có chủ.

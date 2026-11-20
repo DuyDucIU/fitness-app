@@ -1,6 +1,7 @@
 import type * as React from 'react';
 import { Link } from 'react-router';
 
+import { ownerOf } from '@/auth/auth';
 import { useAuth } from '@/auth/auth-context';
 import { ReauthBanner } from '@/auth/reauth-banner';
 import { AppShell, Foot, SectionHeading, TopBar } from '@/components/app-shell';
@@ -58,10 +59,7 @@ export function ProgressPage() {
 
 export function MePage() {
   const state = useAuth();
-  const email =
-    state.status === 'signed-out' || state.status === 'loading'
-      ? undefined
-      : state.user.email;
+  const email = ownerOf(state)?.email;
   return (
     <RootScreen title={m.nav_me()}>
       <Block>

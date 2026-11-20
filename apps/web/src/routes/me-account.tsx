@@ -1,10 +1,10 @@
 import * as React from 'react';
 
+import { ownerOf } from '@/auth/auth';
 import { useAuth, useAuthApi } from '@/auth/auth-context';
 import { ReauthBanner } from '@/auth/reauth-banner';
 import { AppShell, Foot, SectionHeading, TopBar } from '@/components/app-shell';
 import { Block, Row, RowEnd, RowTitle } from '@/components/block';
-import { GoogleIcon } from '@/components/google-icon';
 import {
   ChevronIcon,
   LogoutIcon,
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/sheet';
 import { useComingSoon } from '@/hooks/use-coming-soon';
 import { useSyncStatus } from '@/hooks/use-sync-status';
+import { errorMessage } from '@/lib/errors';
 import { m } from '@/paraglide/messages.js';
 
 /**
@@ -48,6 +49,9 @@ function SignOutSheet({
     try {
       await auth.signOut();
       toast.show(m.signed_out());
+    } catch (error) {
+      console.error(error);
+      toast.show(errorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -102,10 +106,8 @@ export function AccountPage() {
   const comingSoon = useComingSoon();
   const [signOutOpen, setSignOutOpen] = React.useState(false);
   // RequireOwner đảm bảo máy có chủ; `signed-out` chỉ thoáng qua lúc vừa đăng xuất.
-  if (state.status !== 'signed-in' && state.status !== 'reauth-needed')
-    return null;
-  const { user } = state;
-  const google = user.provider === 'google';
+  const user = ownerOf(state);
+  if (!user) return null;
 
   return (
     <AppShell
@@ -115,18 +117,9 @@ export function AccountPage() {
     >
       <Block>
         <Row>
-          {google ? (
-            <GoogleIcon className="size-5 flex-none" />
-          ) : (
-            <MailIcon className="size-5 flex-none" aria-hidden />
-          )}
-          <RowTitle
-            sub={
-              google
-                ? m.account_signed_in_with_google()
-                : m.account_signed_in_with_email()
-            }
-          >
+          {/* Chỉ có đăng nhập email; thêm nhánh Google khi làm OAuth. */}
+          <MailIcon className="size-5 flex-none" aria-hidden />
+          <RowTitle sub={m.account_signed_in_with_email()}>
             {user.email}
           </RowTitle>
         </Row>

@@ -2,9 +2,11 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 import { FieldContext, useFieldControl } from '@/components/field-context';
-import { AlertIcon, SearchIcon } from '@/components/icons';
+import { AlertIcon, EyeIcon, SearchIcon } from '@/components/icons';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatNumber, parseDecimal } from '@/lib/format';
+import { m } from '@/paraglide/messages.js';
 
 /**
  * Trường nhập trong sheet (prototypes/shared/base.css › .field): nhãn 12px chữ hoa,
@@ -67,6 +69,32 @@ export function Field({
 /** Ô nhập chữ nối sẵn với `Field`. */
 export function TextInput(props: React.ComponentProps<typeof Input>) {
   return <Input {...useFieldControl()} {...props} />;
+}
+
+/** Ô mật khẩu nối sẵn với `Field`, có nút hiện/ẩn (prototypes/start › .pw). */
+export function PasswordInput(
+  props: Omit<React.ComponentProps<typeof Input>, 'type'>,
+) {
+  const [shown, setShown] = React.useState(false);
+  return (
+    <div className="relative">
+      <TextInput
+        {...props}
+        type={shown ? 'text' : 'password'}
+        className={cn('pr-13', props.className)}
+      />
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-0.5 right-0.5"
+        aria-label={shown ? m.auth_hide_password() : m.auth_show_password()}
+        aria-pressed={shown}
+        onClick={() => setShown((s) => !s)}
+      >
+        <EyeIcon />
+      </Button>
+    </div>
+  );
 }
 
 /**

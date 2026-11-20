@@ -2,8 +2,8 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { AN, PASSWORD } from '@/auth/testing';
-import { clearDb, openApp } from '@/test/open-app';
+import { AN, clearDb, PASSWORD } from '@/auth/testing';
+import { openApp } from '@/test/open-app';
 
 afterEach(clearDb);
 
@@ -42,12 +42,12 @@ describe('chặn route', () => {
   it('mất phiên (máy có chủ): vẫn ở trong app, có banner đăng nhập lại về đúng trang', async () => {
     const { router } = await openApp('/history', {
       stored: { kind: 'none' },
-      signedInBefore: true,
+      owner: AN,
     });
     expect(
       await screen.findByRole('heading', { name: 'History' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Signed out on this device')).toBeInTheDocument();
+    expect(screen.getByText('Session ended')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute(
       'href',
       '/sign-in?next=%2Fhistory',
@@ -58,13 +58,26 @@ describe('chặn route', () => {
   it('đang dùng app thì mất phiên: không bị đẩy ra khỏi màn đang mở', async () => {
     const { router, fake } = await openApp('/history', {
       stored: { kind: 'session', user: AN },
-      signedInBefore: true,
+      owner: AN,
     });
     await screen.findByRole('heading', { name: 'History' });
     fake.revokeSession();
-    expect(
-      await screen.findByText('Signed out on this device'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Session ended')).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/history');
+  });
+
+  it('đăng xuất ở Account: về màn đăng nhập không nhớ trang cũ', async () => {
+    const user = userEvent.setup();
+    const { router } = await openApp('/me/account', {
+      stored: { kind: 'session', user: AN },
+    });
+    await user.click(await screen.findByRole('button', { name: /^Sign out/ }));
+    await user.click(await screen.findByRole('button', { name: 'Sign out' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Sign in to keep your log' }),
+    ).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/sign-in');
+    expect(router.state.location.search).toBe('');
+    expect(screen.getByText('Signed out.')).toBeInTheDocument();
   });
 });
