@@ -60,6 +60,15 @@
   /* Chuyển động */
   --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
   --animate-skel: skel 1.2s ease-in-out infinite;
+  /* Vào màn mới: vùng cuộn trượt nhẹ lên (prototypes › .view.enter .scroll). */
+  --animate-view-in: view-in 0.24s var(--ease-snap) both;
+
+  @keyframes view-in {
+    from {
+      transform: translateY(12px);
+      opacity: 0;
+    }
+  }
 
   @keyframes skel {
     50% {

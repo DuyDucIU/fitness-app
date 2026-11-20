@@ -41,7 +41,9 @@ export function AppShell({
       >
         {top}
         {banner}
-        <main className="flex-1 overflow-y-auto overscroll-contain px-3 pb-6 [scrollbar-color:var(--color-rule)_transparent] [scrollbar-width:thin] [&>*+*]:mt-3">
+        {/* Mỗi route có AppShell riêng nên main mount lại khi chuyển màn → chạy view-in;
+            cập nhật trong cùng màn thì không chạy lại (như prototype). */}
+        <main className="flex-1 animate-view-in overflow-y-auto overscroll-contain px-3 pb-6 [scrollbar-color:var(--color-rule)_transparent] [scrollbar-width:thin] [&>*+*]:mt-3">
           {children}
         </main>
         {foot}
