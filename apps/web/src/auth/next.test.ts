@@ -14,6 +14,9 @@ describe('safeNext', () => {
     'https://evil.com',
     '//evil.com',
     '/\\evil.com',
+    '/.//evil.com',
+    '/..//evil.com',
+    '/./\\evil.com',
   ])('về Today với %j', (next) => {
     expect(safeNext(next)).toBe('/');
   });
