@@ -15,7 +15,7 @@ related_targets: ["prototypes/start/index.html","prototypes/plans/index.html","p
 - Must keep: sync pill on every signed-in screen; resume bar whenever a session is open; iOS "Add to Home Screen" hint non-blocking before a workout; update prompt never reloads mid-session; R1 gives a direction never a number; R8 never guesses a starting weight; every suggestion shows its reason and can be dismissed; streak paused during deload; volume counted in sets; e1RM compared only within one load input; weeks Monday to Sunday.
 
 ## Direction contract
-THESIS: Outside the workout, the plan is a wallet of race bibs: each plan day is a bib you swipe sideways, the next one already centered and one tap from Start; everything else sits behind a plain five-item tab bar. Refuses the category's dashboard-of-cards home (rings, badges, a hero metric) and a hidden hamburger.
+THESIS: Outside the workout, the routine is a wallet of race bibs: each routine day is a bib you swipe sideways, the next one already centered and one tap from Start; everything else sits behind a plain five-item tab bar. Refuses the category's dashboard-of-cards home (rings, badges, a hero metric) and a hidden hamburger.
 
 OWN-WORLD: Inherits DESIGN.md unchanged: Tyvek ground #E6E6E1, bibs #F4F4F1, ink #111, orange #FF4F1A only for "next / happening / pressable", blue only for rest, green only for done/synced. Barlow Condensed 800 numerals, Be Vietnam Pro text, three sizes plus the 28px numeral, one bib-size element per screen at most. Perforation splits a bib's plan from its stub; bands carry state (orange next, ink-outline others, ink for records). Charts use ink, orange highlight and rule only.
 
@@ -28,7 +28,7 @@ FORM: Bib wallet + bottom tabs, fused by the user's steer from dealt structures 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
 ## Memorable moment
-Swiping the plan's bibs and watching the Start button rename itself to the day under your thumb.
+Swiping the routine's bibs and watching the Start button rename itself to the day under your thumb.
 
 ## Unresolved
 - Product name and logo (working name "Fitness").

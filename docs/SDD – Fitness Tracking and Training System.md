@@ -59,7 +59,7 @@ flowchart TB
 
 **Nguyên tắc kiến trúc:**
 
-- **Local-first cho phiên tập:** web app (IndexedDB) là nguồn dữ liệu tạm thời khi offline, backend là nguồn chuẩn (source of truth) sau khi đồng bộ.
+- **Local-first cho phiên tập:** web app (IndexedDB) là nguồn dữ liệu tạm thời khi offline, backend là nguồn chuẩn (source of truth) sau khi đồng bộ. Cài đặt bài tập, gợi ý và deload cũng local-first qua outbox; routine và catalog được cache chỉ đọc trên máy; các thao tác ghi khác cần mạng (3.2, ADR 0002).
 - **Progression engine chạy hoàn toàn trên client:** pure function, không gọi mạng, không phụ thuộc backend — đảm bảo gợi ý hoạt động cả khi offline.
 - **Backend là modular monolith:** một NestJS app + một worker, chạy chung một máy (localhost ở MVP, một server khi lên beta) — đơn giản hoá vận hành, không cần điều phối nhiều service.
 - **Mỗi dịch vụ ngoài qua một lớp adapter:** LLM provider và thiết bị sức khoẻ (Health Connect/HealthKit) (cả hai là post-MVP) đều được bọc qua adapter riêng, để đổi nhà cung cấp mà không sửa logic nghiệp vụ.
@@ -76,7 +76,7 @@ PWA (D26, thay D5 ngày 16/11/2026): một codebase TypeScript chạy trên Safa
 | PWA | `vite-plugin-pwa` (Workbox, `generateSW`) | Manifest, service worker cache app shell; `registerType: 'prompt'` để bản cập nhật không tự reload giữa buổi tập; icon sinh bằng `@vite-pwa/assets-generator` |
 | Routing | React Router, Data mode (`createBrowserRouter`) | SPA thuần, không SSR |
 | Lưu trữ cục bộ | Dexie (IndexedDB) + `dexie-react-hooks` (`useLiveQuery`) | Xem 3.2 |
-| Dữ liệu từ server | TanStack Query | Catalog, PR, biểu đồ, lịch sử |
+| Dữ liệu từ server | TanStack Query | PR, biểu đồ, lịch sử, danh sách program, các màn chỉ dùng khi có mạng. Catalog và routine nằm trong cache Dexie (3.2) |
 | UI | Tailwind CSS v4 + shadcn/ui (`--base radix`) | Component do CLI sinh, copy vào repo; theme lấy từ token trong `DESIGN.md` (khai báo ở `@theme`, biến semantic của shadcn trỏ về token). Chỉ một theme sáng, không dark mode ở MVP. Font Barlow Condensed + Be Vietnam Pro (subset tiếng Việt) |
 | Song ngữ | Paraglide JS 3 (`@inlang/paraglide-js`) + inlang CLI | Dựng bằng `paraglide-js init`; xem 3.5 |
 | Auth | supabase-js | Xem 9.1 |
@@ -86,16 +86,19 @@ Khác biệt iOS/Android (cài app, rung, xoá bộ nhớ, Web Push — SRS 5.5)
 
 Lớp truy cập thiết bị sức khoẻ vẫn bọc qua interface `DeviceProvider`. PWA không truy cập được Health Connect/HealthKit, nên implementation (post-MVP) chạy trong bản bọc native bằng Capacitor, dùng lại toàn bộ code web; bản PWA dùng implementation rỗng (không có thiết bị).
 
-### 3.2 Local-first: IndexedDB + outbox
+### 3.2 Local-first: IndexedDB + outbox + cache chỉ đọc
 
 - Toàn bộ dữ liệu phiên tập (`WORKOUT_SESSIONS`, `SESSION_EXERCISES`, `SET_LOGS`) được ghi vào IndexedDB (qua Dexie) ngay khi user thao tác, với UUID sinh ở client (không chờ server cấp id) — cho phép ghi set hoàn toàn offline. UI đọc qua `useLiveQuery` nên tự cập nhật khi dữ liệu đổi.
+- **Ba loại dữ liệu khác cũng local-first qua outbox** (lưu trên máy, đẩy qua outbox, kéo về bằng pull), cùng cơ chế với dữ liệu phiên tập, dù được sửa từ màn nào: `SUGGESTIONS` và `DELOAD_PERIODS` (UUID sinh ở client), `USER_EXERCISE_SETTINGS` (cả dòng, upsert theo khoá ghép `user_id` + `exercise_id`). Nhờ vậy nhận/bỏ qua gợi ý, bắt đầu/kết thúc deload và chỉnh cài đặt bài tập (UC08, UC14) đều chạy được khi offline.
+- **Cache chỉ đọc:** routine đang có của user (`ROUTINES`, `ROUTINE_DAYS`, `ROUTINE_EXERCISES`) và catalog bài tập (`EXERCISES` của catalog chung và của user, `EXERCISE_ALIASES`, nhóm cơ) được giữ một bản trên máy để engine và màn bắt đầu buổi chạy offline. Cache được làm mới khi có mạng (lúc mở app, khi online lại, sau mỗi lần ghi thành công lên server); app không sửa trực tiếp các bảng chỉ đọc. Tìm bài offline khớp không dấu trên cache; `pg_trgm` chỉ dùng khi có mạng.
+- **Ghi ngoài buổi tập cần mạng:** tạo/sửa routine, chọn program, tạo bài tuỳ chỉnh, alias, cài đặt tài khoản, mục tiêu, chỉ số cơ thể, onboarding gọi REST thẳng; khi offline app báo cần có mạng, không xếp hàng chờ. Lý do: ADR 0002.
 - Mỗi thay đổi ghi thêm một sự kiện vào bảng outbox (khoá tự tăng = thứ tự đẩy), trong **cùng một transaction Dexie** với bản ghi gốc. Outbox được đẩy lên server theo thứ tự, dùng `POST /sync/push` với upsert idempotent (`INSERT ... ON CONFLICT (id) DO UPDATE`) — gửi lại không tạo trùng.
 - **Thời điểm đẩy:** sau mỗi lần ghi, khi có sự kiện `online`, và khi `visibilitychange` chuyển sang hiện. Không dùng Background Sync API (Safari không hỗ trợ); service worker không tham gia đồng bộ.
-- Kéo dữ liệu mới từ server bằng `GET /sync/pull?since=<cursor>`, cursor là `updated_at` lớn nhất đã nhận; xoá được biểu diễn bằng tombstone (`deleted_at`) để đồng bộ đúng cả việc xoá.
+- Kéo dữ liệu mới từ server bằng `GET /sync/pull?since=<cursor>`, cursor là `updated_at` lớn nhất đã nhận; xoá được biểu diễn bằng tombstone (`deleted_at`) để đồng bộ đúng cả việc xoá. Pull trả về mọi bảng đi qua outbox (phiên tập, gợi ý, deload, cài đặt bài tập).
 - Đóng tab hoặc hệ điều hành dừng app giữa buổi tập: phiên đang dở được khôi phục từ IndexedDB khi mở lại (không mất dữ liệu chưa sync).
 - Sửa một set đã sync: ghi đè cục bộ rồi đẩy lại; xung đột xử lý last-write-wins (chấp nhận được vì bình thường chỉ một thiết bị ghi cho một user).
 - **Chống trình duyệt xoá dữ liệu chưa sync** (SRS 5.3): gọi `navigator.storage.persist()` khi khởi động; đẩy outbox sớm; trên iOS, nếu app đang chạy trong tab (không phải `display-mode: standalone`) thì hiện hướng dẫn thêm vào màn hình chính trước khi bắt đầu tập; hiện số sự kiện outbox chưa đẩy.
-- **Lý do chọn IndexedDB thay vì SQLite-wasm (OPFS):** VFS `opfs` của SQLite-wasm cần header COOP/COEP (SharedArrayBuffer) và không chạy trên Safari < 17; VFS `opfs-sahpool` không cần header nhưng không hỗ trợ mở đồng thời ở nhiều tab; cả hai phải chạy trong Web Worker. Truy vấn phía client chỉ gồm "buổi gần nhất của một bài" và "outbox theo thứ tự" — không cần SQL; tính toán nặng (PR, streak, biểu đồ) nằm ở server.
+- **Lý do chọn IndexedDB thay vì SQLite-wasm (OPFS):** VFS `opfs` của SQLite-wasm cần header COOP/COEP (SharedArrayBuffer) và không chạy trên Safari < 17; VFS `opfs-sahpool` không cần header nhưng không hỗ trợ mở đồng thời ở nhiều tab; cả hai phải chạy trong Web Worker. Truy vấn phía client chỉ gồm "buổi gần nhất của một bài", "outbox theo thứ tự", đọc cache theo khoá và tìm bài không dấu trên vài trăm dòng — không cần SQL; tính toán nặng (PR, streak, biểu đồ) nằm ở server.
 
 ### 3.3 Vỏ PWA và service worker
 
@@ -106,7 +109,7 @@ Lớp truy cập thiết bị sức khoẻ vẫn bọc qua interface `DeviceProv
 
 ### 3.4 Progression engine
 
-Module riêng (`packages/engine`), viết TypeScript, là tập hợp pure function không gọi mạng, không đọc đồng hồ hệ thống (nhận `today` qua tham số input) — nhờ vậy chạy được offline và test được độc lập không cần mock thời gian/mạng. App gọi engine ngay sau khi log set (`afterSet`) để lấy gợi ý back-off, và trước khi vào buổi tập (`planSession`) để lấy gợi ý tăng (chỉ nêu hướng, không kèm mức tạ), khởi động, quay lại sau nghỉ và deload. Bộ luật đầy đủ nằm ở SRS Phụ lục A.
+Module riêng (`packages/engine`), viết TypeScript, nhận input từ dữ liệu trên máy (cache và phiên tập trong Dexie), là tập hợp pure function không gọi mạng, không đọc đồng hồ hệ thống (nhận `today` qua tham số input) — nhờ vậy chạy được offline và test được độc lập không cần mock thời gian/mạng. App gọi engine ngay sau khi log set (`afterSet`) để lấy gợi ý back-off, và trước khi vào buổi tập (`beforeSession`) để lấy gợi ý tăng (chỉ nêu hướng, không kèm mức tạ), khởi động, quay lại sau nghỉ và deload. Bộ luật đầy đủ nằm ở SRS Phụ lục A.
 
 ### 3.5 Song ngữ (i18n)
 
@@ -115,7 +118,7 @@ Giao diện có hai ngôn ngữ **tiếng Anh và tiếng Việt** ngay từ MVP
 - **Ngôn ngữ gốc và mặc định là tiếng Anh.** Câu chữ viết bằng tiếng Anh trước, tiếng Việt là bản dịch. Lần đầu mở app luôn là tiếng Anh, không tự nhận theo ngôn ngữ trình duyệt. Sau này chuyển mặc định sang tiếng Việt chỉ cần đổi `baseLocale` trong `apps/web/project.inlang/settings.json`, không sửa message.
 - **Chọn ngôn ngữ:** user đổi trong màn Me. Lựa chọn lưu ở máy (`localStorage`, strategy `["localStorage", "baseLocale"]` của Paraglide, khai báo ở `apps/web/project.inlang/paraglide.config.ts`) và ở `USERS.locale` trên server; sau khi đăng nhập, giá trị trên server được ưu tiên. *Chưa làm:* đọc `locale` từ `/me` và ghi khi đổi ngôn ngữ — làm cùng endpoint cập nhật hồ sơ; hiện ngôn ngữ chỉ lưu ở `localStorage`. Đổi ngôn ngữ thì reload trang (hành vi mặc định của `setLocale`), chấp nhận được vì chỉ đổi trong Me, không đổi giữa buổi tập; phiên đang dở vẫn nằm trong IndexedDB. `<html lang>` đặt theo ngôn ngữ đang dùng; manifest khai báo `en`.
 - **Chỉ client sinh câu chữ hiển thị.** Engine trả mã lý do kèm tham số (vd `{ code: 'increase_load', delta: 2.5 }`), API trả mã lỗi (8.1); client dựng câu theo ngôn ngữ. Server và engine không trả câu chữ để hiển thị.
-- **Dữ liệu song ngữ:** tên bài (`EXERCISES.name_en`, `name_vi`), tên nhóm cơ (`MUSCLES.name_en`, `name_vi`), tên chương trình mẫu và tên buổi trong `packages/templates` (YAML có `en` và `vi`). Dữ liệu user tự nhập (tên buổi, alias, ghi chú) giữ nguyên, không dịch.
+- **Dữ liệu song ngữ:** tên bài (`EXERCISES.name_en`, `name_vi`), tên nhóm cơ (`MUSCLES.name_en`, `name_vi`), tên chương trình mẫu và tên buổi trong `packages/programs` (YAML có `en` và `vi`). Dữ liệu user tự nhập (tên buổi, alias, ghi chú) giữ nguyên, không dịch.
 - **Tên bài:** hiện theo ngôn ngữ UI; picker và màn chi tiết bài hiện thêm tên còn lại ở dòng phụ; màn ghi set chỉ hiện tên chính. Tìm kiếm luôn khớp cả tên EN, tên VI và alias.
 - **Định dạng số và ngày** đi theo ngôn ngữ UI (`en`: 77.5, Nov 19; `vi`: 77,5, 19/11), qua một module dùng chung bọc `Intl.NumberFormat` / `Intl.DateTimeFormat`; không gọi `toLocaleString` rải rác. Ô nhập số nhận cả dấu phẩy lẫn dấu chấm ở cả hai ngôn ngữ. Đơn vị kg/lb là cài đặt riêng, không phụ thuộc ngôn ngữ.
 - **Bản dịch tiếng Việt** do AI soạn nháp, founder rà soát (cùng cách với tên Việt trong catalog). Bản Việt được viết lại cho tự nhiên, không bắt buộc dịch sát chữ; giọng văn hai ngôn ngữ mô tả trong `PRODUCT.md`.
@@ -151,7 +154,7 @@ Không dùng message queue riêng (Redis, RabbitMQ...). Bảng `IMPORT_JOBS` đ�
 
 Supabase Auth xử lý đăng nhập Google và email/mật khẩu, trả JWT cho client. NestJS chỉ verify JWT (không tự quản mật khẩu) — mọi endpoint cần xác thực đọc `user_id` từ JWT đã verify.
 
-**Verify JWT \[Đề xuất\]:** nếu project Supabase dùng asymmetric signing key, NestJS verify bằng JWKS của project (`<SUPABASE_URL>/auth/v1/.well-known/jwks.json`, chỉ chứa public key, cache phía backend); nếu dùng shared secret (HS256) thì verify bằng secret. Chỉ backend gọi ra Supabase, Supabase không cần gọi vào, nên NestJS chạy localhost vẫn dùng được Supabase Auth bản cloud.
+**Verify JWT (chốt):** nếu project Supabase dùng asymmetric signing key, NestJS verify bằng JWKS của project (`<SUPABASE_URL>/auth/v1/.well-known/jwks.json`, chỉ chứa public key, cache phía backend); nếu dùng shared secret (HS256) thì verify bằng secret. Chỉ backend gọi ra Supabase, Supabase không cần gọi vào, nên NestJS chạy localhost vẫn dùng được Supabase Auth bản cloud.
 
 ### 4.4 Giai đoạn triển khai backend
 
@@ -219,14 +222,14 @@ sequenceDiagram
     App->>API: GET /imports/{id}
   end
   App->>API: POST /imports/{id}/confirm sau khi user review
-  API->>PG: Tạo PLAN trong một transaction, xoá ảnh gốc
+  API->>PG: Tạo ROUTINE trong một transaction, xoá ảnh gốc
 ```
 
 **Điểm thiết kế đáng chú ý:**
 
 - **Cascade chi phí tăng dần:** OCR trên máy (miễn phí, nhanh) → LLM đọc text (rẻ) → vision LLM (đắt hơn) chỉ khi độ tin cậy thấp — tối ưu chi phí gọi LLM, có quota mỗi user/ngày qua một lớp adapter nhà cung cấp LLM (đổi được nhà cung cấp không sửa logic).
 - **Khớp tên bài theo thứ tự ưu tiên giảm dần:** alias riêng của user → alias chung → fuzzy match (`pg_trgm`) → LLM chọn trong top-k ứng viên — ưu tiên khớp rẻ/chính xác trước khi cần LLM.
-- **Plan chỉ tạo sau khi user xác nhận:** dữ liệu LLM trả về luôn ở trạng thái nháp (`parsed`) cho đến khi user review và sửa (UC26); việc tạo `PLANS`/`PLAN_DAYS`/`PLAN_EXERCISES` và xoá ảnh gốc nằm trong **một transaction** để tránh trạng thái nửa vời nếu lỗi giữa chừng.
+- **Routine chỉ tạo sau khi user xác nhận:** dữ liệu LLM trả về luôn ở trạng thái nháp (`parsed`) cho đến khi user review và sửa (UC26); việc tạo `ROUTINES`/`ROUTINE_DAYS`/`ROUTINE_EXERCISES` và xoá ảnh gốc nằm trong **một transaction** để tránh trạng thái nửa vời nếu lỗi giữa chừng.
 - **Lỗi LLM:** retry một lần, sau đó `status = failed` và gợi ý user nhập tay (UC05).
 
 ## 7. Thiết kế dữ liệu
@@ -236,7 +239,7 @@ sequenceDiagram
 ```mermaid
 erDiagram
     USERS ||--o{ EXERCISES : "tao bai custom"
-    USERS ||--o{ PLANS : owns
+    USERS ||--o{ ROUTINES : owns
     USERS ||--o{ IMPORT_JOBS : submits
     USERS ||--o{ WORKOUT_SESSIONS : logs
     USERS ||--o{ GOALS : sets
@@ -249,27 +252,26 @@ erDiagram
     USERS ||--o{ DELOAD_PERIODS : takes
     USERS ||--|| USER_PROFILES : has
     EXERCISES ||--o{ EXERCISE_VIDEOS : "has video"
-    PLANS |o--o{ PLANS : "copied from template"
     EXERCISES ||--o{ USER_EXERCISE_SETTINGS : "configured in"
 
     EXERCISES ||--o{ EXERCISE_ALIASES : "has alias"
     EXERCISES ||--o{ EXERCISE_MUSCLES : targets
     MUSCLES ||--o{ EXERCISE_MUSCLES : "used in"
 
-    PLANS ||--|{ PLAN_DAYS : contains
-    PLAN_DAYS ||--|{ PLAN_EXERCISES : contains
-    EXERCISES ||--o{ PLAN_EXERCISES : "used in"
-    IMPORT_JOBS |o--o| PLANS : produces
+    ROUTINES ||--|{ ROUTINE_DAYS : contains
+    ROUTINE_DAYS ||--|{ ROUTINE_EXERCISES : contains
+    EXERCISES ||--o{ ROUTINE_EXERCISES : "used in"
+    IMPORT_JOBS |o--o| ROUTINES : produces
 
-    PLAN_DAYS |o--o{ WORKOUT_SESSIONS : "template for"
+    ROUTINE_DAYS |o--o{ WORKOUT_SESSIONS : "followed by"
     WORKOUT_SESSIONS ||--o{ SESSION_EXERCISES : contains
     SESSION_EXERCISES ||--o{ SET_LOGS : contains
     EXERCISES ||--o{ SESSION_EXERCISES : "performed as"
-    PLAN_EXERCISES |o--o{ SESSION_EXERCISES : "follows"
+    ROUTINE_EXERCISES |o--o{ SESSION_EXERCISES : "follows"
 
     SET_LOGS |o--o{ PERSONAL_RECORDS : "produces"
     EXERCISES ||--o{ PERSONAL_RECORDS : "for"
-    PLAN_EXERCISES |o--o{ SUGGESTIONS : "suggested for"
+    ROUTINE_EXERCISES |o--o{ SUGGESTIONS : "suggested for"
     SESSION_EXERCISES |o--o{ SUGGESTIONS : "in-session"
     EXERCISES |o--o{ GOALS : "pr target"
 
@@ -320,31 +322,30 @@ erDiagram
         text alias_normalized "no diacritics, lowercase"
         text lang "vi | en"
     }
-    PLANS {
+    ROUTINES {
         uuid id PK
-        uuid user_id FK "null = system template"
-        bool is_template
-        uuid template_id FK "template this plan was copied from"
+        uuid user_id FK
+        text program_id "YAML id of the program it was copied from"
         text name
-        text source "manual | import_text | import_image | import_video"
+        text source "manual | program | import_text | import_image | import_video"
         bool is_active
         timestamptz created_at
         timestamptz archived_at
     }
-    PLAN_DAYS {
+    ROUTINE_DAYS {
         uuid id PK
-        uuid plan_id FK
+        uuid routine_id FK
         text name "Push A, Leg day"
         int position
     }
-    PLAN_EXERCISES {
+    ROUTINE_EXERCISES {
         uuid id PK
-        uuid plan_day_id FK
+        uuid routine_day_id FK
         uuid exercise_id FK
         int position
         int superset_group
         int target_sets
-        numeric initial_weight_kg "from plan or import"
+        numeric initial_weight_kg "from routine, program or import"
         bool warmup_enabled "null = default rule"
         int rep_min
         int rep_max
@@ -365,13 +366,13 @@ erDiagram
         jsonb media_keys "deleted after confirm"
         jsonb llm_output
         text model
-        uuid plan_id FK
+        uuid routine_id FK
         timestamptz created_at
     }
     WORKOUT_SESSIONS {
         uuid id PK "client generated"
         uuid user_id FK
-        uuid plan_day_id FK "null = freestyle"
+        uuid routine_day_id FK "null = freestyle"
         timestamptz started_at
         timestamptz ended_at
         text notes
@@ -383,7 +384,7 @@ erDiagram
         uuid id PK "client generated"
         uuid session_id FK
         uuid exercise_id FK
-        uuid plan_exercise_id FK "null if added ad hoc"
+        uuid routine_exercise_id FK "null if added ad hoc"
         text load_input "snapshot: total | per_side | per_dumbbell | stack | added_weight"
         int position
         int superset_group
@@ -416,9 +417,9 @@ erDiagram
         timestamptz achieved_at
     }
     SUGGESTIONS {
-        uuid id PK
+        uuid id PK "client generated"
         uuid user_id FK
-        uuid plan_exercise_id FK "null if ad hoc"
+        uuid routine_exercise_id FK "null if ad hoc"
         uuid session_exercise_id FK "null = pre-session"
         text kind "increase | celebrate | back_off | return_from_break | deload"
         text strength "soft | strong"
@@ -427,6 +428,8 @@ erDiagram
         text status "pending | accepted | dismissed | expired"
         timestamptz created_at
         timestamptz responded_at
+        timestamptz updated_at "server, pull-sync cursor"
+        timestamptz deleted_at "tombstone"
     }
     GOALS {
         uuid id PK
@@ -476,21 +479,23 @@ erDiagram
         bool rest_auto_start "default true"
         text load_input "default by equipment"
         numeric bar_weight_kg "barbell only, default 20"
-        timestamptz updated_at
+        timestamptz updated_at "server, pull-sync cursor"
     }
     DELOAD_PERIODS {
-        uuid id PK
+        uuid id PK "client generated"
         uuid user_id FK
         text mode "rest_full | rest_half | half_load | half_reps | half_both"
         date start_date
         date end_date
         text source "suggested | manual"
         timestamptz created_at
+        timestamptz updated_at "server, pull-sync cursor"
+        timestamptz deleted_at "tombstone"
     }
     USER_PROFILES {
         uuid user_id PK, FK
         text experience_level "beginner | experienced"
-        bool has_program
+        bool has_routine
         int sessions_per_week
         int session_minutes
         text equipment_access "gym | home"
@@ -511,14 +516,15 @@ erDiagram
 ### 7.2 Ghi chú thiết kế
 
 - **Đơn vị và quy ước ghi tạ:** `SET_LOGS.weight_value` lưu đúng con số user nhập, kèm `input_unit` (kg/lb) — dữ liệu gốc không đổi khi user đổi đơn vị hiển thị (UC02); quy ước ghi tạ (tổng/mỗi bên/mỗi quả/cột tạ) được snapshot ở `SESSION_EXERCISES.load_input` để lịch sử cũ không bị hiểu sai nếu sau này user đổi quy ước. Chỉ so sánh số tạ trong cùng một bài và cùng một quy ước.
-- **Sync:** các bảng `WORKOUT_SESSIONS`, `SESSION_EXERCISES`, `SET_LOGS` dùng UUID sinh ở client; đẩy lên bằng `INSERT ... ON CONFLICT (id) DO UPDATE`; kéo về bằng `GET /sync/pull?since=<cursor theo updated_at>`; xoá bằng tombstone `deleted_at`.
+- **Sync:** các bảng `WORKOUT_SESSIONS`, `SESSION_EXERCISES`, `SET_LOGS`, `SUGGESTIONS`, `DELOAD_PERIODS` dùng UUID sinh ở client; đẩy lên bằng `INSERT ... ON CONFLICT (id) DO UPDATE`; `USER_EXERCISE_SETTINGS` đẩy cả dòng, `ON CONFLICT (user_id, exercise_id) DO UPDATE`, last-write-wins; kéo về bằng `GET /sync/pull?since=<cursor theo updated_at>`; xoá bằng tombstone `deleted_at`.
+- **Program không lưu trong DB:** program là YAML trong `packages/programs`, API đọc khi phục vụ danh sách program và khi tạo routine từ program; tên bài trong YAML (id của free-exercise-db) ánh xạ sang `EXERCISES` qua `source_ref`. Routine tạo từ program lưu `source = 'program'` và `program_id` (id trong YAML, không phải khoá ngoại).
 - **Dữ liệu dẫn xuất:** `PERSONAL_RECORDS` và các field streak trong `GOALS` chỉ là cache, tính lại được từ `SET_LOGS`/`WORKOUT_SESSIONS`. Phải tính lại khi user sửa hoặc xoá dữ liệu gốc — không cộng dồn, để idempotent với dữ liệu offline sync trễ.
 - **Song ngữ:** `EXERCISES` và `MUSCLES` có tên ở cả hai ngôn ngữ (`name_en`, `name_vi`); `USERS.locale` lưu ngôn ngữ giao diện (mặc định `en`). Xem 3.5.
 - **Chuẩn hoá nhóm cơ:** dùng bảng `MUSCLES` + `EXERCISE_MUSCLES` thay vì mảng text, để volume theo nhóm cơ không bị lệch vì từ đồng nghĩa.
-- **Index:** `workout_sessions(user_id, started_at desc)`, `session_exercises(exercise_id)` cho truy vấn "lần trước"; cân nhắc denormalize `user_id` vào `session_exercises` nếu truy vấn chậm. GIN trigram trên `exercise_aliases(alias_normalized)`. Unique `daily_activities(user_id, day, source)`, unique `body_metrics(user_id, source, external_id)`.
+- **Index:** `workout_sessions(user_id, started_at desc)`, `session_exercises(exercise_id)` cho truy vấn "lần trước"; cân nhắc denormalize `user_id` vào `session_exercises` nếu truy vấn chậm. GIN trigram trên `exercise_aliases(alias_normalized)` (tìm phía server, khi có mạng; offline tìm trên cache — 3.2). Unique `daily_activities(user_id, day, source)`, unique `body_metrics(user_id, source, external_id)`.
 - **Quyền riêng tư:** (post-MVP) chỉ lưu dữ liệu tổng hợp từ Health Connect (bước/ngày, cân nặng), không lưu nhịp tim thô; (post-MVP) xoá media import sau khi user xác nhận, hoặc sau 7 ngày nếu job không được xác nhận; llm\_output giữ 90 ngày để đo độ chính xác parser rồi xoá (đề xuất, xem SRS 5.2); xoá tài khoản = xoá cứng toàn bộ dữ liệu user theo cascade.
 
-**Bảng và field post-MVP:** ERD giữ thiết kế đầy đủ, nhưng migration của MVP không tạo `IMPORT_JOBS`, `DEVICE_CONNECTIONS`, `DAILY_ACTIVITIES`, `EXERCISE_VIDEOS`. Các giá trị/field phục vụ post-MVP — `PLANS.source` loại `import_*`, `WORKOUT_SESSIONS.health_external_id`, `BODY_METRICS.source = health_connect` và `external_id` — có thể giữ trong schema nhưng không được ghi ở MVP. \[Đề xuất\]
+**Bảng và field post-MVP:** ERD giữ thiết kế đầy đủ, nhưng migration của MVP không tạo `IMPORT_JOBS`, `DEVICE_CONNECTIONS`, `DAILY_ACTIVITIES`, `EXERCISE_VIDEOS`. Các giá trị/field phục vụ post-MVP — `ROUTINES.source` loại `import_*`, `WORKOUT_SESSIONS.health_external_id`, `BODY_METRICS.source = health_connect` và `external_id` — có thể giữ trong schema nhưng không được ghi ở MVP. **Chốt.**
 
 ## 8. Nguyên tắc thiết kế API
 
@@ -537,9 +543,9 @@ Contract chi tiết (request/response schema của từng route) được viết
 | Nhóm | Phục vụ UC | Ghi chú |
 | --- | --- | --- |
 | Auth | UC01 | Uỷ quyền cho Supabase Auth, backend chỉ verify |
-| Exercises & Plans | UC03–UC05, UC24 | CRUD bài tập/routine, copy từ template |
-| Sync | UC06–UC11 | Push/pull cho session/set, idempotent |
-| Suggestions | UC12–UC14, UC22 | Đọc gợi ý, ghi trạng thái accepted/dismissed |
+| Exercises & Routines | UC03–UC05, UC24 | CRUD bài tập/routine (cần mạng), danh sách program, tạo routine từ program, dữ liệu làm mới cache |
+| Sync | UC06–UC11, UC12–UC14, UC22 | Push/pull idempotent cho session/set, gợi ý, deload, cài đặt bài tập |
+| Suggestions | UC12–UC14, UC22 | Gợi ý sinh ở client; trạng thái accepted/dismissed, deload và cài đặt bài tập ghi qua Sync |
 | Goals & Challenges | UC15–UC17 | CRUD goal, đọc streak, PR |
 | Metrics & Progress | UC18–UC20 | Ghi chỉ số cơ thể, đọc biểu đồ/lịch sử |
 | Account | UC02, UC21, UC23 | Cài đặt, xoá tài khoản, onboarding |
@@ -604,14 +610,14 @@ MVP: xoá trong app. Trang web xoá tài khoản độc lập (bắt buộc theo
 | D7 | Backend NestJS (TypeScript) + PostgreSQL — chọn thay FastAPI/Spring Boot để cả monorepo dùng một ngôn ngữ: server dùng chung code TypeScript với app/engine khi tính lại PR và streak, không phải viết lại công thức bằng ngôn ngữ thứ hai. Auth: Supabase Auth bản cloud lúc dev và demo MVP; khi lên beta (post-MVP) mới cân nhắc chuyển sang tự host cùng server, API không đổi | Chốt NestJS · tự host auth cần thử nghiệm |
 | D8 | Local-first: IndexedDB (Dexie) + outbox, UUID sinh ở client, upsert idempotent (trước 16/11/2026: SQLite — đổi theo D26, lý do ở 3.2) | Chốt |
 | D9 | Import: một pipeline chung cho text/ảnh/khung hình video, cascade OCR máy → LLM text → vision LLM khi cần | Chốt · post-MVP |
-| D17 | Backend là modular monolith: NestJS + 1 worker, chạy trên một máy (localhost ở MVP) | Đề xuất |
+| D17 | Backend là modular monolith: NestJS + 1 worker, chạy trên một máy (localhost ở MVP) | Chốt |
 | D18 | Hàng đợi import dùng chính bảng `IMPORT_JOBS` (`FOR UPDATE SKIP LOCKED`), chưa cần queue riêng | Đề xuất · post-MVP |
-| D19 | Monorepo: `apps/web`, `apps/api`, `packages/engine` (TS), `packages/templates` (YAML), `packages/contract` (schema Zod dùng chung cho web app và backend; Swagger sinh từ schema khi dev) | Chốt |
+| D19 | Monorepo: `apps/web`, `apps/api`, `packages/engine` (TS), `packages/programs` (program dạng YAML), `packages/contract` (schema Zod dùng chung cho web app và backend; Swagger sinh từ schema khi dev) | Chốt |
 | D20 | Hosting beta đặt tại VN, Docker Compose (API, worker, PostgreSQL, auth, storage) — tránh thủ tục chuyển dữ liệu cá nhân xuyên biên giới (Nghị định 356/2025) | Post-MVP — chỉ cần khi lên beta |
 | D22 | Chia 2 nhóm user bằng bộ cài đặt mặc định từ onboarding, không tách 2 chế độ riêng | Chốt |
 | D27 | Giao diện song ngữ EN/VI từ MVP, tiếng Anh là ngôn ngữ gốc và mặc định (đổi mặc định sang tiếng Việt sau bằng một dòng cấu hình). Dùng Paraglide JS 3 + inlang CLI; chỉ client sinh câu chữ hiển thị, server và engine trả mã. Chi tiết ở 3.5 | Chốt (19/11/2026) · đổi mặc định sang tiếng Việt: dự kiến |
 
-Các dòng "Đề xuất" (D17, D18) là lựa chọn hợp lý cho quy mô hiện tại, có thể đổi nếu beta cho thấy cần tách service hoặc dùng queue riêng — không phải quyết định cứng.
+D17 chốt cho MVP; D18 vẫn là đề xuất cho post-MVP. Cả hai có thể đổi nếu beta cho thấy cần tách service hoặc dùng queue riêng.
 
 ## 11. Khả năng mở rộng & bảo trì
 
@@ -622,7 +628,7 @@ apps/web            — PWA (Vite + React)
 apps/api            — NestJS backend + worker
 packages/engine     — progression engine (TypeScript, pure function)
 packages/contract   — schema Zod request/response dùng chung (web + backend)
-packages/templates  — chương trình mẫu (YAML, do founder viết, duyệt qua PR)
+packages/programs   — program (chương trình mẫu, YAML do founder viết, duyệt qua PR)
 ```
 
 Tách `packages/engine` riêng khỏi `apps/web` để đổi luật gợi ý (R1–R8) không cần đụng vào code UI, và để viết test cho engine độc lập (pure function, không mock UI/network).
@@ -639,18 +645,18 @@ LLM provider được gọi qua một lớp adapter — đổi nhà cung cấp (
 
 Worker đã tách tiến trình riêng từ đầu (dù chạy chung server) — nếu sau này cần scale riêng phần import (ví dụ lượng ảnh tăng đột biến), có thể tách worker sang server khác mà không đổi kiến trúc dữ liệu (`IMPORT_JOBS` vẫn là điểm giao tiếp).
 
-### 11.5 Migration schema \[Đề xuất\]
+### 11.5 Migration schema
 
 - **PostgreSQL:** mỗi thay đổi schema là một migration có đánh số (Prisma Migrate — ORM đã chốt là Prisma, xem D7), chạy tự động khi deploy.
-- **IndexedDB trên web app:** schema khai báo bằng `db.version(n).stores(...)` của Dexie, mỗi thay đổi tăng `n` và có hàm `upgrade` nếu cần chuyển dữ liệu; Dexie chạy upgrade khi mở database, **trước** khi outbox được đọc. Migration không được xoá hay làm mất dữ liệu chưa sync.
+- **IndexedDB trên web app:** schema khai báo bằng `db.version(n).stores(...)` của Dexie, mỗi thay đổi tăng `n` và có hàm `upgrade` nếu cần chuyển dữ liệu; Dexie chạy upgrade khi mở database, **trước** khi outbox được đọc. Migration không được xoá hay làm mất dữ liệu chưa sync; bảng cache chỉ đọc thì xoá và nạp lại được.
 
-### 11.6 Versioning API \[Đề xuất\]
+### 11.6 Versioning API
 
 - Mọi endpoint có tiền tố `/v1`.
 - Thay đổi phá vỡ tương thích → mở `/v2` chạy song song cho đến khi mọi client đã cập nhật. Với PWA, bản mới đến qua service worker nhưng chỉ kích hoạt khi user đồng ý reload (3.3), nên bản cũ có thể còn chạy một thời gian.
 - App gửi kèm phiên bản trong header; server trả `426 Upgrade Required` để buộc cập nhật khi bản cũ không còn được hỗ trợ — app nhận mã này thì kích hoạt service worker mới và reload, sau khi đã đẩy xong outbox.
 
-### 11.7 Chiến lược test \[Đề xuất\]
+### 11.7 Chiến lược test
 
 | Tầng | Cách test |
 | --- | --- |
@@ -671,4 +677,4 @@ Worker đã tách tiến trình riêng từ đầu (dù chạy chung server) —
 - **API spec chi tiết:** schema Zod trong `packages/contract` mới có `/health`, `/me`; các endpoint còn lại sẽ làm theo hướng contract-first cùng lúc với code, dựa trên nhóm endpoint ở mục 8.2.
 - **Chia vai trong team (D14):** chờ biết thế mạnh của 2 thành viên còn lại, việc ai có Mac hay không đã rõ (không ai có) — đây là quyết định tổ chức, không thuộc phạm vi kỹ thuật của SDD.
 - **Các phần post-MVP (import LLM, Health Connect, video hướng dẫn, beta — xem 1.4):** thiết kế hiện có giữ lại để tham chiếu; chi tiết còn thiếu (cách trích khung hình cho UC27, mapping loại bài tập cho UC30) bổ sung khi lên kế hoạch giai đoạn sau.
-- Các con số đánh dấu \[Đề xuất\] ở SRS và SDD (quota import, thời gian lưu dữ liệu import, số bản backup, ranh giới tuần) cần team xác nhận trước beta.
+- Các con số còn đánh dấu \[Đề xuất\] ở SRS và SDD đều thuộc post-MVP (quota import, thời gian lưu dữ liệu import, số bản backup, D18, D20), cần team xác nhận trước beta. Các mục \[Đề xuất\] thuộc MVP đã chốt ngày 21/11/2026.
