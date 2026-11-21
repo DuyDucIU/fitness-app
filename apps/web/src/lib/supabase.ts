@@ -22,6 +22,10 @@ export function getSupabase(): SupabaseClient {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      // PKCE: chỉ nhận phiên từ URL khi chính trình duyệt này bắt đầu luồng đăng nhập.
+      // Luồng implicit (mặc định) nhận mọi `#access_token=…`, nên một link có token của
+      // người khác sẽ thay phiên của chủ máy.
+      flowType: 'pkce',
     },
   });
   return client;
