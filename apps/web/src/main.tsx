@@ -8,6 +8,7 @@ import './index.css';
 import { createAuth } from '@/auth/auth';
 import { AuthContext } from '@/auth/auth-context';
 import { createSupabaseGateway } from '@/auth/supabase-gateway';
+import { createCatalogSync } from '@/catalog/catalog-sync';
 import { AppUpdateProvider } from '@/components/app-update';
 import { ToastProvider } from '@/components/toast';
 import { db } from '@/db/db';
@@ -27,6 +28,8 @@ const auth = createAuth({
   onMe: (me) => queryClient.setQueryData(['me'], me),
   clearCaches: () => queryClient.clear(),
 });
+// Cache catalog bài tập trên máy: tự làm mới khi có phiên và khi có mạng lại.
+createCatalogSync({ db, auth, fetchCatalog: api.catalog });
 const router = createBrowserRouter(createRoutes(auth));
 
 applyDocumentLocale();

@@ -1,3 +1,4 @@
+import type { CatalogExercise } from '@fitness/contract';
 import { Dexie, type EntityTable } from 'dexie';
 
 /**
@@ -39,6 +40,11 @@ export const db = new Dexie('fitness') as Dexie & {
   outbox: EntityTable<OutboxEvent, 'seq'>;
   syncState: EntityTable<SyncStateEntry, 'key'>;
   meta: EntityTable<MetaEntry, 'key'>;
+  /**
+   * Cache chỉ đọc của catalog bài tập (ADR 0002): bản sao GET /v1/catalog, chỉ
+   * `catalog-sync` thay cả bảng khi làm mới, không sửa từng bài.
+   */
+  exercises: EntityTable<CatalogExercise, 'id'>;
 };
 
 db.version(1).stores({
@@ -47,4 +53,7 @@ db.version(1).stores({
 });
 db.version(2).stores({
   meta: 'key',
+});
+db.version(3).stores({
+  exercises: 'id',
 });

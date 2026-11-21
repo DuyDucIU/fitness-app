@@ -9,12 +9,14 @@ import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersController } from './users/users.controller';
 import { UsersService } from './users/users.service';
+import { CatalogModule } from './catalog/catalog.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     PrismaModule,
     AuthModule,
+    CatalogModule,
   ],
   controllers: [HealthController, UsersController],
   providers: [
