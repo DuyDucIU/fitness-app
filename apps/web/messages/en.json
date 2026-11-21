@@ -143,8 +143,8 @@
   "auth_email_placeholder": "you@example.com",
   "auth_example_last_value": "80×8 · 8 · 8 · 7",
   "plans_exercises_heading": "Exercises",
-  "library_title": "Exercise library",
-  "library_count": [
+  "plans_library_title": "Exercise library",
+  "plans_library_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -154,14 +154,14 @@
       }
     }
   ],
-  "library_search_label": "Search exercises",
-  "library_search_placeholder": "Search by name or nickname",
-  "library_results": "Exercises",
-  "library_no_match": "No exercise matches “{query}”.",
-  "library_not_downloaded": "The exercise list hasn’t downloaded yet. It loads by itself once you’re connected.",
-  "library_your_name": "your name “{alias}”",
-  "library_yours": "Yours",
-  "picker_add_title": "Add an exercise",
+  "plans_library_search_label": "Search exercises",
+  "plans_library_search_placeholder": "Search by name or nickname",
+  "plans_library_results": "Exercises",
+  "plans_library_no_match": "No exercise matches “{query}”.",
+  "plans_library_not_downloaded": "The exercise list hasn’t downloaded yet. It loads by itself once you’re connected.",
+  "plans_library_your_name": "your name “{alias}”",
+  "plans_library_yours": "Yours",
+  "plans_picker_add_title": "Add an exercise",
   "equipment_barbell": "Barbell",
   "equipment_dumbbell": "Dumbbell",
   "equipment_cable": "Cable",

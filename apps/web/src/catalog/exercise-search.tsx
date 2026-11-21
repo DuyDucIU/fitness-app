@@ -8,7 +8,7 @@ import {
   primaryMuscles,
 } from '@/catalog/display';
 import { useExerciseSearch } from '@/catalog/use-catalog';
-import { Block, Row, RowEnd } from '@/components/block';
+import { Block, Row, RowEnd, RowTitle } from '@/components/block';
 import { EmptyState } from '@/components/empty-state';
 import { SearchInput } from '@/components/field';
 import {
@@ -31,19 +31,22 @@ function ExerciseResult({
   const details = [
     exercise.equipment && equipmentLabel(exercise.equipment),
     primaryMuscles(exercise, locale).join(', '),
-    ownAlias && m.library_your_name({ alias: ownAlias }),
+    ownAlias && m.plans_library_your_name({ alias: ownAlias }),
   ].filter(Boolean);
   return (
     <>
-      <span className="min-w-0 flex-1 leading-[1.3] font-semibold">
+      <RowTitle
+        sub={
+          <>
+            {other && <span lang={locale === 'vi' ? 'en' : 'vi'}>{other}</span>}
+            {other && details.length > 0 && ' · '}
+            {details.length > 0 && <span>{details.join(' · ')}</span>}
+          </>
+        }
+      >
         <span data-slot="exercise-name">{name}</span>
-        <small className="block text-label leading-[1.35] font-normal">
-          {other && <span lang={locale === 'vi' ? 'en' : 'vi'}>{other}</span>}
-          {other && details.length > 0 && ' · '}
-          {details.length > 0 && <span>{details.join(' · ')}</span>}
-        </small>
-      </span>
-      {exercise.mine && <RowEnd>{m.library_yours()}</RowEnd>}
+      </RowTitle>
+      {exercise.mine && <RowEnd>{m.plans_library_yours()}</RowEnd>}
     </>
   );
 }
@@ -64,14 +67,16 @@ export function ExerciseSearch({
 
   let body: React.ReactNode = null;
   if (empty) {
-    body = <EmptyState>{m.library_not_downloaded()}</EmptyState>;
+    body = <EmptyState>{m.plans_library_not_downloaded()}</EmptyState>;
   } else if (results && results.length === 0) {
     body = (
-      <EmptyState>{m.library_no_match({ query: query.trim() })}</EmptyState>
+      <EmptyState>
+        {m.plans_library_no_match({ query: query.trim() })}
+      </EmptyState>
     );
   } else if (results) {
     body = (
-      <ul aria-label={m.library_results()}>
+      <ul aria-label={m.plans_library_results()}>
         {results.map((match) => (
           <li
             key={match.exercise.id}
@@ -98,8 +103,8 @@ export function ExerciseSearch({
     <>
       <SearchInput
         ref={inputRef}
-        aria-label={m.library_search_label()}
-        placeholder={m.library_search_placeholder()}
+        aria-label={m.plans_library_search_label()}
+        placeholder={m.plans_library_search_placeholder()}
         autoComplete="off"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
@@ -116,7 +121,7 @@ export function ExerciseSearch({
 export function ExercisePicker({
   open,
   onOpenChange,
-  title = m.picker_add_title(),
+  title = m.plans_picker_add_title(),
   onPick,
 }: {
   open: boolean;
@@ -129,6 +134,7 @@ export function ExercisePicker({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         aria-describedby={undefined}
+        // Cao cố định bằng mức tối đa: sheet không co giãn theo số kết quả khi đang gõ.
         className="h-[88dvh]"
         onOpenAutoFocus={(event) => {
           // Mở sheet là để gõ tìm: focus ô tìm thay vì nút đóng.

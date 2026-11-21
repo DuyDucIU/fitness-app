@@ -47,7 +47,8 @@ export function TodayPage() {
 }
 
 export function PlansPage() {
-  const catalog = useCatalog();
+  // Đếm như danh sách trong thư viện: không tính bài đã lưu trữ.
+  const count = useCatalog()?.filter((e) => !e.isArchived).length;
   return (
     <RootScreen title={m.nav_plans()}>
       <SectionHeading>{m.plans_exercises_heading()}</SectionHeading>
@@ -56,13 +57,9 @@ export function PlansPage() {
           <Link to="/plans/exercises">
             <SearchIcon className="size-5 flex-none" aria-hidden />
             <RowTitle
-              sub={
-                catalog?.length
-                  ? m.library_count({ count: catalog.length })
-                  : undefined
-              }
+              sub={count ? m.plans_library_count({ count }) : undefined}
             >
-              {m.library_title()}
+              {m.plans_library_title()}
             </RowTitle>
             <RowEnd chevron />
           </Link>

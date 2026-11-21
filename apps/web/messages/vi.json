@@ -138,8 +138,8 @@
   "auth_email_placeholder": "ban@example.com",
   "auth_example_last_value": "80×8 · 8 · 8 · 7",
   "plans_exercises_heading": "Bài tập",
-  "library_title": "Thư viện bài tập",
-  "library_count": [
+  "plans_library_title": "Thư viện bài tập",
+  "plans_library_count": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
@@ -148,14 +148,14 @@
       }
     }
   ],
-  "library_search_label": "Tìm bài tập",
-  "library_search_placeholder": "Tìm theo tên hoặc tên gọi khác",
-  "library_results": "Bài tập",
-  "library_no_match": "Không có bài nào khớp “{query}”.",
-  "library_not_downloaded": "Danh sách bài tập chưa tải về máy. Có mạng là app tự tải.",
-  "library_your_name": "tên bạn đặt “{alias}”",
-  "library_yours": "Của bạn",
-  "picker_add_title": "Thêm bài tập",
+  "plans_library_search_label": "Tìm bài tập",
+  "plans_library_search_placeholder": "Tìm theo tên hoặc tên gọi khác",
+  "plans_library_results": "Bài tập",
+  "plans_library_no_match": "Không có bài nào khớp “{query}”.",
+  "plans_library_not_downloaded": "Danh sách bài tập chưa tải về máy. Có mạng là app tự tải.",
+  "plans_library_your_name": "tên bạn đặt “{alias}”",
+  "plans_library_yours": "Của bạn",
+  "plans_picker_add_title": "Thêm bài tập",
   "equipment_barbell": "Tạ đòn",
   "equipment_dumbbell": "Tạ đơn",
   "equipment_cable": "Cáp",
