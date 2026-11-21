@@ -9,25 +9,25 @@ export const LocalizedTextSchema = z.object({
 export type LocalizedText = z.infer<typeof LocalizedTextSchema>;
 
 /** Một bài trong ngày tập. `exercise` là id của bài trong catalog (free-exercise-db). */
-export const TemplateExerciseSchema = z
+export const ProgramExerciseSchema = z
   .object({
     exercise: z.string().min(1),
     sets: z.number().int().positive(),
     repMin: z.number().int().positive(),
     repMax: z.number().int().positive(),
     restSeconds: z.number().int().positive().optional(),
-    /** R8: chỉ dùng tạ khởi điểm tĩnh từ template, không có thuật toán gợi ý. */
+    /** R8: chỉ dùng tạ khởi điểm tĩnh từ program, không có thuật toán gợi ý. */
     initialWeightKg: z.number().positive().optional(),
   })
   .refine((e) => e.repMin <= e.repMax, { message: 'repMin must be <= repMax' });
 
-export const TemplateDaySchema = z.object({
+export const ProgramDaySchema = z.object({
   name: LocalizedTextSchema,
-  exercises: z.array(TemplateExerciseSchema).min(1),
+  exercises: z.array(ProgramExerciseSchema).min(1),
 });
 
 /** Chương trình mẫu (UC24), lọc theo USER_PROFILES. */
-export const ProgramTemplateSchema = z.object({
+export const ProgramSchema = z.object({
   id: z.string().min(1),
   name: LocalizedTextSchema,
   experienceLevel: z.enum(['beginner', 'experienced']),
@@ -36,11 +36,11 @@ export const ProgramTemplateSchema = z.object({
   goal: z.enum(['general', 'hypertrophy', 'fat_loss']),
   /** true = nội dung chưa được founder duyệt qua PR. */
   draft: z.boolean().default(true),
-  days: z.array(TemplateDaySchema).min(1),
+  days: z.array(ProgramDaySchema).min(1),
 });
-export type ProgramTemplate = z.infer<typeof ProgramTemplateSchema>;
+export type Program = z.infer<typeof ProgramSchema>;
 
 /** Parse và validate nội dung một file YAML chương trình mẫu. */
-export function parseProgramTemplate(yamlText: string): ProgramTemplate {
-  return ProgramTemplateSchema.parse(parse(yamlText));
+export function parseProgram(yamlText: string): Program {
+  return ProgramSchema.parse(parse(yamlText));
 }

@@ -15,7 +15,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/contract/package.json packages/contract/
 COPY packages/engine/package.json packages/engine/
-COPY packages/templates/package.json packages/templates/
+COPY packages/programs/package.json packages/programs/
 RUN npm ci --workspace @fitness/api --include-workspace-root
 
 COPY tsconfig.base.json ./
@@ -34,7 +34,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/contract/package.json packages/contract/
 COPY packages/engine/package.json packages/engine/
-COPY packages/templates/package.json packages/templates/
+COPY packages/programs/package.json packages/programs/
 RUN npm ci --omit=dev --workspace @fitness/api --include-workspace-root \
  && mkdir -p apps/api/node_modules
 

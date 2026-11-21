@@ -66,7 +66,7 @@ Thành công nghĩa là: ghi một set gần như không tốn công giữa hai 
 ## Evidence on Hand
 
 - Catalog bài tập: 42 bài nạp từ free-exercise-db (Unlicense), danh sách ở `apps/api/prisma/seed/catalog.yaml`; tên Việt là bản nháp.
-- Chương trình mẫu: `packages/templates/programs/full-body-3day.yaml` (YAML do founder viết, căn cứ ACSM 2009/2026).
+- Chương trình mẫu: `packages/programs/data/full-body-3day.yaml` (YAML do founder viết, căn cứ ACSM 2009/2026).
 - Bộ luật engine R1–R8 và ngưỡng mặc định: SRS Phụ lục A, `packages/engine`.
 - **Chưa có:** người dùng thật, testimonial, kết quả phỏng vấn, số liệu sử dụng, ảnh chụp sản phẩm, logo. Không được bịa những thứ này trong UI, màn hình onboarding hay dữ liệu mẫu trình bày như dữ liệu thật.
 

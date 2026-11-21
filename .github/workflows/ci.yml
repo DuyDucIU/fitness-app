@@ -36,7 +36,7 @@ jobs:
       # Prisma client nằm trong src/generated (không commit), phải sinh trước khi build/typecheck.
       - run: npm run db:generate -w @fitness/api
 
-      # Thứ tự workspaces trong package.json: contract -> engine -> templates -> api -> web.
+      # Thứ tự workspaces trong package.json: contract -> engine -> programs -> api -> web.
       - run: npm run build
       - run: npm run typecheck
       - run: npm run lint

@@ -18,7 +18,7 @@
   "workspaces": [
     "packages/contract",
     "packages/engine",
-    "packages/templates",
+    "packages/programs",
     "apps/api",
     "apps/web"
   ],
