@@ -4,10 +4,11 @@ import { Link } from 'react-router';
 import { ownerOf } from '@/auth/auth';
 import { useAuth } from '@/auth/auth-context';
 import { ReauthBanner } from '@/auth/reauth-banner';
+import { useCatalog } from '@/catalog/use-catalog';
 import { AppShell, Foot, SectionHeading, TopBar } from '@/components/app-shell';
 import { UpdateBanner } from '@/components/app-update';
 import { Block, Row, RowEnd, RowTitle } from '@/components/block';
-import { MeIcon } from '@/components/icons';
+import { MeIcon, SearchIcon } from '@/components/icons';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { SyncPill } from '@/components/sync-pill';
 import { m } from '@/paraglide/messages.js';
@@ -46,7 +47,29 @@ export function TodayPage() {
 }
 
 export function PlansPage() {
-  return <RootScreen title={m.nav_plans()} />;
+  const catalog = useCatalog();
+  return (
+    <RootScreen title={m.nav_plans()}>
+      <SectionHeading>{m.plans_exercises_heading()}</SectionHeading>
+      <Block>
+        <Row asChild>
+          <Link to="/plans/exercises">
+            <SearchIcon className="size-5 flex-none" aria-hidden />
+            <RowTitle
+              sub={
+                catalog?.length
+                  ? m.library_count({ count: catalog.length })
+                  : undefined
+              }
+            >
+              {m.library_title()}
+            </RowTitle>
+            <RowEnd chevron />
+          </Link>
+        </Row>
+      </Block>
+    </RootScreen>
+  );
 }
 
 export function HistoryPage() {
