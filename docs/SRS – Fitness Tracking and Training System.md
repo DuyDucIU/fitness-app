@@ -86,7 +86,7 @@ Sản phẩm độc lập (không phụ thuộc hệ thống có sẵn nào củ
 
 ### 2.5 Ràng buộc chung (tóm tắt, chi tiết ở mục 6)
 
-PWA chạy trên trình duyệt di động (iOS + Android, một codebase), local-first cho phiên tập (IndexedDB + outbox, hoạt động offline), dữ liệu engine cần (routine, cài đặt bài tập, deload, catalog) được cache chỉ đọc trên máy, ghi ngoài buổi tập cần mạng (xem 5.3, ADR 0002); progression engine chạy client-side. Chi tiết đầy đủ và các mục còn chưa chốt xem mục 6.
+PWA chạy trên trình duyệt di động (iOS + Android, một codebase), local-first cho phiên tập (IndexedDB + outbox, hoạt động offline), cài đặt bài tập, gợi ý và deload cũng local-first qua outbox; routine và catalog bài tập được cache chỉ đọc trên máy; các thao tác ghi khác cần mạng (xem 5.3, ADR 0002); progression engine chạy client-side. Chi tiết đầy đủ và các mục còn chưa chốt xem mục 6.
 
 ### 2.6 Giả định & phụ thuộc (tóm tắt)
 
@@ -579,8 +579,8 @@ Các ngưỡng dưới đây là mốc tối thiểu, đã chốt cho MVP:
 ### 5.3 Khả dụng offline
 
 - Toàn bộ luồng ghi buổi tập (UC06–UC11) hoạt động không cần mạng: IndexedDB + outbox, UUID sinh ở client, đồng bộ khi có mạng lại bằng upsert idempotent.
-- Ngoài dữ liệu buổi tập, ba loại dữ liệu sinh ra trong lúc tập cũng đi qua outbox: cài đặt bài tập (`USER_EXERCISE_SETTINGS`, UC08/UC14), gợi ý và trạng thái gợi ý (`SUGGESTIONS`, UC12/UC13), giai đoạn deload (`DELOAD_PERIODS`, UC22).
-- Dữ liệu engine và màn bắt đầu buổi cần — routine (kèm ngày tập và bài), cài đặt bài tập, lịch sử deload, catalog bài tập — được **cache chỉ đọc** trên máy và làm mới khi có mạng. Tìm bài khi offline khớp không dấu trên catalog đã cache.
+- Ngoài dữ liệu buổi tập, ba loại dữ liệu sau cũng local-first — lưu trên máy, ghi qua outbox, kéo về bằng sync — dù được sửa từ màn nào (trong buổi tập, thư viện bài tập hay màn deload): cài đặt bài tập (`USER_EXERCISE_SETTINGS`, UC08/UC14), gợi ý và trạng thái gợi ý (`SUGGESTIONS`, UC12/UC13), giai đoạn deload (`DELOAD_PERIODS`, UC22). Lý do: chúng thường phát sinh ngay lúc tập, có thể đúng lúc mất mạng.
+- Routine (kèm ngày tập và bài) và catalog bài tập — engine và màn bắt đầu buổi cần chúng khi offline — được **cache chỉ đọc** trên máy và làm mới khi có mạng. Tìm bài khi offline khớp không dấu trên catalog đã cache.
 - Các thao tác ghi khác ngoài buổi tập (tạo/sửa routine, chọn program, tạo bài tuỳ chỉnh, alias, cài đặt tài khoản, mục tiêu, chỉ số cơ thể, onboarding) cần mạng: app báo cần có mạng, không xếp hàng chờ đồng bộ. Lý do và đánh đổi: ADR 0002.
 - App mở được khi không có mạng: service worker cache phần vỏ app (HTML/JS/CSS); dữ liệu không đi qua service worker.
 - Đồng bộ được kích hoạt sau mỗi lần ghi, khi thiết bị online lại và khi app hiện lại trên màn hình — không dựa vào Background Sync API vì Safari không hỗ trợ.
@@ -671,4 +671,4 @@ Các ngưỡng cụ thể (RPE threshold, tỉ lệ %, số ngày...) nằm tron
 | Load input | Quy ước ghi tạ: `total` (tổng), `per_side` (mỗi bên), `per_dumbbell` (mỗi quả), `stack` (cột tạ), `added_weight` (tạ đeo thêm) |
 | Volume (theo nhóm cơ) | Đo bằng số working set/tuần, không cộng tổng kg (vì quy ước ghi tạ khác nhau giữa các bài) |
 | Tombstone | Đánh dấu xoá bằng `deleted_at` thay vì xoá cứng ngay, phục vụ đồng bộ offline-first |
-| Cache chỉ đọc | Bản sao trên máy của dữ liệu server (routine, cài đặt bài tập, deload, catalog) để engine và màn bắt đầu buổi chạy offline; không sửa trực tiếp, làm mới khi có mạng |
+| Cache chỉ đọc | Bản sao trên máy của routine và catalog bài tập để engine và màn bắt đầu buổi chạy offline; không sửa trực tiếp, làm mới khi có mạng |

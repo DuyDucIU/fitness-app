@@ -59,7 +59,7 @@ Màn gốc chứa routine, program và thư viện bài tập. Tên tab không p
 ## Dữ liệu trên máy
 
 **Outbox**:
-Hàng đợi trên máy các thay đổi chờ đẩy lên server, theo đúng thứ tự đã ghi. Chỉ dữ liệu sinh ra trong lúc tập đi qua outbox: buổi tập, set, gợi ý, deload, cài đặt bài tập.
+Hàng đợi trên máy các thay đổi chờ đẩy lên server, theo đúng thứ tự đã ghi. Dữ liệu đi qua outbox ghi được khi offline.
 
 **Cache chỉ đọc**:
-Bản sao trên máy của dữ liệu server mà engine và màn bắt đầu buổi cần khi offline (routine, cài đặt bài tập, deload, catalog bài tập). Không sửa trực tiếp; làm mới khi có mạng.
+Bản sao trên máy của dữ liệu server để dùng khi offline. Không sửa trực tiếp; làm mới khi có mạng.
