@@ -136,4 +136,54 @@ describe('đăng ký', () => {
       'An account with this email already exists. Sign in instead.',
     );
   });
+
+  it('gửi lại sau khi đã báo kiểm tra email: chỉ còn lỗi mới, không còn thông báo cũ', async () => {
+    let needsConfirm = true;
+    await openApp('/sign-up', {
+      signUp: async () => {
+        if (needsConfirm) {
+          needsConfirm = false;
+          return null;
+        }
+        throw new AuthFailure('user_already_exists');
+      },
+    });
+    await fillSignUp({
+      email: 'chi@example.com',
+      password: PASSWORD,
+      confirm: PASSWORD,
+    });
+    expect(await screen.findByText('Check your email')).toBeInTheDocument();
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Create account' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'An account with this email already exists.',
+    );
+    expect(screen.queryByText('Check your email')).not.toBeInTheDocument();
+  });
+});
+
+describe('mở màn đăng nhập khi máy đã có chủ', () => {
+  it('chưa đọc xong phiên (đang refresh token): ở lại màn đăng nhập', async () => {
+    const lookup = new Promise<never>(() => {});
+    const { router } = await openApp('/sign-in?next=%2Fme', {
+      owner: AN,
+      getSession: () => lookup,
+    });
+    expect(
+      await screen.findByRole('button', { name: 'Sign in' }),
+    ).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(router.state.location.pathname).toBe('/sign-in');
+  });
+
+  it('phiên còn dùng được: chuyển về trang `next`', async () => {
+    const { router } = await openApp('/sign-in?next=%2Fme', {
+      owner: AN,
+      stored: { kind: 'session', user: AN },
+    });
+    await vi.waitFor(() => expect(router.state.location.pathname).toBe('/me'));
+  });
 });

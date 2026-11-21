@@ -154,6 +154,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setFailure(null);
+    setConfirmEmail(false);
     const errors = validate(mode, { email, password, confirm });
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;

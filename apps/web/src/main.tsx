@@ -22,8 +22,9 @@ const queryClient = new QueryClient();
 const auth = createAuth({
   gateway: createSupabaseGateway(getSupabase),
   db,
-  // Cache kết quả ở key ['me'] để màn hình sau dùng lại bằng useQuery.
-  fetchMe: () => queryClient.fetchQuery({ queryKey: ['me'], queryFn: api.me }),
+  fetchMe: api.me,
+  // Cache ở key ['me'] để màn hình sau dùng lại bằng useQuery (chỉ kết quả của phiên hiện tại).
+  onMe: (me) => queryClient.setQueryData(['me'], me),
   clearCaches: () => queryClient.clear(),
 });
 const router = createBrowserRouter(createRoutes(auth));

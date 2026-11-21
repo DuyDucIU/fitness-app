@@ -23,11 +23,15 @@ export function RequireOwner() {
   return <Outlet />;
 }
 
-/** Layout của màn đăng nhập/đăng ký: đã có phiên thì về trang `next` (mặc định Today). */
+/**
+ * Layout của màn đăng nhập/đăng ký: đã có phiên thì về trang `next` (mặc định Today).
+ * Chưa đọc xong phiên (`sessionPending`) thì ở lại: có thể hoá ra mất phiên, đúng lúc
+ * user mở màn này để đăng nhập lại.
+ */
 export function PublicOnly() {
   const state = useAuth();
   const [params] = useSearchParams();
-  if (state.status === 'signed-in') {
+  if (state.status === 'signed-in' && !state.sessionPending) {
     return <Navigate to={safeNext(params.get('next'))} replace />;
   }
   return <Outlet />;

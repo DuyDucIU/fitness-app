@@ -26,10 +26,11 @@ export function createRoutes(auth: Auth): RouteObject[] {
   return [
     {
       // Route gốc không có path: mọi route con dùng chung màn lỗi đã dịch, và chỉ render
-      // sau khi đã biết trạng thái đăng nhập (đọc phiên + chủ máy, không cần mạng).
+      // sau khi đã biết trạng thái đăng nhập. Máy có chủ thì chỉ đọc IndexedDB, không chờ
+      // mạng; máy chưa có chủ thì chờ đọc phiên (Auth.ready).
       ErrorBoundary: RouteError,
       loader: async () => {
-        await auth.ready;
+        await auth.ready();
         return null;
       },
       HydrateFallback: () => null,

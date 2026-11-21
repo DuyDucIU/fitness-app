@@ -1,6 +1,8 @@
 import {
   isAuthApiError,
+  isAuthRefreshDiscardedError,
   isAuthRetryableFetchError,
+  isAuthSessionMissingError,
   isAuthWeakPasswordError,
   type Session,
   type SupabaseClient,
@@ -79,19 +81,53 @@ export function createSupabaseGateway(
       if (error) throw toAuthFailure(error);
       return data.session ? toUser(data.session) : null;
     },
-    async signOut() {
-      // scope 'local': chỉ máy này. Lỗi mạng vẫn xoá phiên trên máy.
-      await getClient().auth.signOut({ scope: 'local' });
+    async refreshSession() {
+      const { data, error } = await getClient()
+        .auth.refreshSession()
+        .catch((e: unknown) => ({ data: { session: null }, error: e }));
+      // Commit guard của supabase-js: lần refresh khác (vd tab khác) đã ghi token mới, phiên
+      // vẫn sống.
+      if (data.session || isAuthRefreshDiscardedError(error))
+        return 'refreshed';
+      // Chỉ coi là phiên chết khi máy không còn phiên, hoặc server từ chối refresh token
+      // (4xx, trừ 429). Lỗi khác (mạng, 5xx, giới hạn tần suất, lỗi lạ) là tạm thời: giữ
+      // phiên, thử lại sau (SDD 9.1).
+      if (isAuthSessionMissingError(error)) return 'rejected';
+      if (
+        isAuthApiError(error) &&
+        error.status >= 400 &&
+        error.status < 500 &&
+        error.status !== 429
+      ) {
+        return 'rejected';
+      }
+      return 'unreachable';
     },
-    onSessionEnded(listener) {
+    async signOut() {
+      // scope 'local': chỉ máy này; supabase-js xoá phiên trên máy kể cả khi lỗi mạng,
+      // `error` chỉ là lỗi báo server thu hồi refresh token nên bỏ qua.
+      await getClient()
+        .auth.signOut({ scope: 'local' })
+        .catch(() => {});
+    },
+    onSessionChange(listener) {
       let client: SupabaseClient;
       try {
         client = getClient();
       } catch {
         return () => {};
       }
-      const { data } = client.auth.onAuthStateChange((event) => {
-        if (event === 'SIGNED_OUT') listener();
+      const { data } = client.auth.onAuthStateChange((event, session) => {
+        // Callback chạy trong lock của supabase-js: gọi lại supabase-js ngay ở đây sẽ
+        // deadlock, nên báo listener sau.
+        if (event === 'SIGNED_OUT') setTimeout(() => listener(null), 0);
+        else if (
+          (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') &&
+          session
+        ) {
+          const user = toUser(session);
+          setTimeout(() => listener(user), 0);
+        }
       });
       return () => data.subscription.unsubscribe();
     },

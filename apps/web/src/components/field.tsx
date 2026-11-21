@@ -87,8 +87,8 @@ export function PasswordInput(
         variant="ghost"
         size="icon"
         className="absolute top-0.5 right-0.5"
+        // Nhãn đổi theo trạng thái nên không dùng thêm aria-pressed (đọc thành "Hide, pressed").
         aria-label={shown ? m.auth_hide_password() : m.auth_show_password()}
-        aria-pressed={shown}
         onClick={() => setShown((s) => !s)}
       >
         <EyeIcon />
