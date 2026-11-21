@@ -24,6 +24,12 @@ export interface SyncStateEntry {
   value: string;
 }
 
+/** Thông tin về chính máy này dạng key-value, vd chủ máy (`owner`, ADR 0001). */
+export interface MetaEntry {
+  key: string;
+  value: unknown;
+}
+
 /**
  * IndexedDB cục bộ qua Dexie: nguồn dữ liệu tạm thời khi offline.
  * Đổi schema = thêm db.version(n + 1) (SDD 11.5), không sửa version cũ.
@@ -32,9 +38,13 @@ export interface SyncStateEntry {
 export const db = new Dexie('fitness') as Dexie & {
   outbox: EntityTable<OutboxEvent, 'seq'>;
   syncState: EntityTable<SyncStateEntry, 'key'>;
+  meta: EntityTable<MetaEntry, 'key'>;
 };
 
 db.version(1).stores({
   outbox: '++seq, [entity+entityId]',
   syncState: 'key',
+});
+db.version(2).stores({
+  meta: 'key',
 });

@@ -556,6 +556,10 @@ Supabase Auth (Google + email/mật khẩu) phát hành JWT; NestJS verify JWT �
 
 Phía web: supabase-js lưu phiên ở `localStorage` (mặc định), đăng nhập Google bằng redirect OAuth — URL redirect của từng môi trường (localhost, host demo) phải được khai báo trong Supabase. Giảm rủi ro XSS đọc token bằng Content-Security-Policy: chỉ cho phép script từ chính origin của app, `connect-src` giới hạn ở API và Supabase.
 
+**Phiên dài hạn:** mục tiêu là đăng nhập một lần rồi dùng luôn. Trên Supabase không bật Time-box user sessions / Inactivity timeout (refresh token không hết hạn theo thời gian); giữ bật phát hiện dùng lại refresh token nhưng tăng reuse interval lên \~60 giây để mạng chập chờn không làm mất phiên. Trên iOS nên dùng bản đã cài lên màn hình chính, vì Safari xoá dữ liệu của site trong tab sau 7 ngày không mở. Mất phiên không khoá app (ADR 0001).
+
+**Tạm thời (20/11/2026):** bản auth đầu tiên chỉ có đăng ký/đăng nhập email + mật khẩu; xác nhận email (tắt "Confirm email" trên Supabase), quên mật khẩu và Google OAuth làm sau, vẫn thuộc MVP.
+
 ### 9.2 Dữ liệu thiết bị sức khoẻ — *post-MVP*
 
 Chỉ lưu dữ liệu tổng hợp từ Health Connect (bước/ngày, cân nặng) — không lưu nhịp tim thô hay dữ liệu sức khoẻ chi tiết khác, giảm bề mặt rủi ro nếu dữ liệu bị lộ.

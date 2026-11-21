@@ -1,18 +1,32 @@
-import { isRouteErrorResponse, useRouteError } from 'react-router';
+import type * as React from 'react';
+import {
+  isRouteErrorResponse,
+  useRevalidator,
+  useRouteError,
+} from 'react-router';
 
 import { AppShell, Foot } from '@/components/app-shell';
 import { EmptyState } from '@/components/empty-state';
+import { Button } from '@/components/ui/button';
 import { m } from '@/paraglide/messages.js';
 
 /** Khung chung cho màn lỗi: khối trống + thanh tab để quay về các màn gốc. */
-function ErrorScreen({ message }: { message: string }) {
+function ErrorScreen({
+  message,
+  action,
+}: {
+  message: string;
+  action?: React.ReactNode;
+}) {
   return (
     <AppShell
       // Không có thanh trên: vẫn chừa vùng an toàn iOS ở đỉnh.
       top={<div aria-hidden className="h-(--safe-top) flex-none" />}
       foot={<Foot tabs />}
     >
-      <EmptyState heading>{message}</EmptyState>
+      <EmptyState heading action={action}>
+        {message}
+      </EmptyState>
     </AppShell>
   );
 }
@@ -24,11 +38,26 @@ export function NotFoundPage() {
 
 /**
  * `errorElement` của router: thay màn lỗi mặc định (tiếng Anh, không dịch) của React Router.
+ * Lỗi khác 404 (vd không đọc được IndexedDB lúc mở app) có nút chạy lại loader.
  */
 export function RouteError() {
   const error = useRouteError();
-  const notFound = isRouteErrorResponse(error) && error.status === 404;
+  const revalidator = useRevalidator();
+  if (isRouteErrorResponse(error) && error.status === 404) {
+    return <ErrorScreen message={m.error_not_found()} />;
+  }
   return (
-    <ErrorScreen message={notFound ? m.error_not_found() : m.error_unknown()} />
+    <ErrorScreen
+      message={m.error_unknown()}
+      action={
+        <Button
+          size="wide"
+          busy={revalidator.state === 'loading'}
+          onClick={() => void revalidator.revalidate()}
+        >
+          {m.common_retry()}
+        </Button>
+      }
+    />
   );
 }
