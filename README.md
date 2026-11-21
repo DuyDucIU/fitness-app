@@ -4,13 +4,13 @@ Monorepo (npm workspaces) cho ứng dụng theo dõi tập luyện. Thiết kế
 
 Thành viên mới: đọc [docs/ONBOARDING.md](docs/ONBOARDING.md) trước.
 
-| Thư mục              | Nội dung                                                                                                    |
-| -------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `apps/web`           | PWA: Vite + React + `vite-plugin-pwa`, Dexie (IndexedDB), React Router, TanStack Query, shadcn/ui, Supabase |
-| `apps/api`           | NestJS 11 + Prisma 7 + PostgreSQL; có `main.ts` (API) và `worker.ts` (cron)                                 |
-| `packages/contract`  | Schema Zod dùng chung (nguồn sự thật của API contract)                                                      |
-| `packages/engine`    | Progression engine (hàm thuần, Vitest)                                                                      |
-| `packages/templates` | Chương trình mẫu YAML + schema kiểm tra                                                                     |
+| Thư mục             | Nội dung                                                                                                    |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `apps/web`          | PWA: Vite + React + `vite-plugin-pwa`, Dexie (IndexedDB), React Router, TanStack Query, shadcn/ui, Supabase |
+| `apps/api`          | NestJS 11 + Prisma 7 + PostgreSQL; có `main.ts` (API) và `worker.ts` (cron)                                 |
+| `packages/contract` | Schema Zod dùng chung (nguồn sự thật của API contract)                                                      |
+| `packages/engine`   | Progression engine (hàm thuần, Vitest)                                                                      |
+| `packages/programs` | Chương trình mẫu YAML + schema kiểm tra                                                                     |
 
 ## Yêu cầu
 
@@ -29,7 +29,7 @@ docker compose up -d                       # chỉ bật PostgreSQL
 npm run db:generate -w @fitness/api        # sinh Prisma client (không commit)
 npm run db:deploy -w @fitness/api          # áp migration
 npm run db:seed -w @fitness/api            # nạp catalog bài tập (42 bài, tên Việt là bản nháp)
-npm run build                              # build contract/engine/templates/api/web (theo thứ tự)
+npm run build                              # build contract/engine/programs/api/web (theo thứ tự)
 ```
 
 Sau đó điền thông tin Supabase vào các file `.env` (xem mục "Supabase Auth"). Chưa điền thì app vẫn chạy, nhưng mọi thao tác cần đăng nhập sẽ báo lỗi "Chưa cấu hình Supabase".

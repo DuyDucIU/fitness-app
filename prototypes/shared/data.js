@@ -80,10 +80,10 @@ const TEMPLATES = [
       {name:'Full body B', ex:[P('deadlift',3,3,5), P('ohp',3,5,8), P('pullup',3,5,10)]},
     ]},
   {id:'upper-lower-4day', name:'Upper / lower, 4 days', level:'Intermediate', perWeek:4, minutes:60, equipment:'Gym', goal:'Muscle', draft:true, sample:true,
-    blurb:'Sample entry for layout review only; not in packages/templates yet.',
+    blurb:'Sample entry for layout review only; not in packages/programs yet.',
     days:[{name:'Upper A', ex:[P('bench',4,6,8), P('row',4,6,10), P('dbohp',3,8,12), P('latpd',3,8,12)]},{name:'Lower A', ex:[P('squat',4,5,8), P('rdl',3,8,10), P('legcurl',3,10,15), P('calf',4,10,15)]},{name:'Upper B', ex:[P('inclbb',4,6,10), P('cablerow',3,8,12), P('lat',3,12,15), P('push',3,10,15)]},{name:'Lower B', ex:[P('deadlift',3,3,5), P('legpress',3,10,12), P('lunge',3,8,12), P('scalf',4,12,15)]}]},
   {id:'home-2day', name:'Dumbbells at home, 2 days', level:'Beginner', perWeek:2, minutes:40, equipment:'Home', goal:'General strength', draft:true, sample:true,
-    blurb:'Sample entry for layout review only; not in packages/templates yet.',
+    blurb:'Sample entry for layout review only; not in packages/programs yet.',
     days:[{name:'Day A', ex:[P('goblet',3,8,12), P('dbbench',3,8,12), P('dbrow',3,8,12), P('plank',3,null,null,{dur:[30,60],rest:60})]},{name:'Day B', ex:[P('lunge',3,8,12), P('dbohp',3,8,12), P('dbcurl',3,10,12), P('pushup',3,8,15)]}]},
 ];
 
