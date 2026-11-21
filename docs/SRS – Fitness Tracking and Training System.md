@@ -29,6 +29,8 @@ Không thuộc phạm vi: dạy kỹ thuật tập từ đầu, huấn luyện v
 | PR | Personal Record |
 | RPE | Rate of Perceived Exertion — thang đánh giá độ gắng sức, tuỳ chọn |
 | e1RM | Estimated 1-Rep Max — ước lượng mức tạ tối đa 1 lần đẩy |
+| Routine | Lịch tập của riêng một user (bảng `ROUTINES`), gồm các ngày tập; mỗi user có tối đa một routine đang dùng. Xem `GLOSSARY.md` |
+| Program | Chương trình mẫu do hệ thống soạn sẵn (YAML trong `packages/programs`, không lưu trong DB); chọn program tạo ra một routine mới |
 | Load input | Quy ước ghi tạ của một bài (tổng / mỗi bên / mỗi quả / cột tạ) |
 | STABLE | Buổi gần nhất có mọi working set cùng một mức tạ |
 | TRANSITION | Buổi gần nhất có các working set khác mức tạ (đang chuyển mức) |
@@ -84,11 +86,11 @@ Sản phẩm độc lập (không phụ thuộc hệ thống có sẵn nào củ
 
 ### 2.5 Ràng buộc chung (tóm tắt, chi tiết ở mục 6)
 
-PWA chạy trên trình duyệt di động (iOS + Android, một codebase), local-first cho phiên tập (IndexedDB + outbox, hoạt động offline), progression engine chạy client-side. Chi tiết đầy đủ và các mục còn "Đề xuất/chưa chốt" xem mục 6.
+PWA chạy trên trình duyệt di động (iOS + Android, một codebase), local-first cho phiên tập (IndexedDB + outbox, hoạt động offline), dữ liệu engine cần (routine, cài đặt bài tập, deload, catalog) được cache chỉ đọc trên máy, ghi ngoài buổi tập cần mạng (xem 5.3, ADR 0002); progression engine chạy client-side. Chi tiết đầy đủ và các mục còn chưa chốt xem mục 6.
 
 ### 2.6 Giả định & phụ thuộc (tóm tắt)
 
-Giả thuyết người dùng mục tiêu (2.1) chưa được kiểm chứng bằng phỏng vấn thật; các ngưỡng số của progression engine là đề xuất, tạm chấp nhận làm mặc định (xem Phụ lục — Business Rules).
+Giả thuyết người dùng mục tiêu (2.1) chưa được kiểm chứng bằng phỏng vấn thật; các ngưỡng số của progression engine được chốt làm mặc định cho MVP, chỉnh lại sau nếu cần (xem Phụ lục — Business Rules).
 
 ## 3. Yêu cầu chức năng — Tổng quan
 
@@ -245,41 +247,41 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Tiền điều kiện:** Đã đăng nhập.
 - **Luồng chính:**
   1. User gõ từ khoá (EN, VI, hoặc alias tự đặt).
-  2. App tìm trong `EXERCISES` qua `EXERCISE_ALIASES` (alias của user ưu tiên trước, rồi alias chung), dùng fuzzy match (`pg_trgm`) khi không khớp chính xác.
+  2. App tìm trong `EXERCISES` qua `EXERCISE_ALIASES` (alias của user ưu tiên trước, rồi alias chung). Tìm trên catalog đã cache ở máy, khớp không dấu, nên chạy được khi offline; khi có mạng, server bổ sung fuzzy match (`pg_trgm`) nếu không khớp chính xác.
   3. Hiện danh sách kết quả kèm nhóm cơ, loại dụng cụ.
-- **Luồng phụ:** 2a. Không tìm thấy: gợi ý tạo bài tập tuỳ chỉnh (UC04).
+- **Luồng phụ:** 2a. Không tìm thấy: gợi ý tạo bài tập tuỳ chỉnh (UC04) — khi offline, báo cần có mạng để tạo.
 - **Hậu điều kiện:** User chọn được bài để thêm vào routine hoặc buổi tập.
 
 #### UC04 — Tạo bài tập tuỳ chỉnh
 
 - **Actor:** Người tập
-- **Tiền điều kiện:** Đã đăng nhập.
+- **Tiền điều kiện:** Đã đăng nhập, có mạng (không hỗ trợ tạo bài tuỳ chỉnh khi offline — ADR 0002).
 - **Luồng chính:**
   1. User nhập tên, nhóm cơ, loại dụng cụ, loại chỉ số (weight\_reps/reps/duration/distance).
   2. App tạo `EXERCISES` với `owner_id = user`, `source = 'user'`.
   3. Bài tập chỉ hiển thị cho user đó (không vào catalog chung).
-- **Hậu điều kiện:** Bài tập dùng được ngay trong routine/buổi tập của user.
+- **Hậu điều kiện:** Bài tập vào catalog đã cache trên máy, dùng được ngay trong routine/buổi tập của user.
 
 #### UC05 — Tạo/sửa routine thủ công
 
 - **Actor:** Người tập
-- **Tiền điều kiện:** Đã đăng nhập.
+- **Tiền điều kiện:** Đã đăng nhập, có mạng (routine ghi thẳng lên server, không qua outbox — ADR 0002).
 - **Luồng chính:**
-  1. User tạo `PLANS` mới (`source = 'manual'`), đặt tên.
-  2. Thêm các `PLAN_DAYS` (VD: Push A, Leg day), sắp thứ tự (`position`).
-  3. Trong mỗi ngày, thêm `PLAN_EXERCISES`: chọn bài (UC03/UC04), đặt số set, rep range, tạ khởi điểm (nếu có), có bật khởi động không.
-  4. Lưu routine; đặt làm active nếu muốn dùng ngay.
-- **Luồng phụ:** Sửa routine đang active không ảnh hưởng các buổi đã log trước đó (`SESSION_EXERCISES` đã snapshot `load_input` riêng).
+  1. User tạo `ROUTINES` mới (`source = 'manual'`), đặt tên.
+  2. Thêm các `ROUTINE_DAYS` (VD: Push A, Leg day), sắp thứ tự (`position`).
+  3. Trong mỗi ngày, thêm `ROUTINE_EXERCISES`: chọn bài (UC03/UC04), đặt số set, rep range, tạ khởi điểm (nếu có), có bật khởi động không.
+  4. Lưu routine; đặt làm routine đang dùng nếu muốn dùng ngay (mỗi user có tối đa một routine đang dùng). App cập nhật cache routine trên máy.
+- **Luồng phụ:** Mất mạng: báo cần có mạng, không xếp hàng chờ đồng bộ. Sửa routine đang dùng không ảnh hưởng các buổi đã log trước đó (`SESSION_EXERCISES` đã snapshot `load_input` riêng).
 - **Hậu điều kiện:** Routine sẵn sàng dùng cho UC06 (bắt đầu buổi).
 
 #### UC24 — Chọn chương trình mẫu
 
 - **Actor:** Người tập (thường là người mới, qua nhánh Onboarding — UC23)
-- **Tiền điều kiện:** Đã đăng nhập; có ít nhất một `PLANS` với `is_template = true` phù hợp hồ sơ (`USER_PROFILES`: kinh nghiệm, số buổi/tuần, mục tiêu, thiết bị).
+- **Tiền điều kiện:** Đã đăng nhập, có mạng; có ít nhất một program phù hợp hồ sơ (`USER_PROFILES`: kinh nghiệm, số buổi/tuần, mục tiêu, thiết bị).
 - **Luồng chính:**
-  1. App lọc và đề xuất danh sách chương trình mẫu phù hợp `USER_PROFILES`.
+  1. App lấy danh sách program từ server (server đọc YAML trong `packages/programs`) và đề xuất các program phù hợp `USER_PROFILES`.
   2. User xem chi tiết (số ngày, bài tập từng ngày), chọn một chương trình.
-  3. App copy `PLANS`/`PLAN_DAYS`/`PLAN_EXERCISES` của template thành plan riêng của user (`template_id` trỏ về bản gốc).
+  3. Server tạo `ROUTINES`/`ROUTINE_DAYS`/`ROUTINE_EXERCISES` của user từ program (`source = 'program'`, `program_id` = id của program trong YAML); app cập nhật cache routine.
   4. User có thể chỉnh sửa ngay sau khi copy (UC05).
 - **Hậu điều kiện:** User có một routine sẵn sàng dùng, độc lập với bản gốc.
 
@@ -290,9 +292,9 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Actor:** Người tập
 - **Tiền điều kiện:** Đã đăng nhập.
 - **Luồng chính:**
-  1. User chọn một `PLAN_DAYS` từ routine active, hoặc chọn "Tập tự do".
-  2. App tạo `WORKOUT_SESSIONS` mới trong bộ nhớ cục bộ IndexedDB (UUID sinh ở client); `plan_day_id` = ngày đã chọn hoặc `null` nếu tự do.
-  3. App liệt kê các bài theo thứ tự trong `PLAN_DAYS` (hoặc rỗng nếu tự do, user tự thêm bài).
+  1. User chọn một `ROUTINE_DAYS` từ routine đang dùng (đọc từ cache trên máy, chạy được khi offline), hoặc chọn "Tập tự do".
+  2. App tạo `WORKOUT_SESSIONS` mới trong bộ nhớ cục bộ IndexedDB (UUID sinh ở client); `routine_day_id` = ngày đã chọn hoặc `null` nếu tự do.
+  3. App liệt kê các bài theo thứ tự trong `ROUTINE_DAYS` (hoặc rỗng nếu tự do, user tự thêm bài).
   4. Chuyển sang UC07 để bắt đầu ghi set.
 - **Hậu điều kiện:** Có một session đang mở, sẵn sàng ghi set.
 
@@ -321,13 +323,13 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Actor:** Người tập
 - **Tiền điều kiện:** Đang trong một buổi tập, vừa log xong một set.
 - **Luồng chính:**
-  1. Ngay sau khi log set (UC07 bước 3), timer **tự động bắt đầu** đếm ngược theo `PLAN_EXERCISES.rest_seconds` (hoặc giá trị mặc định nếu bài không thuộc plan).
+  1. Ngay sau khi log set (UC07 bước 3), timer **tự động bắt đầu** đếm ngược theo `ROUTINE_EXERCISES.rest_seconds` (hoặc giá trị mặc định nếu bài không thuộc routine).
   2. Hết giờ: nếu app đang mở trên màn hình, app báo bằng âm thanh và hiệu ứng hình ảnh; rung chỉ dùng trên thiết bị hỗ trợ (Android — iOS không có Vibration API).
      - Timer tính theo **mốc thời điểm kết thúc**, không đếm tick: khi app bị đưa xuống nền hoặc khoá màn hình rồi mở lại, timer hiển thị đúng thời gian còn lại. Trong lúc ở nền app không báo được (trình duyệt tạm dừng JS).
      - Trong buổi tập, app giữ màn hình sáng bằng Screen Wake Lock nếu trình duyệt hỗ trợ.
      - Thông báo khi app ở nền (Web Push) là post-MVP. **Chốt (16/11/2026).**
   3. User có thể dừng/cộng thêm/bỏ qua timer bất cứ lúc nào.
-- **Luồng phụ:** User tắt tự động bắt đầu **riêng cho từng bài** (ngay trên màn hình bài tập hoặc trong Cài đặt bài tập — UC14) → với bài đó, timer chờ user tự bấm. Lựa chọn lưu ở `USER_EXERCISE_SETTINGS.rest_auto_start` (theo user × bài), nên áp dụng được cả cho bài thêm ad hoc không thuộc plan. Mặc định bật cho mọi bài. **Chốt.**
+- **Luồng phụ:** User tắt tự động bắt đầu **riêng cho từng bài** (ngay trên màn hình bài tập hoặc trong Cài đặt bài tập — UC14) → với bài đó, timer chờ user tự bấm. Lựa chọn lưu ở `USER_EXERCISE_SETTINGS.rest_auto_start` (theo user × bài), nên áp dụng được cả cho bài thêm ad hoc không thuộc routine. Mặc định bật cho mọi bài. Đổi được khi offline: thay đổi đi qua outbox như dữ liệu buổi tập (xem UC14). **Chốt.**
 - **Hậu điều kiện:** Không chặn luồng ghi set — user log set tiếp theo được ngay cả khi timer chưa hết giờ.
 
 #### UC09 — Thay bài, đổi thứ tự, superset trong buổi
@@ -336,9 +338,9 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Tiền điều kiện:** Đang trong một buổi tập.
 - **Luồng chính:**
   1. User chọn một bài trong session, thao tác: thay bằng bài khác / kéo đổi thứ tự (`position`) / gộp superset (`superset_group`).
-  2. **Thay bài:** app tạo/gán `SESSION_EXERCISES` mới cho bài mới, **bỏ liên kết `plan_exercise_id`** với bài gốc trong plan (session exercise trở thành "ad hoc", `plan_exercise_id = null`).
+  2. **Thay bài:** app tạo/gán `SESSION_EXERCISES` mới cho bài mới, **bỏ liên kết `routine_exercise_id`** với bài gốc trong routine (session exercise trở thành "ad hoc", `routine_exercise_id = null`).
   3. Màn hình "lần trước" (UC07 bước 2) của bài mới **tính theo lịch sử của chính bài mới đó** — không kế thừa số liệu của bài đã bị thay ra.
-  4. Đổi thứ tự/superset chỉ cập nhật `position`/`superset_group` của `SESSION_EXERCISES` trong buổi hiện tại, không ảnh hưởng `PLAN_EXERCISES` gốc.
+  4. Đổi thứ tự/superset chỉ cập nhật `position`/`superset_group` của `SESSION_EXERCISES` trong buổi hiện tại, không ảnh hưởng `ROUTINE_EXERCISES` gốc.
 - **Hậu điều kiện:** Buổi tập phản ánh đúng bài/thứ tự thực tế đã tập, độc lập với routine gốc.
 
 #### UC10 — Kết thúc và đồng bộ buổi tập
@@ -370,12 +372,13 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 
 *(luật đầy đủ R1–R8 tóm tắt tại Phụ lục A)*
 
-- **Trước buổi (`planSession`):**
+- **Trước buổi (`beforeSession`):**
   - Mọi working set đạt trần ở buổi gần nhất → gợi ý chung là nên tăng (tạ hoặc reps); không đề xuất mức cụ thể, user tự chọn và tự log số (R1).
   - User bỏ qua mà buổi sau vẫn đạt trần, hoặc vượt trần → chúc mừng và nhắc lại (R2).
   - Có thêm gợi ý khởi động (R5), quay lại sau thời gian nghỉ (R6), và deload khi sức mạnh tụt (R7).
 - **Trong buổi (`afterSet`):** set vừa log chạm sàn hoặc dưới sàn rep range → gợi ý back-off về `max(W, current − step)` (R3).
-- Mọi gợi ý đều kèm lý do (`reason`) và user có quyền bỏ qua (`status = dismissed`). Tỉ lệ chấp nhận gợi ý (`SUGGESTIONS.status`) là metric đánh giá engine.
+- Mọi gợi ý đều kèm lý do (`reason`) và user có quyền bỏ qua (`status = dismissed`). Tỉ lệ chấp nhận gợi ý (`SUGGESTIONS.status`) là metric đánh giá engine. Gợi ý và trạng thái của nó được ghi vào máy rồi đẩy lên qua outbox (UUID sinh ở client), nên chạy được khi offline.
+- Engine đọc input (target của routine, cài đặt bài tập, lịch sử deload, các buổi gần nhất) từ dữ liệu trên máy, không gọi mạng.
 
 #### UC14 — Chỉnh bậc tạ cho từng bài
 
@@ -383,7 +386,7 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Tiền điều kiện:** Đang xem một bài tập (trong buổi tập hoặc trong thư viện bài tập).
 - **Luồng chính:**
   1. User mở Cài đặt bài tập, đổi step, quy ước ghi tạ (`load_input`), trọng lượng đòn (barbell), hoặc bật/tắt tự động rest timer.
-  2. App lưu vào `USER_EXERCISE_SETTINGS` (`weight_step_kg`, `load_input`, `bar_weight_kg`, `rest_auto_start`) riêng cho user + bài đó.
+  2. App lưu vào `USER_EXERCISE_SETTINGS` (`weight_step_kg`, `load_input`, `bar_weight_kg`, `rest_auto_start`) riêng cho user + bài đó. Cả dòng được ghi vào máy rồi đẩy lên qua outbox (upsert theo khoá user × bài, last-write-wins), nên chỉnh được cả khi offline, trong hay ngoài buổi tập.
   3. Các luật có nêu số (R3 back-off, R5 khởi động, R6 quay lại sau nghỉ, R7 deload) làm tròn theo step/quy ước mới; user chưa đặt thì dùng mặc định theo loại dụng cụ.
 - **Hậu điều kiện:** Tuỳ chỉnh áp dụng cho mọi gợi ý có nêu số của bài đó. R1/R2 chỉ nêu hướng tăng nên không dùng step.
 
@@ -396,7 +399,7 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Luồng chính:**
   1. Deload được kích hoạt theo 1 trong 2 cách: (a) engine phát hiện tín hiệu (reps giảm ≥ 2 ở cùng mức tạ, ≥ 2 bài, 2 buổi liên tiếp) và gợi ý; hoặc (b) user tự bắt đầu bất cứ lúc nào, kể cả tự báo mệt lúc check-in đầu buổi.
   2. User chọn chế độ (`rest_full`/`rest_half`/`half_load`/`half_reps`/`half_both`) và số ngày; mặc định điền sẵn theo lần deload gần nhất (`DELOAD_PERIODS`), user sửa được.
-  3. App tạo `DELOAD_PERIODS` với `source = suggested` hoặc `manual`.
+  3. App tạo `DELOAD_PERIODS` với `source = suggested` hoặc `manual` — ghi vào máy rồi đẩy lên qua outbox (UUID sinh ở client), nên bắt đầu/kết thúc deload được cả khi offline.
   4. Trong giai đoạn deload: target các bài đổi theo chế độ đã chọn; streak tuần tạm dừng, không tính trượt; R1/R2/R7 tạm tắt.
   5. Hết số ngày (hoặc user chủ động kết thúc sớm): `end_date` được chốt, quay lại target trước khi deload.
 - **Hậu điều kiện:** Lịch sử `DELOAD_PERIODS` được dùng để tính khoảng nghỉ thực tế cho R6 (loại trừ ngày deload) và làm mặc định cho lần deload sau.
@@ -420,7 +423,7 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - Cuối mỗi tuần (theo `timezone` của user): đếm số buổi tập hoàn thành. Nếu ≥ `target_value` thì streak +1, ngược lại reset về 0; cập nhật `best_streak`.
 - Tuần nằm trong giai đoạn deload thì streak **tạm dừng**, không tính là trượt.
 - **Luôn tính lại từ dữ liệu gốc (sessions), không cộng dồn** — vì buổi tập offline có thể sync trễ vào một tuần đã đánh giá; tính lại từ gốc cho kết quả idempotent.
-- Ranh giới tuần: từ 00:00 thứ Hai đến hết Chủ nhật theo múi giờ của user (quy ước ISO 8601). \[Đề xuất\]
+- Ranh giới tuần: từ 00:00 thứ Hai đến hết Chủ nhật theo múi giờ của user (quy ước ISO 8601). **Chốt.**
 
 #### UC17 — Nhận thông báo PR mới
 
@@ -475,11 +478,11 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Tiền điều kiện:** Vừa hoàn tất UC01 lần đầu.
 - **Luồng chính:**
   1. App hỏi một chuỗi câu hỏi ngắn: mức độ kinh nghiệm, đã có lịch tập sẵn chưa, số buổi/tuần dự kiến, thời gian mỗi buổi, thiết bị tập (gym/nhà), mục tiêu chung. Không hỏi tuổi (D25).
-  2. Lưu vào `USER_PROFILES` (`experience_level`, `has_program`, `sessions_per_week`, `session_minutes`, `equipment_access`, `goal`).
-  3. Dựa trên câu trả lời, app đặt **bộ cài đặt mặc định** (mức độ hướng dẫn, bật/tắt khởi động mặc định, bật/tắt RPE mặc định) — D22. Đồng thời tạo sẵn một mục tiêu số buổi mỗi tuần (weekly\_frequency, UC15) với giá trị bằng số buổi/tuần vừa khai báo, làm mốc cho streak tuần (UC16); user sửa hoặc xoá được. \[Đề xuất\]
+  2. Lưu vào `USER_PROFILES` (`experience_level`, `has_routine`, `sessions_per_week`, `session_minutes`, `equipment_access`, `goal`).
+  3. Dựa trên câu trả lời, app đặt **bộ cài đặt mặc định** (mức độ hướng dẫn, bật/tắt khởi động mặc định, bật/tắt RPE mặc định) — D22. Đồng thời tạo sẵn một mục tiêu số buổi mỗi tuần (weekly\_frequency, UC15) với giá trị bằng số buổi/tuần vừa khai báo, làm mốc cho streak tuần (UC16); user sửa hoặc xoá được. **Chốt.**
   4. Rẽ nhánh: đã có lịch tập → chuyển sang Tạo routine thủ công (UC05) để tự nhập lịch (import từ ảnh/text — UC25 — là post-MVP); chưa có → chuyển sang Chọn chương trình mẫu (UC24).
 - **Luồng phụ:** User bỏ qua onboarding → dùng bộ mặc định chung, vào thẳng màn hình chính, có thể vào lại Cài đặt để đổi từng mục.
-- **Hậu điều kiện:** User có `USER_PROFILES` đầy đủ và một routine ban đầu (tạo thủ công hoặc từ template).
+- **Hậu điều kiện:** User có `USER_PROFILES` đầy đủ và một routine ban đầu (tạo thủ công hoặc từ program).
 
 ### 4.8 Đặc tả use case post-MVP
 
@@ -494,12 +497,12 @@ Các use case UC25–UC31 thuộc phạm vi Sau, dời khỏi MVP ngày 15/10/20
   3. Server gọi LLM với JSON schema cố định (ngày tập → bài → số set, rep range, ghi chú).
   4. Khớp tên bài: alias của user → alias chung → fuzzy (`pg_trgm`) → LLM chọn trong top-k ứng viên.
   5. Job chuyển `parsed`; app hiện màn hình review.
-  6. User sửa và xác nhận → tạo `PLANS`, `PLAN_DAYS`, `PLAN_EXERCISES` trong một transaction; mỗi lần sửa tên bài được khớp sẽ lưu thành `EXERCISE_ALIASES` (owner = user); xoá media gốc.
+  6. User sửa và xác nhận → tạo `ROUTINES`, `ROUTINE_DAYS`, `ROUTINE_EXERCISES` trong một transaction; mỗi lần sửa tên bài được khớp sẽ lưu thành `EXERCISE_ALIASES` (owner = user); xoá media gốc.
 - **Luồng phụ:**
   - Mất mạng: đưa vào hàng đợi, xử lý khi có mạng lại.
   - LLM lỗi/timeout: retry 1 lần, sau đó chuyển `failed` và gợi ý nhập tay (UC05).
   - Không khớp được tên bài: đánh dấu "chưa khớp"; user chọn bài có sẵn hoặc tạo bài custom (UC04).
-- **Hậu điều kiện:** Plan chỉ được tạo sau khi user xác nhận.
+- **Hậu điều kiện:** Routine chỉ được tạo sau khi user xác nhận.
 
 #### UC27 — Import từ file video (server trích khung hình) — *post-MVP*
 
@@ -549,14 +552,14 @@ Các use case UC25–UC31 thuộc phạm vi Sau, dời khỏi MVP ngày 15/10/20
 
 ### 5.1 Hiệu năng
 
-Chưa từng thảo luận cụ thể — mục sau là đề xuất tối thiểu để có mốc, cần founder/team xác nhận:
+Các ngưỡng dưới đây là mốc tối thiểu, đã chốt cho MVP:
 
 | Yêu cầu | Ngưỡng đề xuất | Trạng thái |
 | --- | --- | --- |
 | Ghi 1 set (offline) | Không chờ mạng, ghi tức thời vào IndexedDB | **Chốt** |
 | Đồng bộ outbox khi có mạng | Hoàn tất trong vài giây cho một buổi tập thông thường (\~20–30 set) | **Chốt** |
 | Import lịch tập (LLM) — post-MVP | Job `parsed` trong vài chục giây; nếu lâu hơn, app cho phép rời màn hình và quay lại xem sau | **Chốt** |
-| Tải danh sách bài tập/tìm kiếm | Phản hồi gần như tức thời (dữ liệu tương đối nhỏ, \~150–250 bài) | **Chốt** |
+| Tải danh sách bài tập/tìm kiếm | Phản hồi gần như tức thời — tìm trên catalog đã cache ở máy (dữ liệu tương đối nhỏ, \~150–250 bài) | **Chốt** |
 
 ### 5.2 Bảo mật & riêng tư dữ liệu
 
@@ -576,6 +579,9 @@ Chưa từng thảo luận cụ thể — mục sau là đề xuất tối thi�
 ### 5.3 Khả dụng offline
 
 - Toàn bộ luồng ghi buổi tập (UC06–UC11) hoạt động không cần mạng: IndexedDB + outbox, UUID sinh ở client, đồng bộ khi có mạng lại bằng upsert idempotent.
+- Ngoài dữ liệu buổi tập, ba loại dữ liệu sinh ra trong lúc tập cũng đi qua outbox: cài đặt bài tập (`USER_EXERCISE_SETTINGS`, UC08/UC14), gợi ý và trạng thái gợi ý (`SUGGESTIONS`, UC12/UC13), giai đoạn deload (`DELOAD_PERIODS`, UC22).
+- Dữ liệu engine và màn bắt đầu buổi cần — routine (kèm ngày tập và bài), cài đặt bài tập, lịch sử deload, catalog bài tập — được **cache chỉ đọc** trên máy và làm mới khi có mạng. Tìm bài khi offline khớp không dấu trên catalog đã cache.
+- Các thao tác ghi khác ngoài buổi tập (tạo/sửa routine, chọn program, tạo bài tuỳ chỉnh, alias, cài đặt tài khoản, mục tiêu, chỉ số cơ thể, onboarding) cần mạng: app báo cần có mạng, không xếp hàng chờ đồng bộ. Lý do và đánh đổi: ADR 0002.
 - App mở được khi không có mạng: service worker cache phần vỏ app (HTML/JS/CSS); dữ liệu không đi qua service worker.
 - Đồng bộ được kích hoạt sau mỗi lần ghi, khi thiết bị online lại và khi app hiện lại trên màn hình — không dựa vào Background Sync API vì Safari không hỗ trợ.
 - **Chống mất dữ liệu chưa đồng bộ:** trình duyệt (đặc biệt Safari/iOS) có thể xoá bộ nhớ của site lâu không dùng nếu chưa được thêm vào màn hình chính; trên iOS, bộ nhớ của tab Safari còn tách biệt với app trên màn hình chính. Biện pháp:
@@ -583,13 +589,13 @@ Chưa từng thảo luận cụ thể — mục sau là đề xuất tối thi�
   2. Đẩy outbox ngay khi có mạng, không đợi kết thúc buổi.
   3. Trên iOS, nếu đang mở trong tab trình duyệt, app hiện hướng dẫn "Thêm vào màn hình chính" trước khi bắt đầu tập (gợi ý, không chặn).
   4. Hiện số set chưa đồng bộ.
-- Progression engine (R1–R8) là pure function chạy trên client, không gọi mạng, không đọc đồng hồ hệ thống (nhận `today` qua input).
+- Progression engine (R1–R8) là pure function chạy trên client, không gọi mạng, không đọc đồng hồ hệ thống (nhận `today` qua input); input lấy từ dữ liệu trên máy.
 - (Post-MVP) Import (UC25) và các tính năng phụ thuộc LLM/Health Connect thì cần mạng; mất mạng giữa chừng được đưa vào hàng đợi xử lý sau.
 
 ### 5.4 Khả năng mở rộng & bảo trì
 
 - Backend là modular monolith (NestJS + 1 worker) chạy trên localhost ở MVP, lên một server khi làm beta công khai — đủ cho quy mô đó, không đặt mục tiêu chịu tải lớn ở giai đoạn này.
-- Monorepo tách `packages/engine` (business rule) và `packages/contract` (schema Zod dùng chung cho client và server) để đổi luật hoặc API không phá vỡ phần còn lại.
+- Monorepo tách `packages/engine` (business rule), `packages/contract` (schema Zod dùng chung cho client và server) và `packages/programs` (program dạng YAML) để đổi luật hoặc API không phá vỡ phần còn lại.
 - Thiết kế `DeviceProvider` adapter (post-MVP, cùng UC28/UC29, chạy trong bản bọc native) để thêm HealthKit (iOS) sau mà không đổi luồng tích hợp thiết bị.
 
 ### 5.5 Tương thích nền tảng
@@ -620,7 +626,7 @@ Các quyết định kiến trúc/kỹ thuật (nền tảng cụ thể, backend
 ### 6.1 Giả định
 
 - Nhu cầu "có sẵn lịch tập, cần công cụ ghi + gợi ý" là **trải nghiệm thật của chính founder**, không phải giả thuyết suông; phần còn cần kiểm chứng là mức độ phổ biến của nhu cầu này ở người dùng khác — cần phỏng vấn 5–10 người tập để xác nhận, ảnh lịch tập thu được dùng làm bộ test cho UC25 khi triển khai import (post-MVP).
-- Nhiều ngưỡng số của progression engine (backoff RPE threshold, ngưỡng deload, số ngày nghỉ coi là "break"...) là đề xuất của Claude, **tạm chấp nhận làm mặc định** — xem Phụ lục.
+- Nhiều ngưỡng số của progression engine (backoff RPE threshold, ngưỡng deload, số ngày nghỉ coi là "break"...) ban đầu là đề xuất của Claude, nay **chốt làm mặc định cho MVP**, chỉnh lại sau nếu cần — xem Phụ lục.
 - Cách chạy demo cuối kỳ **chưa chốt**, tuỳ tiến độ:
   - (a) Chrome desktop ở chế độ giả lập mobile.
   - (b) Frontend deploy lên host HTTPS, backend localhost mở ra ngoài qua tunnel, để cài PWA trên điện thoại thật.
@@ -646,13 +652,13 @@ Các quyết định kiến trúc/kỹ thuật (nền tảng cụ thể, backend
 | R5 | Gợi ý khởi động 50%×8, 70%×5, 85%×2, không thấp hơn trọng lượng đòn | UC12 |
 | R6 | Nghỉ ≥14 ngày → gợi ý quay lại ở 70% (hoặc 50% nếu ≥28 ngày); không tính ngày deload | UC12 |
 | R7 | Phát hiện deload (reps giảm ≥2, ≥2 bài, 2 buổi liên tiếp) hoặc user tự báo mệt; 5 chế độ deload | UC22 |
-| R8 | Không thuật toán gợi ý mức tạ khởi điểm cho bài chưa có lịch sử — người mới không biết chọn nên sẽ có xu hướng chọn mức nhỏ nhất. Dùng `initial_weight_kg` tĩnh từ plan/template nếu có; không có thì user tự nhập set đầu, không kèm gợi ý. **Chốt.** | UC23/UC24 |
+| R8 | Không thuật toán gợi ý mức tạ khởi điểm cho bài chưa có lịch sử — người mới không biết chọn nên sẽ có xu hướng chọn mức nhỏ nhất. Dùng `initial_weight_kg` tĩnh từ routine/program nếu có; không có thì user tự nhập set đầu, không kèm gợi ý. **Chốt.** | UC23/UC24 |
 
-Các ngưỡng cụ thể (RPE threshold, tỉ lệ %, số ngày...) nằm trong `ENGINE_DEFAULTS`, tạm chấp nhận làm mặc định, chỉnh lại sau nếu cần.
+Các ngưỡng cụ thể (RPE threshold, tỉ lệ %, số ngày...) nằm trong `ENGINE_DEFAULTS`, chốt làm mặc định cho MVP, chỉnh lại sau nếu cần.
 
-**Các trường hợp biên \[Đề xuất\]:**
+**Các trường hợp biên (chốt cho MVP):**
 
-- **Bài ad hoc** (thay bài giữa buổi, không có `PLAN_EXERCISES`): engine lấy rep range từ lần tập gần nhất có rep range của chính bài đó; không có thì không chạy R1–R3, chỉ hiện số liệu lần trước.
+- **Bài ad hoc** (thay bài giữa buổi, không có `ROUTINE_EXERCISES`): engine lấy rep range từ lần tập gần nhất có rep range của chính bài đó; không có thì không chạy R1–R3, chỉ hiện số liệu lần trước.
 - **Bài không đo bằng tạ × reps:** `reps` (bodyweight) — R1 dùng rep\_max như thường, gợi ý chung "tăng reps hoặc đeo thêm tạ"; `duration` (plank...) — mọi set đạt thời gian trần mục tiêu → gợi ý chung nên tăng thời gian; `distance` — chỉ ghi log, chưa có luật. R3, R5, R6, R7 chỉ áp dụng cho `weight_reps`.
 - **Đơn vị lb:** step và ladder tính theo đơn vị của lần log gần nhất (`input_unit`); số gợi ý được làm tròn theo ladder của đơn vị đó trước, rồi mới quy đổi nếu đơn vị hiển thị khác.
 
@@ -665,3 +671,4 @@ Các ngưỡng cụ thể (RPE threshold, tỉ lệ %, số ngày...) nằm tron
 | Load input | Quy ước ghi tạ: `total` (tổng), `per_side` (mỗi bên), `per_dumbbell` (mỗi quả), `stack` (cột tạ), `added_weight` (tạ đeo thêm) |
 | Volume (theo nhóm cơ) | Đo bằng số working set/tuần, không cộng tổng kg (vì quy ước ghi tạ khác nhau giữa các bài) |
 | Tombstone | Đánh dấu xoá bằng `deleted_at` thay vì xoá cứng ngay, phục vụ đồng bộ offline-first |
+| Cache chỉ đọc | Bản sao trên máy của dữ liệu server (routine, cài đặt bài tập, deload, catalog) để engine và màn bắt đầu buổi chạy offline; không sửa trực tiếp, làm mới khi có mạng |

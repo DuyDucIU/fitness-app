@@ -251,7 +251,7 @@ Mật độ cao nhưng chỉ có một thứ to: con số của set hiện tại
 
 Thế giới này từ chối bố cục mặc định của ngành: bảng set nhiều cột (SET | LẦN TRƯỚC | KG | REPS | ✓) cuộn dài trên nền tối với một màu neon.
 
-Ngoài buổi tập, cùng thế giới được mở rộng sang các màn gốc (Today, Plans, History, Progress, Me) và màn bắt đầu, dựng trong `prototypes/shared/` (`base.css`, `kit.js`, `chart.js`) cùng các slice `prototypes/home|plans|history|progress|me|start/`. Kế hoạch là một ví số áo: mỗi ngày tập là một tấm số áo vuốt ngang, ngày kế tiếp nằm giữa và cách nút Bắt đầu một chạm; mọi thứ khác nằm sau thanh tab đáy năm mục. Các giá trị bổ sung dưới đây lấy từ code đã dựng đó.
+Ngoài buổi tập, cùng thế giới được mở rộng sang các màn gốc (Today, Plans, History, Progress, Me) và màn bắt đầu, dựng trong `prototypes/shared/` (`base.css`, `kit.js`, `chart.js`) cùng các slice `prototypes/home|plans|history|progress|me|start/`. Routine là một ví số áo: mỗi ngày tập là một tấm số áo vuốt ngang, ngày kế tiếp nằm giữa và cách nút Bắt đầu một chạm; mọi thứ khác nằm sau thanh tab đáy năm mục. Các giá trị bổ sung dưới đây lấy từ code đã dựng đó.
 
 **Key Characteristics:**
 - Ba cỡ chữ cộng một cỡ số phụ: số áo (132px trở xuống), số phụ 28px, chữ đọc 16px, nhãn 12px chữ hoa.
@@ -445,7 +445,7 @@ Tấm Trắng Tyvek góc 10px gồm bốn phần: dải, mặt số, răng cưa,
 **Điều khiển nghỉ** nằm trong vùng đáy, ngay trên nút chính: hai nút cao 48px, viền 2px lam, chữ lam, khi nhấn đảo sang nền lam chữ trắng.
 
 ### Ví số áo (Signature Component, Today)
-Các ngày trong kế hoạch xếp thành một ray tấm số áo vuốt ngang, mỗi lần dừng đúng một tấm ở giữa (xem Layout). Mỗi tấm: dải đầu, danh sách bài đánh số (số thứ tự numeral, tên 16px 600, "sets × range" nhãn 12px), chú thích "SUPERSET" cho nhóm, dòng meta 12px (số phụ Barlow 16px), răng cưa, rồi cuống gợi ý (khối Cam Nhạt có lý do và nút trả lời) hoặc cuống "Before you start".
+Các ngày tập của routine xếp thành một ray tấm số áo vuốt ngang, mỗi lần dừng đúng một tấm ở giữa (xem Layout). Mỗi tấm: dải đầu, danh sách bài đánh số (số thứ tự numeral, tên 16px 600, "sets × range" nhãn 12px), chú thích "SUPERSET" cho nhóm, dòng meta 12px (số phụ Barlow 16px), răng cưa, rồi cuống gợi ý (khối Cam Nhạt có lý do và nút trả lời) hoặc cuống "Before you start".
 - **Ngày kế tiếp:** dải cam chữ mực, "<TÊN NGÀY> · NEXT UP" bên trái, "DAY n" numeral bên phải.
 - **Các ngày khác:** dải viền rỗng 2px mực trên Trắng Tyvek, cùng bố cục.
 - **Chấm phân trang:** một chấm 6px `rule` cho mỗi tấm trong vùng chạm 24px; chấm hiện tại là viên mực 14×6px.
