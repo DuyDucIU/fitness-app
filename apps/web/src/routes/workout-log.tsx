@@ -203,7 +203,11 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
         <TopBar
           title={m.log_freestyle()}
           sub={
-            <time aria-label={m.log_elapsed_label()} className="numeral">
+            // Đồng hồ cỡ số phụ 28px như prototype (.top .clock), không phải dòng phụ 12px.
+            <time
+              aria-label={m.log_elapsed_label()}
+              className="block text-num leading-none numeral"
+            >
               {formatElapsed(now - Date.parse(session.startedAt))}
             </time>
           }
