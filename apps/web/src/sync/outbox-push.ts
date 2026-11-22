@@ -2,7 +2,7 @@ import { SYNC_PUSH_MAX_EVENTS, type SyncEvent } from '@fitness/contract';
 import { liveQuery } from 'dexie';
 
 import { type Auth, type AuthState } from '@/auth/auth';
-import type { db as appDb, OutboxEvent } from '@/db/db';
+import type { db as appDb, OutboxEvent, SyncReject } from '@/db/db';
 import { ApiError } from '@/lib/errors';
 
 /** Có mạng trở lại (sự kiện `online` của trình duyệt). */
@@ -30,6 +30,19 @@ function canFetch(state: AuthState): boolean {
   return state.status === 'signed-in' && !state.sessionPending;
 }
 
+/**
+ * Server từ chối hẳn (dữ liệu sai, không thuộc user): gửi lại cũng vậy. Không gồm 401
+ * (phiên, auth tự xử lý), 408/429 (thử lại được), 5xx và mất mạng (status 0).
+ */
+function isRejected(error: unknown): error is ApiError {
+  return (
+    error instanceof ApiError &&
+    error.status >= 400 &&
+    error.status < 500 &&
+    ![401, 408, 429].includes(error.status)
+  );
+}
+
 function toSyncEvent(event: OutboxEvent): SyncEvent {
   return {
     entity: event.entity,
@@ -45,6 +58,10 @@ function toSyncEvent(event: OutboxEvent): SyncEvent {
  * app hoặc lần ghi tiếp theo. Đẩy sau mỗi lần ghi (outbox đổi, kể cả từ tab khác), khi
  * `online`, khi `visibilitychange` sang hiện và khi phiên được xác nhận (mở app, đăng nhập
  * lại). Không dùng Background Sync.
+ *
+ * Server từ chối hẳn (4xx, xem `isRejected`) thì tìm đúng sự kiện bị từ chối (đẩy từng sự
+ * kiện), chuyển nó sang `syncRejects` và đẩy tiếp phần sau, để một thay đổi lỗi không chặn
+ * mọi thay đổi khác. Bản ghi gốc vẫn còn trên máy; chip đồng bộ báo số thay đổi này.
  *
  * TODO(sync): hai tab có thể cùng đẩy một batch. Server upsert idempotent nên không trùng,
  * nhưng bản cũ tới sau có thể ghi đè bản mới; chấp nhận vì một user thường chỉ mở một tab.
@@ -82,13 +99,24 @@ export function createOutboxPush(deps: {
     }
   }
 
+  /** Chuyển sự kiện server từ chối hẳn sang `syncRejects` (giữ trên máy, không chặn outbox). */
+  async function setAside(event: OutboxEvent, code: string) {
+    await db.transaction('rw', db.outbox, db.syncRejects, async () => {
+      await db.syncRejects.add({
+        event,
+        code,
+        rejectedAt: Date.now(),
+      } as SyncReject);
+      await db.outbox.delete(event.seq);
+    });
+  }
+
   /** Đẩy tới khi outbox rỗng, lỗi, hoặc phiên không còn dùng được. */
   async function drain() {
+    // Server từ chối cả batch thì đẩy từng sự kiện để tìm đúng sự kiện bị từ chối.
+    let batchSize = SYNC_PUSH_MAX_EVENTS;
     while (!stopped && canFetch(auth.getState())) {
-      const batch = await db.outbox
-        .orderBy('seq')
-        .limit(SYNC_PUSH_MAX_EVENTS)
-        .toArray();
+      const batch = await db.outbox.orderBy('seq').limit(batchSize).toArray();
       if (batch.length === 0) {
         retryAttempt = 0;
         return;
@@ -96,6 +124,15 @@ export function createOutboxPush(deps: {
       try {
         await deps.pushEvents(batch.map(toSyncEvent));
       } catch (error) {
+        if (isRejected(error)) {
+          if (batch.length > 1) {
+            batchSize = 1;
+          } else {
+            console.error('Server từ chối thay đổi', batch[0], error);
+            await setAside(batch[0], error.code);
+          }
+          continue;
+        }
         if (!(error instanceof ApiError)) {
           console.error('Không đẩy được outbox', error);
         }

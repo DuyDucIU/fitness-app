@@ -1,18 +1,20 @@
 import { cn } from '@/lib/utils';
 
-import { OfflineIcon } from '@/components/icons';
+import { AlertIcon, OfflineIcon } from '@/components/icons';
 import { type SyncStatus, useSyncStatus } from '@/hooks/use-sync-status';
 import { m } from '@/paraglide/messages.js';
 
 /**
  * Chip đồng bộ, hiện trên mọi màn (PRODUCT.md). Xanh = đã đồng bộ; viền mực = còn thay
- * đổi chưa đẩy; nền mực = ngoại tuyến (kèm số thay đổi đang chờ trên máy).
+ * đổi chưa đẩy; nền mực = ngoại tuyến (kèm số thay đổi đang chờ trên máy); chữ đỏ = có
+ * thay đổi server không nhận (giữ trên máy).
  */
 export function SyncPillView({
   online,
   pending,
+  failed = 0,
   syncing,
-}: SyncStatus & { syncing?: boolean }) {
+}: Omit<SyncStatus, 'failed'> & { failed?: number; syncing?: boolean }) {
   const base =
     'flex h-8 min-w-0 flex-none items-center gap-1.5 overflow-hidden rounded-full border-[1.5px] border-ink px-2.5 text-label font-semibold whitespace-nowrap';
 
@@ -45,6 +47,19 @@ export function SyncPillView({
         <span>
           {syncing ? m.sync_syncing() : m.sync_pending({ count: pending })}
         </span>
+      </span>
+    );
+  }
+
+  if (failed) {
+    return (
+      <span
+        role="status"
+        title={m.sync_failed_hint()}
+        className={cn(base, 'border-danger text-danger')}
+      >
+        <AlertIcon className="size-3.5 flex-none" aria-hidden />
+        <span>{m.sync_failed({ count: failed })}</span>
       </span>
     );
   }

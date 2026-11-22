@@ -194,6 +194,7 @@ export function Component() {
         <SyncPillView online pending={0} />
         <SyncPillView online pending={3} />
         <SyncPillView online pending={3} syncing />
+        <SyncPillView online pending={0} failed={2} />
         <SyncPillView online={false} pending={0} />
         <SyncPillView online={false} pending={1} />
         <SyncPillView online={false} pending={5} />
