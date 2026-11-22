@@ -269,7 +269,7 @@ Bảng màu như vật liệu in số áo: giấy Tyvek, mực đen, và ba màu
 - **Cam Nhạt** (`orange-tint`): nền của thứ cần chú ý mà không phải nút: ô số đang được gõ, cuống gợi ý (khởi động, tăng, back-off), hàng set đang tập.
 
 ### Secondary
-- **Lam Nghỉ** (`blue`): chỉ cho trạng thái nghỉ. Lớp phủ đồng hồ trên dải số áo, viền 2px inset quanh dải khi nghỉ, viền và chữ của hai nút điều khiển nghỉ (Thêm 30 giây, Bỏ qua nghỉ).
+- **Lam Nghỉ** (`blue`): chỉ cho trạng thái nghỉ. Lớp phủ đồng hồ trên dải số áo, viền 2px inset quanh dải khi nghỉ, viền và chữ của ba nút điều khiển nghỉ (Dừng/Tiếp, +30 giây, Bỏ qua).
 
 ### Tertiary
 - **Xanh Đã Xong** (`green`): chỉ cho "đã xong" và "đã đồng bộ". Dấu ✓ tròn 28px của hàng set, chấm trạng thái của chip đồng bộ, biểu tượng trong hộp đồng bộ ở trang tóm tắt.
@@ -417,7 +417,7 @@ Tấm Trắng Tyvek góc 10px gồm bốn phần: dải, mặt số, răng cưa,
 - **Cam, chữ mực:** set làm việc đang tập.
 - **Viền rỗng 2px mực trên Trắng Tyvek:** set khởi động, hoặc bài đã xong hết set.
 - **Viền đôi mực:** đang sửa một set đã ghi.
-- **Nghỉ:** nền Trắng Tyvek, viền inset 2px lam, cộng một lớp lam chữ trắng phủ lên. Lớp này bị cắt theo biến `--p` (thời gian nghỉ còn lại / tổng) và rút dần từ phải sang trái, để lộ Trắng Tyvek bên dưới. Dải chính là đồng hồ nghỉ. Hết giờ, dải loé cam ba lần (0,9s, `steps(1)`), kèm âm báo và rung, rồi trở lại cam.
+- **Nghỉ:** nền Trắng Tyvek, viền inset 2px lam, cộng một lớp lam chữ trắng phủ lên. Lớp này bị cắt theo biến `--p` (thời gian nghỉ còn lại / tổng) và rút dần từ phải sang trái, để lộ Trắng Tyvek bên dưới. Dải chính là đồng hồ nghỉ. Khi tạm dừng, lớp lam đứng yên và nhãn REST đổi thành PAUSED. Hết giờ, dải loé cam ba lần (0,9s, `steps(1)`), kèm âm báo và rung, rồi trở lại cam.
 - **Mực, số cam:** PR mới, giữ 2,4 giây.
 - **Mực:** dải tóm tắt cuối buổi.
 
@@ -442,7 +442,7 @@ Tấm Trắng Tyvek góc 10px gồm bốn phần: dải, mặt số, răng cưa,
 - Sửa RPE trong chế độ sửa set.
 - RPE 10 đúng ở đáy rep range cũng kích hoạt back-off (R3). Ngưỡng này nằm trong `ENGINE_DEFAULTS`.
 
-**Điều khiển nghỉ** nằm trong vùng đáy, ngay trên nút chính: hai nút cao 48px, viền 2px lam, chữ lam, khi nhấn đảo sang nền lam chữ trắng.
+**Điều khiển nghỉ** nằm trong vùng đáy, ngay trên nút chính: ba nút bằng nhau cao 48px (Dừng, đang dừng thì thành Tiếp · +30 giây · Bỏ qua), viền 2px lam, chữ lam, khi nhấn đảo sang nền lam chữ trắng. Đang dừng thì +30 giây cộng vào thời gian còn lại; ghi set mới bắt đầu lượt nghỉ mới và bỏ tạm dừng.
 
 ### Ví số áo (Signature Component, Today)
 Các ngày tập của routine xếp thành một ray tấm số áo vuốt ngang, mỗi lần dừng đúng một tấm ở giữa (xem Layout). Mỗi tấm: dải đầu, danh sách bài đánh số (số thứ tự numeral, tên 16px 600, "sets × range" nhãn 12px), chú thích "SUPERSET" cho nhóm, dòng meta 12px (số phụ Barlow 16px), răng cưa, rồi cuống gợi ý (khối Cam Nhạt có lý do và nút trả lời) hoặc cuống "Before you start".

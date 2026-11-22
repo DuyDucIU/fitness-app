@@ -1,8 +1,10 @@
 import {
   addRest,
+  pauseRest,
   type RestLeft,
   restLeft,
   type RestTimer,
+  resumeRest,
   startRest,
 } from '@fitness/engine';
 import { useEffect, useState } from 'react';
@@ -28,9 +30,12 @@ function load(sessionId: string): RestTimer | null {
     const raw = localStorage.getItem(storageKey(sessionId));
     if (!raw) return null;
     const value = JSON.parse(raw) as Partial<RestTimer>;
-    return typeof value.endsAt === 'number' && typeof value.totalMs === 'number'
-      ? { endsAt: value.endsAt, totalMs: value.totalMs }
-      : null;
+    if (typeof value.endsAt !== 'number' || typeof value.totalMs !== 'number')
+      return null;
+    const timer: RestTimer = { endsAt: value.endsAt, totalMs: value.totalMs };
+    if (typeof value.pausedLeftMs === 'number')
+      timer.pausedLeftMs = value.pausedLeftMs;
+    return timer;
   } catch {
     return null;
   }
@@ -47,13 +52,15 @@ function save(sessionId: string, timer: RestTimer | null) {
 }
 
 export interface RestTimerState {
-  /** Lượt nghỉ đang chạy; `null` khi không nghỉ. */
+  /** Lượt nghỉ đang chạy hoặc tạm dừng; `null` khi không nghỉ. */
   left: RestLeft | null;
   /** Vừa hết giờ: dải số áo loé cam cho tới khi `endFlash`. */
   flashing: boolean;
   endFlash: () => void;
   start: (seconds: number) => void;
   add: () => void;
+  pause: () => void;
+  resume: () => void;
   skip: () => void;
 }
 
@@ -70,15 +77,25 @@ export function useRestTimer(sessionId: string, now: number): RestTimerState {
   /** Số lần hết giờ có báo, để báo đúng một lần mỗi lượt. */
   const [alarms, setAlarms] = useState(0);
 
+  /** Lúc bấm gần nhất: `now` của màn hình có thể cũ hơn tới một nhịp. */
+  const [actedAt, setActedAt] = useState(0);
+  const at = Math.max(now, actedAt);
+
   const setTimer = (next: RestTimer | null) => {
     setTimerState(next);
     save(sessionId, next);
   };
+  /** Đổi lượt nghỉ theo thời điểm thật lúc user bấm. */
+  const act = (change: (timer: RestTimer, at: number) => RestTimer | null) => {
+    const t = Date.now();
+    setActedAt(t);
+    setTimer(timer && change(timer, t));
+  };
 
-  const left = timer ? restLeft(timer, now) : null;
+  const left = timer ? restLeft(timer, at) : null;
   if (timer && left?.done) {
     setTimer(null);
-    if (now - timer.endsAt <= LATE_ALARM_MS) {
+    if (at - timer.endsAt <= LATE_ALARM_MS) {
       setFlashing(true);
       setAlarms((n) => n + 1);
     }
@@ -95,10 +112,14 @@ export function useRestTimer(sessionId: string, now: number): RestTimerState {
     flashing,
     endFlash: () => setFlashing(false),
     start(seconds) {
+      const t = Date.now();
+      setActedAt(t);
       setFlashing(false);
-      setTimer(startRest(seconds, Date.now()));
+      setTimer(startRest(seconds, t));
     },
-    add: () => timer && setTimer(addRest(timer, ADD_SECONDS)),
+    add: () => act((timer) => addRest(timer, ADD_SECONDS)),
+    pause: () => act(pauseRest),
+    resume: () => act(resumeRest),
     skip: () => setTimer(null),
   };
 }

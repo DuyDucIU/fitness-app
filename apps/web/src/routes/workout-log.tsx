@@ -26,6 +26,8 @@ import {
   AddRestIcon,
   CheckIcon,
   MinusIcon,
+  PauseIcon,
+  PlayIcon,
   PlusIcon,
   SkipIcon,
   TrashIcon,
@@ -261,13 +263,26 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   }
 
   // Điều khiển nghỉ ở vùng ngón cái, ngay trên nút chính (prototype › .restctl).
+  // Ba nút bằng nhau: Dừng/Tiếp · +30 giây · Bỏ qua (DESIGN.md › Điều khiển nghỉ).
+  const restButton = 'h-12 min-w-0 flex-1 px-2';
   const restControls = rest.left && !editing && (
     <>
-      <Button variant="rest" className="h-12 flex-1" onClick={rest.add}>
+      {rest.left.paused ? (
+        <Button variant="rest" className={restButton} onClick={rest.resume}>
+          <PlayIcon aria-hidden />
+          {m.log_rest_resume()}
+        </Button>
+      ) : (
+        <Button variant="rest" className={restButton} onClick={rest.pause}>
+          <PauseIcon aria-hidden />
+          {m.log_rest_pause()}
+        </Button>
+      )}
+      <Button variant="rest" className={restButton} onClick={rest.add}>
         <AddRestIcon aria-hidden />
         {m.log_rest_add()}
       </Button>
-      <Button variant="rest" className="h-12 flex-1" onClick={rest.skip}>
+      <Button variant="rest" className={restButton} onClick={rest.skip}>
         <SkipIcon aria-hidden />
         {m.log_rest_skip()}
       </Button>
@@ -674,7 +689,7 @@ function SetBib({
         )}
         <b className="text-num leading-none whitespace-nowrap numeral">
           <small aria-hidden className="mr-1.5 align-[0.4em] label-caps">
-            {m.log_rest()}
+            {rest.paused ? m.log_rest_paused() : m.log_rest()}
           </small>
           <span
             role={hidden ? undefined : 'timer'}

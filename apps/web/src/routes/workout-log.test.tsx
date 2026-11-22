@@ -632,13 +632,13 @@ describe('đồng hồ nghỉ', () => {
     await waitFor(() => expect(restClock()).toBe('2:00'));
 
     comeBackAfter(20_000);
-    await user.click(screen.getByRole('button', { name: 'Add 30 sec' }));
+    await user.click(screen.getByRole('button', { name: '+30 sec' }));
     await waitFor(() => expect(restClock()).toBe('2:10'));
 
-    await user.click(screen.getByRole('button', { name: 'Skip rest' }));
+    await user.click(screen.getByRole('button', { name: 'Skip' }));
     await waitFor(() => expect(restClock()).toBeUndefined());
     expect(
-      screen.queryByRole('button', { name: 'Skip rest' }),
+      screen.queryByRole('button', { name: 'Skip' }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Set 2/3')).toBeInTheDocument();
   });
@@ -687,6 +687,40 @@ describe('đồng hồ nghỉ', () => {
     await user.click(await screen.findByRole('button', { name: 'Save set 1' }));
     await screen.findByRole('button', { name: 'Finish workout' });
     expect(restClock()).toBeUndefined();
+  });
+
+  it('tạm dừng: đồng hồ đứng yên kể cả khi đóng app; chạy tiếp thì đếm tiếp; ghi set mới thì bỏ tạm dừng', async () => {
+    const user = userEvent.setup();
+    await logFirstSet(user);
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    comeBackAfter(30_000);
+    await user.click(screen.getByRole('button', { name: 'Pause' }));
+    await waitFor(() => expect(restClock()).toBe('1:30'));
+
+    // Đang dừng: 10 phút sau vẫn còn 1:30, cộng thêm vẫn được.
+    comeBackAfter(10 * 60_000);
+    await user.click(screen.getByRole('button', { name: '+30 sec' }));
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    // Hệ điều hành đóng app khi đang dừng: mở lại vẫn dừng ở 2:00.
+    cleanup();
+    vi.setSystemTime(Date.now() + 60_000);
+    await openApp('/', signedInAn);
+    await user.click(
+      await screen.findByRole('link', { name: /Workout in progress/ }),
+    );
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    await user.click(screen.getByRole('button', { name: 'Resume' }));
+    comeBackAfter(15_000);
+    await waitFor(() => expect(restClock()).toBe('1:45'));
+
+    await user.click(screen.getByRole('button', { name: 'Pause' }));
+    await user.click(screen.getByRole('button', { name: 'Log set 2' }));
+    await screen.findByRole('button', { name: 'Log set 3' });
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
   });
 
   it('app bị đóng giữa lúc nghỉ: mở lại buổi vẫn đúng giờ nghỉ còn lại', async () => {

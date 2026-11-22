@@ -2,14 +2,16 @@ import { describe, expect, it } from 'vitest';
 import {
   addRest,
   DEFAULT_REST_SECONDS,
+  pauseRest,
   restLeft,
+  resumeRest,
   restSecondsFor,
   startRest,
 } from './rest';
 
 const T0 = Date.parse('2026-11-22T10:00:00.000Z');
 
-describe('restSecondsFor, startRest, addRest, restLeft', () => {
+describe('restSecondsFor, startRest, addRest, pauseRest, resumeRest, restLeft', () => {
   it('Given bài trong routine có rest_seconds, When chọn thời lượng nghỉ, Then dùng rest_seconds của bài', () => {
     expect(restSecondsFor(90)).toBe(90);
   });
@@ -25,6 +27,7 @@ describe('restSecondsFor, startRest, addRest, restLeft', () => {
       seconds: 60,
       fraction: 2 / 3,
       done: false,
+      paused: false,
     });
   });
 
@@ -40,6 +43,7 @@ describe('restSecondsFor, startRest, addRest, restLeft', () => {
       seconds: 120,
       fraction: 1,
       done: false,
+      paused: false,
     });
   });
 
@@ -49,6 +53,7 @@ describe('restSecondsFor, startRest, addRest, restLeft', () => {
       seconds: 0,
       fraction: 0,
       done: true,
+      paused: false,
     });
   });
 
@@ -58,6 +63,38 @@ describe('restSecondsFor, startRest, addRest, restLeft', () => {
       seconds: 90,
       fraction: 0.75,
       done: false,
+      paused: false,
+    });
+  });
+
+  it('Given đang nghỉ 90 giây, When tạm dừng ở giây 30 rồi 10 phút sau, Then vẫn còn 60 giây, đứng yên', () => {
+    const timer = pauseRest(startRest(90, T0), T0 + 30_000);
+    expect(restLeft(timer, T0 + 10 * 60_000)).toEqual({
+      seconds: 60,
+      fraction: 2 / 3,
+      done: false,
+      paused: true,
+    });
+  });
+
+  it('Given đã tạm dừng còn 60 giây, When chạy tiếp rồi 20 giây trôi qua, Then còn 40 giây', () => {
+    const paused = pauseRest(startRest(90, T0), T0 + 30_000);
+    const resumed = resumeRest(paused, T0 + 5 * 60_000);
+    expect(restLeft(resumed, T0 + 5 * 60_000 + 20_000)).toEqual({
+      seconds: 40,
+      fraction: 40 / 90,
+      done: false,
+      paused: false,
+    });
+  });
+
+  it('Given đang tạm dừng còn 60 giây, When cộng thêm 30 giây, Then còn 90 giây và vẫn tạm dừng', () => {
+    const timer = addRest(pauseRest(startRest(90, T0), T0 + 30_000), 30);
+    expect(restLeft(timer, T0 + 10 * 60_000)).toEqual({
+      seconds: 90,
+      fraction: 0.75,
+      done: false,
+      paused: true,
     });
   });
 });
