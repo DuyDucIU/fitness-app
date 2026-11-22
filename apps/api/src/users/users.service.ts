@@ -9,15 +9,7 @@ export class UsersService {
 
   /** Lấy user theo JWT; lần đầu đăng nhập thì tạo bản ghi USERS (UC01 bước 3). */
   async getOrCreateMe(auth: AuthContext): Promise<MeResponse> {
-    const user = await this.prisma.user.upsert({
-      where: { authSubject: auth.sub },
-      create: {
-        authSubject: auth.sub,
-        email: auth.email,
-        authProvider: auth.provider,
-      },
-      update: {},
-    });
+    const user = await this.upsert(auth);
     return {
       id: user.id,
       email: user.email,
@@ -27,5 +19,22 @@ export class UsersService {
       timezone: user.timezone,
       rpeEnabled: user.rpeEnabled,
     };
+  }
+
+  /** Id của user theo JWT, tạo bản ghi nếu chưa có (như GET /me). */
+  async ensureUserId(auth: AuthContext): Promise<string> {
+    return (await this.upsert(auth)).id;
+  }
+
+  private upsert(auth: AuthContext) {
+    return this.prisma.user.upsert({
+      where: { authSubject: auth.sub },
+      create: {
+        authSubject: auth.sub,
+        email: auth.email,
+        authProvider: auth.provider,
+      },
+      update: {},
+    });
   }
 }

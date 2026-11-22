@@ -48,6 +48,22 @@ enum AliasLang {
   en
 }
 
+/// Quy ước ghi tạ (SRS Phụ lục B), snapshot ở SESSION_EXERCISES.load_input.
+enum LoadInput {
+  total
+  per_side
+  per_dumbbell
+  stack
+  added_weight
+}
+
+enum SetType {
+  warmup
+  working
+  drop
+  failure
+}
+
 /// Ngôn ngữ giao diện (D27, SDD 3.5). Tiếng Anh là mặc định.
 enum Locale {
   en
@@ -69,8 +85,9 @@ model User {
   createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   deletedAt           DateTime?     @map("deleted_at") @db.Timestamptz(6)
 
-  exercises Exercise[]
-  aliases   ExerciseAlias[]
+  exercises       Exercise[]
+  aliases         ExerciseAlias[]
+  workoutSessions WorkoutSession[]
 
   @@map("users")
 }
@@ -103,9 +120,10 @@ model Exercise {
   license    String?
   isArchived Boolean        @default(false) @map("is_archived")
 
-  owner   User?            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  muscles ExerciseMuscle[]
-  aliases ExerciseAlias[]
+  owner            User?             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  muscles          ExerciseMuscle[]
+  aliases          ExerciseAlias[]
+  sessionExercises SessionExercise[]
 
   @@unique([source, sourceRef])
   @@map("exercises")
@@ -138,4 +156,72 @@ model ExerciseAlias {
 
   @@index([aliasNormalized(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("exercise_aliases")
+}
+
+// Dữ liệu buổi tập (SDD 7.1), local-first: id sinh ở client, app đẩy lên qua outbox
+// (POST /v1/sync/push, upsert idempotent theo id). `updated_at` do server đặt mỗi lần
+// ghi (cursor của pull); xoá bằng tombstone `deleted_at`. Xoá user thì xoá theo cascade.
+
+model WorkoutSession {
+  id               String    @id @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  /// null = tập tự do. Chưa có bảng routine nên chưa có khoá ngoại.
+  routineDayId     String?   @map("routine_day_id") @db.Uuid
+  startedAt        DateTime  @map("started_at") @db.Timestamptz(6)
+  endedAt          DateTime? @map("ended_at") @db.Timestamptz(6)
+  notes            String?
+  /// Id bản ghi đã ghi sang Health Connect (post-MVP)
+  healthExternalId String?   @map("health_external_id")
+  updatedAt        DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises SessionExercise[]
+
+  @@index([userId, updatedAt])
+  @@map("workout_sessions")
+}
+
+model SessionExercise {
+  id                String    @id @db.Uuid
+  sessionId         String    @map("session_id") @db.Uuid
+  /// Khoá ngoại DEFERRABLE INITIALLY DEFERRED (migration defer_session_exercise_fk, viết
+  /// tay): xoá user thì bài tuỳ chỉnh và buổi tập dùng bài đó cùng bị xoá theo cascade.
+  exerciseId        String    @map("exercise_id") @db.Uuid
+  /// null = bài thêm ad hoc. Chưa có bảng routine nên chưa có khoá ngoại.
+  routineExerciseId String?   @map("routine_exercise_id") @db.Uuid
+  loadInput         LoadInput @map("load_input")
+  position          Int
+  supersetGroup     Int?      @map("superset_group")
+  updatedAt         DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  session  WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise Exercise       @relation(fields: [exerciseId], references: [id], onDelete: NoAction)
+  sets     SetLog[]
+
+  @@index([sessionId])
+  @@map("session_exercises")
+}
+
+model SetLog {
+  id                String    @id @db.Uuid
+  sessionExerciseId String    @map("session_exercise_id") @db.Uuid
+  setIndex          Int       @map("set_index")
+  setType           SetType   @map("set_type")
+  /// Đúng con số user nhập, theo load_input của bài và input_unit
+  weightValue       Decimal?  @map("weight_value") @db.Decimal
+  inputUnit         UnitPref? @map("input_unit")
+  reps              Int?
+  durationS         Int?      @map("duration_s")
+  distanceM         Decimal?  @map("distance_m") @db.Decimal
+  rpe               Decimal?  @db.Decimal
+  completedAt       DateTime  @map("completed_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  sessionExercise SessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([sessionExerciseId])
+  @@map("set_logs")
 }
