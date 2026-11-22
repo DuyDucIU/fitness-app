@@ -9,7 +9,7 @@ import {
 
 const T0 = Date.parse('2026-11-22T10:00:00.000Z');
 
-describe('rest timer', () => {
+describe('restSecondsFor, startRest, addRest, restLeft', () => {
   it('Given bài trong routine có rest_seconds, When chọn thời lượng nghỉ, Then dùng rest_seconds của bài', () => {
     expect(restSecondsFor(90)).toBe(90);
   });

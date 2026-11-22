@@ -574,7 +574,7 @@ describe('số liệu lần trước', () => {
   });
 });
 
-describe('rest timer', () => {
+describe('đồng hồ nghỉ', () => {
   const T0 = Date.parse('2026-11-22T10:00:00.000Z');
 
   beforeEach(() => {
@@ -687,6 +687,41 @@ describe('rest timer', () => {
     await user.click(await screen.findByRole('button', { name: 'Save set 1' }));
     await screen.findByRole('button', { name: 'Finish workout' });
     expect(restClock()).toBeUndefined();
+  });
+
+  it('app bị đóng giữa lúc nghỉ: mở lại buổi vẫn đúng giờ nghỉ còn lại', async () => {
+    const user = userEvent.setup();
+    await logFirstSet(user);
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    // Hệ điều hành đóng app khi đang ở nền; 50 giây sau user mở lại.
+    cleanup();
+    vi.setSystemTime(Date.now() + 50_000);
+    await openApp('/', signedInAn);
+    await user.click(
+      await screen.findByRole('link', { name: /Workout in progress/ }),
+    );
+    await waitFor(() => expect(restClock()).toBe('1:10'));
+  });
+
+  it('quay lại app lâu sau khi hết giờ: không báo muộn, dải về set kế tiếp', async () => {
+    const vibrate = vi.fn(() => true);
+    Object.defineProperty(navigator, 'vibrate', {
+      value: vibrate,
+      configurable: true,
+    });
+    onTestFinished(() => {
+      Reflect.deleteProperty(navigator, 'vibrate');
+    });
+    const user = userEvent.setup();
+    await logFirstSet(user);
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    comeBackAfter(10 * 60_000);
+    await waitFor(() => expect(restClock()).toBeUndefined());
+    expect(screen.getByText('Set 2/3')).toBeInTheDocument();
+    expect(vibrate).not.toHaveBeenCalled();
+    expect(screen.queryByText('Rest is over.')).not.toBeInTheDocument();
   });
 });
 

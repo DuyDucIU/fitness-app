@@ -3,7 +3,6 @@ import {
   equipmentDefaults,
   type LastTime,
   prefillFromLast,
-  type RestLeft,
   restSecondsFor,
 } from '@fitness/engine';
 import * as React from 'react';
@@ -43,6 +42,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useNow } from '@/hooks/use-now';
+import { useWakeLock } from '@/hooks/use-wake-lock';
 import { formatElapsed, formatNumber, formatShortDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
@@ -67,8 +67,7 @@ import {
   setText,
 } from '@/workout/display';
 import { unlockRestAlarm } from '@/workout/rest-alarm';
-import { useRestTimer } from '@/workout/rest-timer';
-import { useWakeLock } from '@/workout/wake-lock';
+import { type RestTimerState, useRestTimer } from '@/workout/rest-timer';
 
 /**
  * Màn ghi buổi tập (prototypes/workout-log), phần cốt lõi của tập tự do: thêm bài từ
@@ -111,7 +110,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const navigate = useNavigate();
   const toast = useToast();
   const now = useNow();
-  const rest = useRestTimer(now);
+  const rest = useRestTimer(workout.session.id, now);
   // Giữ màn hình sáng suốt buổi (UC08); nhả khi rời màn, tức khi kết thúc buổi.
   useWakeLock();
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -221,6 +220,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
 
   async function finish() {
     await finishSession(session.id);
+    rest.skip();
     toast.show(m.log_finished());
     await navigate('/', { replace: true });
   }
@@ -331,9 +331,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
             kind={kind}
             mode={mode}
             draft={draft}
-            rest={rest.left}
-            restOver={rest.flashing}
-            onRestOverEnd={rest.endFlash}
+            rest={rest}
             onDraftChange={setDraft}
             onDelete={remove}
             onAddSet={addPlannedSet}
@@ -528,9 +526,7 @@ function SetBib({
   kind,
   mode,
   draft,
-  rest,
-  restOver,
-  onRestOverEnd,
+  rest: restTimer,
   onDraftChange,
   onDelete,
   onAddSet,
@@ -539,11 +535,8 @@ function SetBib({
   kind: LogKind;
   mode: BibMode;
   draft: Draft;
-  /** Lượt nghỉ đang chạy: dải số áo thành đồng hồ nghỉ. */
-  rest: RestLeft | null;
-  /** Vừa hết giờ nghỉ: dải loé cam ba lần. */
-  restOver: boolean;
-  onRestOverEnd: () => void;
+  /** Đang nghỉ thì dải số áo thành đồng hồ nghỉ; vừa hết giờ thì dải loé cam ba lần. */
+  rest: RestTimerState;
   onDraftChange: (draft: Draft) => void;
   onDelete: () => void;
   onAddSet: () => void;
@@ -656,8 +649,9 @@ function SetBib({
   );
 
   const name = exerciseName(item);
-  const flash = restOver && 'animate-rest-over';
-  const onAnimationEnd = restOver ? onRestOverEnd : undefined;
+  const rest = restTimer.left;
+  const flashClass = restTimer.flashing && 'animate-rest-over';
+  const onAnimationEnd = restTimer.flashing ? restTimer.endFlash : undefined;
   let band: React.ReactNode;
   if (rest && mode.type !== 'edit') {
     // Dải chính là đồng hồ nghỉ: lớp lam phủ lên rồi rút dần về bên trái (DESIGN.md › Nghỉ).
@@ -716,7 +710,7 @@ function SetBib({
       <div
         className={cn(
           'flex min-h-14 items-center px-4 py-1.5 shadow-[inset_0_0_0_2px_var(--color-ink)]',
-          flash,
+          flashClass,
         )}
         onAnimationEnd={onAnimationEnd}
       >
@@ -732,7 +726,7 @@ function SetBib({
       <div
         className={cn(
           'flex min-h-14 items-center gap-2.5 bg-orange py-1.5 pr-4 pl-4 text-ink',
-          flash,
+          flashClass,
         )}
         onAnimationEnd={onAnimationEnd}
       >
