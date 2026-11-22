@@ -440,5 +440,8 @@
         "countPlural=other": "Added {name} with {count} exercises."
       }
     }
-  ]
+  ],
+  "routine_metric_reps": "Reps only",
+  "routine_metric_duration": "Time",
+  "routine_metric_distance": "Distance"
 }

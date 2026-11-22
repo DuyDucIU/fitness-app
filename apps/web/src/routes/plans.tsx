@@ -67,6 +67,7 @@ import {
 import { loadLabel } from '@/workout/display';
 import { findLastTime } from '@/workout/last-time';
 import { useOpenSession } from '@/workout/session';
+import { WorkoutResumeBar } from '@/workout/workout-resume-bar';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 const routinePath = (id: string) => `/plans/${id}`;
@@ -305,6 +306,7 @@ export function NewRoutinePage() {
 
   return (
     <AppShell
+      banner={<WorkoutResumeBar />}
       top={<PlansTop title={m.routine_new_title()} backTo="/plans" />}
       foot={
         <Foot
@@ -424,6 +426,7 @@ function RoutineEditor({ routine }: { routine: Routine }) {
 
   return (
     <AppShell
+      banner={<WorkoutResumeBar />}
       top={
         <PlansTop
           title={routine.name}
@@ -468,7 +471,7 @@ function RoutineEditor({ routine }: { routine: Routine }) {
         <ol {...sortable.listProps}>
           {sortable.ordered.map((day, i) => (
             <li key={day.id} {...sortable.itemProps(day)}>
-              <Row className={i === 0 ? 'border-t-0' : undefined}>
+              <Row className="border-t-0">
                 {sortable.handle(day, i, hintId)}
                 <OrderNo n={i + 1} />
                 <Link
@@ -559,19 +562,24 @@ export function DayPage() {
   const { routineId, dayId } = useParams();
   const routine = useRoutine(routineId);
   const draft = useDraftDay();
-  if (routine === undefined) return <AppShell />;
-  if (routine === null) return <Navigate to="/plans" replace />;
-  if (dayId === 'new') {
-    if (!draft || draft.routineId !== routine.id) {
-      // Mở thẳng `days/new` (vd tải lại trang): bắt đầu một ngày mới.
+  const needsDraft =
+    dayId === 'new' && !!routine && draft?.routineId !== routine.id;
+  const nextDayNo = (routine?.days.length ?? 0) + 1;
+  React.useEffect(() => {
+    // Mở thẳng `days/new` (vd tải lại trang): bắt đầu một ngày mới.
+    if (needsDraft && routine) {
       setDraftDay({
         routineId: routine.id,
-        name: defaultDayName(routine.days.length + 1),
+        name: defaultDayName(nextDayNo),
         exercises: [],
         touched: false,
       });
-      return <AppShell />;
     }
+  }, [needsDraft, routine, nextDayNo]);
+  if (routine === undefined) return <AppShell />;
+  if (routine === null) return <Navigate to="/plans" replace />;
+  if (dayId === 'new') {
+    if (!draft || needsDraft) return <AppShell />;
     return <DraftDayEditor routine={routine} draft={draft} />;
   }
   const day = routine.days.find((d) => d.id === dayId);
@@ -733,8 +741,8 @@ function DraftDayEditor({
     setBusy(false);
     if (!result) return;
     saved.current = true;
-    setDraftDay(null);
     await navigate(routinePath(routine.id), { replace: true });
+    setDraftDay(null);
     toast.show(
       draft.exercises.length
         ? m.day_added_with({ name, count: draft.exercises.length })
@@ -835,6 +843,7 @@ function DayEditor({
 
   return (
     <AppShell
+      banner={<WorkoutResumeBar />}
       top={
         <PlansTop
           title={name}
@@ -915,6 +924,24 @@ function DayEditor({
   );
 }
 
+/** Chữ đầu viết hoa như nhãn của prototype ("Per dumbbell"). */
+const capitalize = (text: string) =>
+  text.charAt(0).toLocaleUpperCase(getLocale()) + text.slice(1);
+
+/** Bài không ghi tạ: nêu cách ghi số liệu (prototype › DATA.METRIC). */
+function metricLabel(metric: CatalogExercise['metricType']): string {
+  switch (metric) {
+    case 'reps':
+      return m.routine_metric_reps();
+    case 'duration':
+      return m.routine_metric_duration();
+    case 'distance':
+      return m.routine_metric_distance();
+    default:
+      return '';
+  }
+}
+
 /**
  * Một bài trong ngày tập (.exrow): tay nắm, số thứ tự, tên, dòng dụng cụ · cách ghi tạ,
  * rồi dòng target. Chạm vào tên mở sheet chỉnh bài.
@@ -943,16 +970,16 @@ function ExerciseRow({
   const details = [
     exercise?.equipment && equipmentLabel(exercise.equipment),
     metric === 'weight_reps'
-      ? loadLabel(equipmentDefaults(exercise?.equipment ?? null).loadInput)
-      : metric === 'reps'
-        ? m.log_note_reps_only()
-        : null,
+      ? capitalize(
+          loadLabel(equipmentDefaults(exercise?.equipment ?? null).loadInput),
+        )
+      : metricLabel(metric),
   ]
     .filter(Boolean)
     .join(' · ');
   const [first, ...rest] = targetParts(row, exercise, hasHistory);
   return (
-    <Row className={index === 0 ? 'items-start border-t-0 py-3' : 'items-start py-3'}>
+    <Row className="items-start border-t-0 py-3 pr-7">
       {handle}
       <OrderNo n={index + 1} />
       <button

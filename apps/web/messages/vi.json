@@ -426,5 +426,8 @@
         "countPlural=other": "Đã thêm {name} với {count} bài."
       }
     }
-  ]
+  ],
+  "routine_metric_reps": "Chỉ reps",
+  "routine_metric_duration": "Thời gian",
+  "routine_metric_distance": "Quãng đường"
 }

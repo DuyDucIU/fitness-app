@@ -217,7 +217,7 @@ export function useSortable<T extends { id: string }>({
     itemProps: (item: T) => ({
       'data-sort-item': '',
       className: cn(
-        'relative bg-tyvek',
+        'relative border-t border-rule-soft bg-tyvek first:border-t-0',
         dragging === item.id &&
           'z-[5] rounded-sm shadow-[inset_0_0_0_2px_var(--color-ink)] [transition:none!important] [&_[data-sort-handle]]:bg-ink [&_[data-sort-handle]]:text-tyvek',
         dragging &&
