@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AN, clearDb } from '@/auth/testing';
-import { BENCH, CATALOG, SQUAT } from '@/catalog/testing';
+import { BENCH, CATALOG, SLED_PUSH, SQUAT } from '@/catalog/testing';
 import { ApiError } from '@/lib/errors';
 import { fakeRoutinesServer } from '@/routines/testing';
 import { openApp } from '@/test/open-app';
@@ -144,6 +144,50 @@ describe('sửa routine', () => {
         name: /Barbell Squat.*4 × 8–12.*1:45 rest/,
       }),
     ).toBeInTheDocument();
+  });
+
+  it('đổi sang bài đo quãng đường: bỏ rep range, chỉ còn số set; bài mới thêm theo mặc định khởi động của user', async () => {
+    const { server, seed } = pplServer();
+    const routine = await seed();
+    const user = userEvent.setup();
+    await openApp(`/plans/${routine.id}/days/${routine.days[0].id}`, {
+      ...signedInAn,
+      fetchCatalog: async () => CATALOG,
+      routinesApi: server.api,
+    });
+
+    await user.click(
+      await screen.findByRole('button', { name: /^Barbell Bench Press/ }),
+    );
+    const sheet = await screen.findByRole('dialog', { name: BENCH.nameEn });
+    await user.click(
+      within(sheet).getByRole('button', { name: /Change exercise/ }),
+    );
+    await user.keyboard('sled');
+    await user.click(await screen.findByRole('button', { name: /Sled push/ }));
+
+    expect(
+      await screen.findByRole('button', { name: /^Sled push.*3 sets/ }),
+    ).toBeInTheDocument();
+    expect(server.routines[0].days[0].exercises[0]).toMatchObject({
+      exerciseId: SLED_PUSH.id,
+      repMin: null,
+      repMax: null,
+      targetDurationMinS: null,
+      targetDurationMaxS: null,
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Add exercise' }));
+    await user.keyboard('ganh ta');
+    await user.click(
+      await screen.findByRole('button', { name: /Barbell Squat/ }),
+    );
+    await waitFor(() =>
+      expect(server.api.addExercise).toHaveBeenCalledWith(
+        routine.days[0].id,
+        expect.objectContaining({ exerciseId: SQUAT.id, warmupEnabled: null }),
+      ),
+    );
   });
 
   it('đổi thứ tự ngày tập bằng bàn phím: Space nhấc, ↓, Space thả', async () => {

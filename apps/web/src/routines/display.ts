@@ -33,9 +33,39 @@ export function defaultTarget(
     targetDurationMinS: timed ? 30 : null,
     targetDurationMaxS: timed ? 60 : null,
     initialWeightKg: null,
-    warmupEnabled: false,
+    // null = theo mặc định khởi động của user (D22, SDD 7.1 › warmup_enabled).
+    warmupEnabled: null,
     restSeconds: 90,
   };
+}
+
+/** Loại target: rep range, thời gian mỗi set, hay chỉ số set (bài đo quãng đường). */
+function targetKind(target: Pick<ExerciseTarget, 'repMin' | 'targetDurationMinS'>) {
+  if (target.targetDurationMinS !== null) return 'time';
+  return target.repMin !== null ? 'reps' : 'sets';
+}
+
+/**
+ * Sửa đổi khi đổi bài trong ngày tập (prototype: "Keeps sets, reps and rest"): bỏ tạ khởi
+ * điểm; bài mới đo khác loại (vd tạ × reps sang thời gian) thì lấy khoảng target mặc định
+ * của loại mới thay vì giữ khoảng không dùng được.
+ */
+export function swapChanges(
+  current: ExerciseTarget,
+  next: Pick<CatalogExercise, 'id' | 'metricType'>,
+): Partial<ExerciseTarget> {
+  const fresh = defaultTarget(next.id, next.metricType);
+  const changes: Partial<ExerciseTarget> = {
+    exerciseId: next.id,
+    initialWeightKg: null,
+  };
+  if (targetKind(current) !== targetKind(fresh)) {
+    changes.repMin = fresh.repMin;
+    changes.repMax = fresh.repMax;
+    changes.targetDurationMinS = fresh.targetDurationMinS;
+    changes.targetDurationMaxS = fresh.targetDurationMaxS;
+  }
+  return changes;
 }
 
 /** Target của một bài trong ngày tập (bỏ id, thứ tự, superset). */
@@ -89,8 +119,8 @@ export function targetText(target: ExerciseTarget): string {
   if (target.repMin !== null && target.repMax !== null) {
     return m.routine_spec_range({
       sets,
-      min: String(target.repMin),
-      max: String(target.repMax),
+      min: formatNumber(target.repMin),
+      max: formatNumber(target.repMax),
     });
   }
   return m.routine_spec_sets({ count: sets });

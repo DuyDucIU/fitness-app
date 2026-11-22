@@ -47,6 +47,7 @@ import {
   defaultDayName,
   defaultTarget,
   type ExerciseTarget,
+  swapChanges,
   targetOf,
   targetParts,
   workingSets,
@@ -810,10 +811,10 @@ function DayEditor({
   async function pick(exercise: CatalogExercise) {
     const label = exerciseNames(exercise, getLocale()).name;
     if (picker?.mode === 'swap') {
-      const ok = await actions.update(picker.row, {
-        exerciseId: exercise.id,
-        initialWeightKg: null,
-      });
+      const ok = await actions.update(
+        picker.row,
+        swapChanges(targetOf(picker.row), exercise),
+      );
       if (ok) toast.show(m.day_exercise_changed({ name: label }));
     } else {
       const ok = await actions.add(

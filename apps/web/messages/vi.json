@@ -299,7 +299,7 @@
   "routine_delete": "Xoá lịch tập",
   "routine_delete_hint": "Các buổi đã tập vẫn ở trong lịch sử.",
   "routine_delete_title": "Xoá lịch tập này?",
-  "routine_delete_body": "Các ngày tập và cài đặt bài trong lịch sẽ mất. Buổi đã ghi vẫn ở History.",
+  "routine_delete_body": "Các ngày tập và cài đặt bài trong lịch sẽ mất. Buổi đã ghi vẫn ở Lịch sử.",
   "routine_delete_keep": "Giữ lại",
   "routine_deleted": "Đã xoá {name}.",
   "routine_needs_network": "Sửa lịch tập cần có mạng. Khi offline bạn vẫn xem được.",
@@ -414,7 +414,7 @@
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=other": "{count} bài trong ngày cũng bị bỏ. Buổi đã tập vẫn ở History."
+        "countPlural=other": "{count} bài trong ngày cũng bị bỏ. Buổi đã tập vẫn ở Lịch sử."
       }
     }
   ],
