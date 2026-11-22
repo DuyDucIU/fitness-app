@@ -216,6 +216,34 @@ describe('tập tự do ghi trên máy', () => {
     expect(deleted.payload).toMatchObject({ deletedAt: expect.any(String) });
   });
 
+  it('xoá set rồi Undo: set quay lại, outbox có sự kiện xoá và khôi phục', async () => {
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'squat', /Barbell Squat/);
+    await type(user, 'Weight (total)', '100');
+    await type(user, 'Reps', '5');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+    await screen.findByRole('button', { name: 'Log set 2' });
+
+    await user.click(screen.getByRole('button', { name: /^Set 1/ }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Delete set 1' }),
+    );
+    expect(await screen.findByText('Set 1 deleted.')).toBeInTheDocument();
+    await waitFor(() => expect(loggedSets()).toEqual([]));
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(loggedSets()).toEqual(['Set 1 100 × 5']));
+
+    const sets = (await db.outbox.orderBy('seq').toArray()).filter(
+      (e) => e.entity === 'set_logs',
+    );
+    expect(
+      sets.map((e) => (e.payload as { deletedAt: unknown }).deletedAt),
+    ).toEqual([null, expect.any(String), null]);
+  });
+
   it('thêm set ngoài 3 set có sẵn', async () => {
     const user = userEvent.setup();
     await openApp('/', signedInAn);

@@ -230,5 +230,7 @@
   "log_now": "now",
   "log_logged": "Logged",
   "log_next": "Next: {name}",
-  "log_chip_label": "{name}, {done} of {total} sets"
+  "log_chip_label": "{name}, {done} of {total} sets",
+  "log_set_deleted": "Set {n} deleted.",
+  "common_undo": "Undo"
 }

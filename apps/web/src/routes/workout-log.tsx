@@ -39,6 +39,7 @@ import {
   deleteSet,
   finishSession,
   logSet,
+  restoreSet,
   type OpenExercise,
   type OpenSession,
   type SetValues,
@@ -191,8 +192,13 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
 
   async function remove() {
     if (!editing) return;
-    await deleteSet(editing.id);
+    const { id } = editing;
+    await deleteSet(id);
     setEditingId(null);
+    toast.show(m.log_set_deleted({ n: editingNo }), {
+      action: { label: m.common_undo(), onClick: () => void restoreSet(id) },
+      durationMs: 5000,
+    });
   }
 
   async function finish() {
@@ -600,19 +606,10 @@ function SetBib({
   let band: React.ReactNode;
   if (mode.type === 'edit') {
     band = (
-      <div className="flex min-h-14 items-center gap-2.5 py-1.5 pr-1 pl-4 shadow-[inset_0_0_0_2px_var(--color-ink),inset_0_0_0_5px_var(--color-tyvek),inset_0_0_0_6px_var(--color-ink)]">
+      <div className="flex min-h-14 items-center px-4 py-1.5 shadow-[inset_0_0_0_2px_var(--color-ink),inset_0_0_0_5px_var(--color-tyvek),inset_0_0_0_6px_var(--color-ink)]">
         <span className="line-clamp-2 min-w-0 flex-1 label-caps">
           {m.log_edit_set_name({ n: mode.n, name })}
         </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="flex-none text-danger"
-          aria-label={m.log_delete_set({ n: mode.n })}
-          onClick={onDelete}
-        >
-          <TrashIcon aria-hidden />
-        </Button>
       </div>
     );
   } else if (mode.type === 'done' || kind === 'unsupported') {
@@ -679,6 +676,16 @@ function SetBib({
           <p className="px-4 pb-3 text-center text-label font-semibold">
             {note}
           </p>
+          {mode.type === 'edit' && (
+            // Xoá set: thao tác hiếm, đặt dưới mặt số cho xa nút lưu ở vùng ngón cái;
+            // góc phải dải đầu dành cho menu "⋯" của bài (#22, #23).
+            <div className="flex justify-center border-t-2 border-dashed border-rule py-1.5">
+              <Button variant="text" className="text-danger" onClick={onDelete}>
+                <TrashIcon aria-hidden />
+                {m.log_delete_set({ n: mode.n })}
+              </Button>
+            </div>
+          )}
         </>
       )}
     </section>

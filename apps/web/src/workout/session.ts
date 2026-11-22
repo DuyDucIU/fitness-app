@@ -172,6 +172,15 @@ export function deleteSet(setId: string): Promise<void> {
   });
 }
 
+/** Khôi phục set vừa xoá (Undo): bỏ tombstone, đẩy lại bằng upsert như mọi thay đổi khác. */
+export function restoreSet(setId: string): Promise<void> {
+  return db.transaction('rw', db.setLogs, db.outbox, async () => {
+    const row = await db.setLogs.get(setId);
+    if (!row?.deletedAt) return;
+    await put(db.setLogs, 'set_logs', { ...row, deletedAt: null });
+  });
+}
+
 /** Kết thúc buổi (UC10 bước 1): ghi `endedAt`, kể cả khi đang offline. */
 export function finishSession(sessionId: string): Promise<void> {
   return db.transaction('rw', db.workoutSessions, db.outbox, async () => {
