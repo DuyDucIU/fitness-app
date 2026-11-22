@@ -1,4 +1,5 @@
 import type { LoadInput } from '@fitness/contract';
+import type { PastSet } from '@fitness/engine';
 
 import { exerciseNames } from '@/catalog/display';
 import { formatNumber } from '@/lib/format';
@@ -31,6 +32,20 @@ export function setText(
   const r = reps ?? '–';
   if (kind === 'reps') return `${r} ${m.log_unit_reps()}`;
   return `${weight === null ? '–' : formatNumber(weight)} × ${r}`;
+}
+
+/**
+ * Các set của lần trước gọn trên một dòng: "80 × 8 · 8 · 7" khi cùng mức tạ, "80 × 8 ·
+ * 85 × 6" khi khác; bài chỉ reps "12 · 10 · 9".
+ */
+export function pastSetsText(kind: LogKind, sets: PastSet[]): string {
+  const reps = sets.map((s) => s.reps ?? '–').join(' · ');
+  if (kind === 'reps') return reps;
+  const [first] = sets;
+  if (first && sets.every((s) => s.weight === first.weight)) {
+    return `${first.weight === null ? '–' : formatNumber(first.weight)} × ${reps}`;
+  }
+  return sets.map((s) => setText(kind, s.weight, s.reps)).join(' · ');
 }
 
 /** Quy ước ghi tạ đã dịch (SRS Phụ lục B). */

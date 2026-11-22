@@ -1,5 +1,9 @@
 import type { SetLog } from '@fitness/contract';
-import { equipmentDefaults } from '@fitness/engine';
+import {
+  equipmentDefaults,
+  type LastTime,
+  prefillFromLast,
+} from '@fitness/engine';
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router';
 
@@ -30,7 +34,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useNow } from '@/hooks/use-now';
-import { formatElapsed, formatNumber } from '@/lib/format';
+import { formatElapsed, formatNumber, formatShortDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
 import {
@@ -50,6 +54,7 @@ import {
   loadLabel,
   type LogKind,
   logKind,
+  pastSetsText,
   setText,
 } from '@/workout/display';
 
@@ -75,6 +80,19 @@ interface Draft {
 
 function draftFrom(set: SetLog | undefined): Draft {
   return { weight: set?.weightValue ?? null, reps: set?.reps ?? null };
+}
+
+/**
+ * Số điền sẵn cho working set thứ `index` (từ 0) theo lần trước (UC07 bước 3, R4);
+ * `null` khi bài chưa có lịch sử hoặc lần trước ghi tạ theo quy ước khác.
+ */
+function prefillAt(item: OpenExercise, index: number): Draft | null {
+  const past = prefillFromLast(item.lastTime, index, item.row.loadInput);
+  if (!past) return null;
+  return {
+    weight: logKind(item) === 'reps' ? null : past.weight,
+    reps: past.reps,
+  };
 }
 
 function WorkoutLog({ workout }: { workout: OpenSession }) {
@@ -111,16 +129,17 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const allDone = !!current && logged.length >= planned;
 
   // Hai bản nháp riêng, để sửa set cũ không đụng tới số của set chuẩn bị tập.
-  // - Set chuẩn bị tập: điền sẵn set vừa ghi của bài (chưa có thì để trống — R8), chỉ
-  //   làm mới khi đổi bài. Ghi xong một set thì giữ nguyên (vốn đã là số vừa ghi); làm
-  //   mới lúc IndexedDB báo về sẽ xoá mất chỉnh sửa user bấm ngay sau khi ghi.
+  // - Set chuẩn bị tập: điền sẵn đúng set đó của lần trước (R4); bài chưa có lịch sử
+  //   thì lấy set vừa ghi của bài, chưa ghi set nào thì để trống (R8). Chỉ làm mới khi
+  //   đổi bài và ngay sau khi ghi set; làm mới lúc IndexedDB báo về sẽ xoá mất chỉnh
+  //   sửa user bấm ngay sau khi ghi.
   // - Set đang sửa: lấy số của set đó mỗi khi bắt đầu sửa.
   const emptyDraft: Draft = { weight: null, reps: null };
   const [nextDraft, setNextDraft] = React.useState<Draft>(emptyDraft);
   const [nextFor, setNextFor] = React.useState<string>();
   if (current && nextFor !== current.row.id) {
     setNextFor(current.row.id);
-    setNextDraft(draftFrom(logged.at(-1)));
+    setNextDraft(prefillAt(current, logged.length) ?? draftFrom(logged.at(-1)));
   }
   const [editDraft, setEditDraft] = React.useState<Draft>(emptyDraft);
   const [editFor, setEditFor] = React.useState<string>();
@@ -158,6 +177,9 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
       setEditingId(null);
     } else {
       await logSet(current.row.id, values);
+      // Set kế tiếp (thứ tự nextNo tính từ 0) theo lần trước; không có thì giữ số vừa ghi.
+      const next = prefillAt(current, nextNo);
+      if (next) setNextDraft(next);
       toast.announce(m.log_set_saved({ n: nextNo }));
     }
   }
@@ -300,7 +322,15 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                   // Set chuẩn bị tập luôn hiện số sẽ ghi, kể cả khi đang sửa set khác.
                   else if (isNext)
                     value = setText(kind, nextDraft.weight, nextDraft.reps);
-                  else value = setText(kind, null, null);
+                  else {
+                    // Set chờ tập sau đó: số dự kiến theo lần trước, chưa có thì "–".
+                    const past = prefillAt(current, i);
+                    value = setText(
+                      kind,
+                      past?.weight ?? null,
+                      past?.reps ?? null,
+                    );
+                  }
                   return (
                     <li
                       key={set?.id ?? `planned-${i}`}
@@ -662,6 +692,39 @@ function SetBib({
           )}
         </>
       )}
+      {item.lastTime && kind !== 'unsupported' && mode.type !== 'edit' && (
+        <LastTimeStub kind={kind} lastTime={item.lastTime} />
+      )}
     </section>
+  );
+}
+
+/**
+ * Cuống vé dưới tấm số áo (prototypes/workout-log › .stub): ngày và các working set của
+ * lần tập gần nhất cùng bài (UC07 bước 2). Bài chưa có lịch sử thì không hiện.
+ */
+function LastTimeStub({
+  kind,
+  lastTime,
+}: {
+  kind: LogKind;
+  lastTime: LastTime;
+}) {
+  const id = React.useId();
+  return (
+    <div
+      role="note"
+      aria-labelledby={id}
+      className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t-2 border-dashed border-rule px-4 py-3"
+    >
+      <span id={id} className="label-caps">
+        {m.log_last_time({
+          date: formatShortDate(new Date(lastTime.startedAt)),
+        })}
+      </span>{' '}
+      <b className="text-num leading-none numeral">
+        {pastSetsText(kind, lastTime.sets)}
+      </b>
+    </div>
   );
 }

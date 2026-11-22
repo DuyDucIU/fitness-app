@@ -11,3 +11,4 @@ export {
   type SearchableExercise,
   searchExercises,
 } from './search';
+export { type LastTime, type PastSet, prefillFromLast } from './last-time';

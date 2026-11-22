@@ -1,3 +1,9 @@
+import type {
+  LoadInput,
+  SessionExercise,
+  SetLog,
+  WorkoutSession,
+} from '@fitness/contract';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -65,6 +71,76 @@ function loggedSets() {
     .queryAllByRole('listitem')
     .filter((item) => within(item).queryByRole('img', { name: 'Logged' }))
     .map((item) => item.textContent?.replace(/\s+/g, ' ').trim());
+}
+
+/** Một set trong buổi cũ: [tạ, reps], tuỳ chọn loại set và đã xoá. */
+interface PastSetSeed {
+  weight: number | null;
+  reps: number;
+  setType?: SetLog['setType'];
+  deleted?: boolean;
+}
+
+/**
+ * Ghi thẳng vào máy một buổi cũ có một bài (lịch sử giả). Mặc định đã kết thúc 45 phút
+ * sau khi bắt đầu, chưa xoá, ghi tổng tạ.
+ */
+async function seedPastWorkout(
+  startedAt: string,
+  exerciseId: string,
+  sets: PastSetSeed[],
+  {
+    loadInput = 'total',
+    open = false,
+    deleted = false,
+  }: { loadInput?: LoadInput; open?: boolean; deleted?: boolean } = {},
+) {
+  const session: WorkoutSession = {
+    id: crypto.randomUUID(),
+    routineDayId: null,
+    startedAt,
+    endedAt: open
+      ? null
+      : new Date(Date.parse(startedAt) + 45 * 60_000).toISOString(),
+    notes: null,
+    deletedAt: deleted ? startedAt : null,
+  };
+  const row: SessionExercise = {
+    id: crypto.randomUUID(),
+    sessionId: session.id,
+    exerciseId,
+    routineExerciseId: null,
+    loadInput,
+    position: 0,
+    supersetGroup: null,
+    deletedAt: null,
+  };
+  await db.workoutSessions.put(session);
+  await db.sessionExercises.put(row);
+  await db.setLogs.bulkPut(
+    sets.map((s, setIndex) => ({
+      id: crypto.randomUUID(),
+      sessionExerciseId: row.id,
+      setIndex,
+      setType: s.setType ?? 'working',
+      weightValue: s.weight,
+      inputUnit: s.weight === null ? null : 'kg',
+      reps: s.reps,
+      durationS: null,
+      distanceM: null,
+      rpe: null,
+      completedAt: startedAt,
+      deletedAt: s.deleted ? startedAt : null,
+    })),
+  );
+}
+
+/** Ô "lần trước" dưới tấm số áo. */
+function lastTime() {
+  return screen
+    .queryByRole('note', { name: /^Last time/ })
+    ?.textContent?.replace(/\s+/g, ' ')
+    .trim();
 }
 
 describe('tập tự do ghi trên máy', () => {
@@ -346,5 +422,132 @@ describe('tập tự do ghi trên máy', () => {
     expect(
       await screen.findByRole('button', { name: 'Start freestyle' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('số liệu lần trước', () => {
+  it('hiện các working set của buổi gần nhất có bài, điền sẵn từng set theo lần trước', async () => {
+    await seedPastWorkout('2026-11-12T10:00:00.000Z', BENCH.id, [
+      { weight: 70, reps: 10 },
+    ]);
+    await seedPastWorkout('2026-11-19T10:00:00.000Z', BENCH.id, [
+      { weight: 40, reps: 8, setType: 'warmup' },
+      { weight: 80, reps: 8 },
+      { weight: 80, reps: 8 },
+      { weight: 80, reps: 7 },
+    ]);
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+
+    expect(lastTime()).toBe('Last time · Nov 19 80 × 8 · 8 · 7');
+    expect(screen.getByRole('textbox', { name: 'Weight (total)' })).toHaveValue(
+      '80',
+    );
+    expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('8');
+    expect(setRows()).toEqual([
+      'Set 1 80 × 8 now',
+      'Set 2 80 × 8',
+      'Set 3 80 × 7',
+    ]);
+
+    // User sửa set đầu; set sau vẫn điền theo đúng set đó của lần trước (R4).
+    await type(user, 'Weight (total)', '82.5');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Log set 2' }));
+    await screen.findByRole('button', { name: 'Log set 3' });
+    expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('7');
+    expect(loggedSets()).toEqual(['Set 1 82.5 × 8', 'Set 2 80 × 8']);
+  });
+
+  it('bỏ qua buổi đã xoá, buổi đang mở, set đã xoá và buổi không còn working set', async () => {
+    await seedPastWorkout('2026-11-10T10:00:00.000Z', BENCH.id, [
+      { weight: 75, reps: 9 },
+      { weight: 75, reps: 6, deleted: true },
+      { weight: 75, reps: 8 },
+    ]);
+    await seedPastWorkout('2026-11-15T10:00:00.000Z', BENCH.id, [
+      { weight: 40, reps: 8, setType: 'warmup' },
+      { weight: 80, reps: 8, deleted: true },
+    ]);
+    await seedPastWorkout(
+      '2026-11-18T10:00:00.000Z',
+      BENCH.id,
+      [{ weight: 90, reps: 5 }],
+      { deleted: true },
+    );
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+
+    expect(lastTime()).toBe('Last time · Nov 10 75 × 9 · 8');
+    expect(setRows()).toEqual([
+      'Set 1 75 × 9 now',
+      'Set 2 75 × 8',
+      'Set 3 75 × 8',
+    ]);
+  });
+
+  it('lần trước ghi tạ theo quy ước khác: vẫn hiện nhưng không điền sẵn', async () => {
+    await seedPastWorkout(
+      '2026-11-19T10:00:00.000Z',
+      BENCH.id,
+      [
+        { weight: 30, reps: 10 },
+        { weight: 32.5, reps: 8 },
+      ],
+      { loadInput: 'per_side' },
+    );
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+
+    expect(lastTime()).toBe('Last time · Nov 19 30 × 10 · 32.5 × 8');
+    expect(screen.getByRole('textbox', { name: 'Weight (total)' })).toHaveValue(
+      '',
+    );
+    expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('');
+    expect(setRows()).toEqual([
+      'Set 1 – × – now',
+      'Set 2 – × –',
+      'Set 3 – × –',
+    ]);
+  });
+
+  it('bài chỉ reps: hiện và điền sẵn reps của lần trước', async () => {
+    await db.exercises.put(PUSH_UP);
+    await seedPastWorkout(
+      '2026-11-19T10:00:00.000Z',
+      PUSH_UP.id,
+      [
+        { weight: null, reps: 15 },
+        { weight: null, reps: 12 },
+      ],
+      { loadInput: 'added_weight' },
+    );
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'pushups', /Pushups/);
+
+    expect(lastTime()).toBe('Last time · Nov 19 15 · 12');
+    expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('15');
+    expect(setRows()).toEqual([
+      'Set 1 15 reps now',
+      'Set 2 12 reps',
+      'Set 3 12 reps',
+    ]);
+  });
+
+  it('bài chưa có lịch sử: không hiện lần trước', async () => {
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+
+    expect(lastTime()).toBeUndefined();
   });
 });

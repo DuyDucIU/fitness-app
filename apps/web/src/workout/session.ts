@@ -6,11 +6,12 @@ import type {
   UnitPref,
   WorkoutSession,
 } from '@fitness/contract';
-import { equipmentDefaults } from '@fitness/engine';
+import { equipmentDefaults, type LastTime } from '@fitness/engine';
 import type { EntityTable } from 'dexie';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 import { db, type OutboxEvent } from '@/db/db';
+import { findLastTime } from '@/workout/last-time';
 
 /**
  * Ghi buổi tập trên máy (UC06, UC07, UC10 phần cục bộ; SDD 3.2). Mọi thay đổi lưu vào
@@ -207,14 +208,33 @@ export interface Workout {
   setCount: number;
 }
 
-/** Bài trong buổi đang mở. */
-export type OpenExercise = WorkoutExercise;
+/** Bài trong buổi đang mở, kèm lần tập gần nhất của bài (`null`: chưa có lịch sử). */
+export interface OpenExercise extends WorkoutExercise {
+  lastTime: LastTime | null;
+}
 /** Buổi đang mở. */
-export type OpenSession = Workout;
+export interface OpenSession extends Workout {
+  exercises: OpenExercise[];
+}
 
+/**
+ * Đọc "lần trước" cùng lúc với buổi đang mở, để ô nhập có số điền sẵn ngay lần hiện đầu
+ * tiên của bài.
+ */
 async function readOpenSession(): Promise<OpenSession | null> {
   const session = await findOpenSession();
-  return session ? readWorkout(session) : null;
+  if (!session) return null;
+  const workout = await readWorkout(session);
+  const lastTimes = await Promise.all(
+    workout.exercises.map((e) => findLastTime(e.row.exerciseId)),
+  );
+  return {
+    ...workout,
+    exercises: workout.exercises.map((e, i) => ({
+      ...e,
+      lastTime: lastTimes[i],
+    })),
+  };
 }
 
 /** Đọc các bài và set của một buổi; gọi trong `useLiveQuery` để tự cập nhật. */
