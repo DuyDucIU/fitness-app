@@ -12,11 +12,13 @@ import { createCatalogSync } from '@/catalog/catalog-sync';
 import { AppUpdateProvider } from '@/components/app-update';
 import { ToastProvider } from '@/components/toast';
 import { db } from '@/db/db';
-import { api } from '@/lib/api';
+import { api, routinesApi } from '@/lib/api';
 import { applyDocumentLocale } from '@/lib/i18n';
 import { requestPersistentStorage } from '@/lib/storage';
 import { getSupabase } from '@/lib/supabase';
 import { createRoutes } from '@/router';
+import { RoutineSyncContext } from '@/routines/routine-context';
+import { createRoutineSync } from '@/routines/routine-sync';
 import { createOutboxPush } from '@/sync/outbox-push';
 import { createSyncPull } from '@/sync/pull';
 
@@ -32,6 +34,8 @@ const auth = createAuth({
 });
 // Cache catalog bài tập trên máy: tự làm mới khi có phiên và khi có mạng lại.
 createCatalogSync({ db, auth, fetchCatalog: api.catalog });
+// Cache routine trên máy: làm mới như catalog, và sau mỗi lần sửa routine thành công.
+const routineSync = createRoutineSync({ db, auth, api: routinesApi });
 // Đẩy outbox lên server sau mỗi lần ghi, khi mở app, khi có mạng lại và khi quay lại app;
 // đẩy hết thì kéo thay đổi từ server về.
 const syncPull = createSyncPull({ db, auth, pullChanges: api.syncPull });
@@ -50,11 +54,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthContext value={auth}>
-        <ToastProvider>
-          <AppUpdateProvider>
-            <RouterProvider router={router} />
-          </AppUpdateProvider>
-        </ToastProvider>
+        <RoutineSyncContext value={routineSync}>
+          <ToastProvider>
+            <AppUpdateProvider>
+              <RouterProvider router={router} />
+            </AppUpdateProvider>
+          </ToastProvider>
+        </RoutineSyncContext>
       </AuthContext>
     </QueryClientProvider>
   </StrictMode>,

@@ -12,8 +12,11 @@ import { createTestAuth } from '@/auth/testing';
 import { createCatalogSync } from '@/catalog/catalog-sync';
 import { ToastProvider } from '@/components/toast';
 import { db } from '@/db/db';
+import type { RoutinesApi } from '@/lib/api';
 import { ApiError } from '@/lib/errors';
 import { createRoutes } from '@/router';
+import { RoutineSyncContext } from '@/routines/routine-context';
+import { createRoutineSync } from '@/routines/routine-sync';
 import { createOutboxPush } from '@/sync/outbox-push';
 import { createSyncPull } from '@/sync/pull';
 
@@ -23,6 +26,8 @@ import { createSyncPull } from '@/sync/pull';
  * - `fetchCatalog`: GET /v1/catalog giả; mặc định như đang mất mạng.
  * - `pushEvents`: POST /v1/sync/push giả; mặc định như đang mất mạng (outbox giữ nguyên).
  * - `pullChanges`: GET /v1/sync/pull giả; mặc định như đang mất mạng.
+ * - `routinesApi`: REST routine giả (thường là `fakeRoutinesServer().api`); hàm không truyền
+ *   thì như đang mất mạng. `online`: trình duyệt có mạng không (mặc định có).
  * - `reconnect()`: giả lập trình duyệt có mạng trở lại.
  * - `becomeVisible()`: giả lập user quay lại app (`visibilitychange` sang hiện).
  */
@@ -32,12 +37,16 @@ export async function openApp(
     fetchCatalog?: () => Promise<CatalogResponse>;
     pushEvents?: (events: SyncEvent[]) => Promise<unknown>;
     pullChanges?: (since?: string) => Promise<SyncPullResponse>;
+    routinesApi?: Partial<RoutinesApi>;
+    online?: () => boolean;
   } = {},
 ) {
   const {
     fetchCatalog: fetchCatalogOption,
     pushEvents: pushEventsOption,
     pullChanges: pullChangesOption,
+    routinesApi: routinesApiOption,
+    online,
     ...authOptions
   } = options;
   const ctx = await createTestAuth(authOptions);
@@ -54,6 +63,20 @@ export async function openApp(
       catalogReconnect = listener;
       return () => {};
     },
+  });
+  let routineReconnect = () => {};
+  const offline = () => Promise.reject(new ApiError('network', 0));
+  const routineSync = createRoutineSync({
+    db,
+    auth: ctx.auth,
+    api: new Proxy({} as RoutinesApi, {
+      get: (_, key: keyof RoutinesApi) => routinesApiOption?.[key] ?? offline,
+    }),
+    onReconnect: (listener) => {
+      routineReconnect = listener;
+      return () => {};
+    },
+    isOnline: online ?? (() => true),
   });
   const syncPull = createSyncPull({
     db,
@@ -88,9 +111,11 @@ export async function openApp(
   });
   render(
     <AuthContext value={ctx.auth}>
-      <ToastProvider>
-        <RouterProvider router={router} />
-      </ToastProvider>
+      <RoutineSyncContext value={routineSync}>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </RoutineSyncContext>
     </AuthContext>,
   );
   return {
@@ -100,6 +125,7 @@ export async function openApp(
     reconnect: () => {
       ctx.reconnect();
       catalogReconnect();
+      routineReconnect();
       pushReconnect();
     },
     becomeVisible: () => pushVisible(),

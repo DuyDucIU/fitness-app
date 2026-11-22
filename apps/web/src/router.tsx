@@ -7,11 +7,12 @@ import { ExerciseLibraryPage } from '@/routes/exercise-library';
 import { AccountPage } from '@/routes/me-account';
 import { HistoryPage, HistorySessionPage } from '@/routes/history';
 import {
-  MePage,
+  DayPage,
+  NewRoutinePage,
   PlansPage,
-  ProgressPage,
-  TodayPage,
-} from '@/routes/root-screens';
+  RoutinePage,
+} from '@/routes/plans';
+import { MePage, ProgressPage, TodayPage } from '@/routes/root-screens';
 import { NotFoundPage, RouteError } from '@/routes/route-error';
 import { WorkoutLogPage } from '@/routes/workout-log';
 import { WORKOUT_PATH } from '@/workout/workout-resume-bar';
@@ -51,6 +52,9 @@ export function createRoutes(auth: Auth): RouteObject[] {
             { path: '/', Component: TodayPage },
             { path: '/plans', Component: PlansPage },
             { path: '/plans/exercises', Component: ExerciseLibraryPage },
+            { path: '/plans/new', Component: NewRoutinePage },
+            { path: '/plans/:routineId', Component: RoutinePage },
+            { path: '/plans/:routineId/days/:dayId', Component: DayPage },
             { path: '/history', Component: HistoryPage },
             { path: '/history/:sessionId', Component: HistorySessionPage },
             { path: '/progress', Component: ProgressPage },

@@ -283,5 +283,162 @@
     }
   ],
   "history_not_synced": "not synced yet",
-  "history_options": "Workout options"
+  "history_options": "Workout options",
+  "plans_no_routine": "No routine yet",
+  "plans_no_routine_body": "Type in the routine you already follow, or start from a program.",
+  "plans_write_routine": "Write my routine",
+  "plans_active_routine": "Active routine",
+  "plans_active_band": "{name} · active",
+  "plans_edit_routine": "Edit {name}",
+  "plans_other_routines": "Other routines",
+  "plans_routines": "Routines",
+  "plans_new_routine": "New routine",
+  "plans_more_exercises": "+{count}",
+  "routine_sub": "Routine",
+  "routine_name": "Routine name",
+  "routine_active": "Active routine",
+  "routine_active_hint": "Today follows the active routine’s days in order.",
+  "routine_now_active": "{name} is your active routine.",
+  "routine_session_title": "A workout is in progress",
+  "routine_session_body": "Changes apply from your next session. Logged workouts keep the numbers they had.",
+  "routine_days_heading": "Days",
+  "routine_add_day": "Add a day",
+  "routine_reorder_days_hint": "Drag the handle to change the order. Today follows it.",
+  "routine_delete": "Delete routine",
+  "routine_delete_hint": "Past workouts stay in your history.",
+  "routine_delete_title": "Delete this routine?",
+  "routine_delete_body": "Its days and exercise settings go. Workouts you already logged stay in History.",
+  "routine_delete_keep": "Keep it",
+  "routine_deleted": "Deleted {name}.",
+  "routine_needs_network": "Changing a routine needs a connection. You can still view it offline.",
+  "routine_day_default_name": "Day {n}",
+  "routine_spec_range": "{sets} × {min}–{max}",
+  "routine_spec_rest": "{time} rest",
+  "routine_spec_warmup": "warm-up",
+  "routine_spec_start_weight": "start {weight} kg",
+  "routine_spec_start_last": "start from last time",
+  "routine_spec_first_by_feel": "first set by feel",
+  "routine_spec_bodyweight": "bodyweight to start",
+  "routine_new_title": "New routine",
+  "routine_new_name_placeholder": "e.g. Upper / lower",
+  "routine_new_days": "How many days does it have?",
+  "routine_new_days_hint": "Days are named Day 1, Day 2… for now. Rename them as you add exercises.",
+  "routine_new_active": "Make it my active routine",
+  "routine_new_active_hint": "Today will offer its days in order.",
+  "routine_new_note": "Have it on a screenshot or a note? Type it in here for now; importing from a photo comes later.",
+  "routine_new_create": "Create and add exercises",
+  "routine_new_created": "Created {name}. Add the exercises for Day 1.",
+  "routine_new_default_name": "My routine",
+  "day_name_label": "Day name",
+  "day_new_sub": "New day · not saved yet",
+  "day_exercises_heading": "Exercises, in order",
+  "day_empty": "No exercises yet. Add the first one you do on this day.",
+  "day_add_exercise": "Add exercise",
+  "day_reorder_hint": "Drag the handle to reorder. Tap an exercise for sets, reps and rest.",
+  "day_start_weight_note": "Starting weight is only what you type here. The app never guesses one for an exercise you haven’t logged.",
+  "day_draft_note": "Not saved yet: the day is added to {routine} when you tap Done. Going back discards it.",
+  "day_remove": "Remove this day from the routine",
+  "day_remove_last_hint": "A routine needs at least one day. Delete the routine instead.",
+  "day_done": "Done",
+  "day_removed": "Removed {name} from the routine.",
+  "day_restored": "{name} is back.",
+  "day_added": "Added {name}.",
+  "day_draft_lost": "{name} wasn’t added.",
+  "day_keep_editing": "Keep editing",
+  "day_exercise_added": "Added {name}. Tap it to set reps and rest.",
+  "day_exercise_changed": "Changed to {name}.",
+  "day_exercise_removed": "Removed {name}.",
+  "ex_working_sets": "Working sets",
+  "ex_set_fewer": "One set fewer",
+  "ex_set_more": "One set more",
+  "ex_rep_range": "Rep range",
+  "ex_reps_min": "Fewest reps",
+  "ex_reps_max": "Most reps",
+  "ex_rep_help_weight": "Hit the top on every set and you’ll get a nudge to go up. Fall under the bottom and you’ll get a back-off.",
+  "ex_rep_help_added": "Hit the top on every set and you’ll get a nudge to add reps or strap on weight.",
+  "ex_rep_help_reps": "Hit the top on every set and you’ll get a nudge to add reps or hold a weight.",
+  "ex_time_range": "Target time per set",
+  "ex_time_min": "Shortest hold, minutes and seconds",
+  "ex_time_max": "Longest hold, minutes and seconds",
+  "ex_time_help": "Type 45 for 0:45, or 130 for 1:30. Reach the top on every set and you’ll get a nudge to go longer.",
+  "ex_start_weight": "Starting weight · optional",
+  "ex_start_weight_unit": "kg {load}",
+  "ex_start_last": "Last time: {weight} kg on {date}. Your next session starts from that, so you can leave this empty.",
+  "ex_start_none": "No history for this exercise. Leave empty to log your first set by feel; the app won’t suggest a number.",
+  "ex_warmup": "Warm-up sets",
+  "ex_warmup_hint": "Suggests 50% × 8, 70% × 5, 85% × 2 before the first working set.",
+  "ex_rest": "Rest between sets",
+  "ex_rest_less": "15 seconds less",
+  "ex_rest_more": "15 seconds more",
+  "ex_change": "Change exercise",
+  "ex_change_hint": "Keeps sets, reps and rest.",
+  "ex_remove": "Remove from {day}",
+  "sort_reorder": "Reorder {name}",
+  "sort_picked": "{name} picked up, position {n} of {total}. Arrow keys to move, Space to drop.",
+  "sort_position": "Position {n} of {total}.",
+  "sort_dropped": "Dropped at position {n}.",
+  "sort_cancelled": "Move cancelled.",
+  "sort_moved": "{name} moved to position {n} of {total}.",
+  "error_conflict": "That clashes with a change already saved. Try again.",
+  "error_bad_request": "Some of that didn’t look right. Check and try again.",
+  "plans_routine_days": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} day",
+        "countPlural=other": "{count} days"
+      }
+    }
+  ],
+  "routine_exercise_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} exercise",
+        "countPlural=other": "{count} exercises"
+      }
+    }
+  ],
+  "routine_working_set_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} working set",
+        "countPlural=other": "{count} working sets"
+      }
+    }
+  ],
+  "routine_spec_sets": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} set",
+        "countPlural=other": "{count} sets"
+      }
+    }
+  ],
+  "day_remove_hint": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Its {count} exercise goes with it. Past workouts stay in History.",
+        "countPlural=other": "Its {count} exercises go with it. Past workouts stay in History."
+      }
+    }
+  ],
+  "day_added_with": [
+    {
+      "declarations": ["input name", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "Added {name} with {count} exercise.",
+        "countPlural=other": "Added {name} with {count} exercises."
+      }
+    }
+  ]
 }

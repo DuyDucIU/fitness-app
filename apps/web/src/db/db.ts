@@ -1,5 +1,6 @@
 import type {
   CatalogExercise,
+  Routine,
   SessionExercise,
   SetLog,
   SyncEntity,
@@ -65,6 +66,11 @@ export const db = new Dexie('fitness') as Dexie & {
    */
   exercises: EntityTable<CatalogExercise, 'id'>;
   /**
+   * Cache chỉ đọc của routine (ADR 0002): bản sao GET /v1/routines, mỗi dòng là cả routine
+   * kèm ngày tập và bài. Chỉ `routine-sync` thay cả bảng; sửa routine đi qua REST.
+   */
+  routines: EntityTable<Routine, 'id'>;
+  /**
    * Dữ liệu buổi tập (SDD 3.2), local-first qua outbox: chỉ ghi qua `workout/session`,
    * mỗi lần ghi kèm một sự kiện outbox trong cùng transaction. Xoá bằng tombstone.
    */
@@ -94,4 +100,8 @@ db.version(5).stores({
 // Index `exerciseId` cho truy vấn "lần trước" của một bài (UC07 bước 2, SDD 7.1).
 db.version(6).stores({
   sessionExercises: 'id, sessionId, exerciseId',
+});
+// Cache chỉ đọc của routine (UC05, ADR 0002).
+db.version(7).stores({
+  routines: 'id',
 });

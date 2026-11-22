@@ -1,4 +1,5 @@
 import {
+  type AddRoutineExerciseRequest,
   type CatalogResponse,
   CatalogResponseSchema,
   ErrorResponseSchema,
@@ -6,12 +7,21 @@ import {
   HealthResponseSchema,
   type MeResponse,
   MeResponseSchema,
+  type CreateRoutineDayRequest,
+  type CreateRoutineRequest,
+  type Routine,
+  RoutineSchema,
+  type RoutinesResponse,
+  RoutinesResponseSchema,
   type SyncEvent,
   type SyncPullResponse,
   SyncPullResponseSchema,
   type SyncPushRequest,
   type SyncPushResponse,
   SyncPushResponseSchema,
+  type UpdateRoutineDayRequest,
+  type UpdateRoutineExerciseRequest,
+  type UpdateRoutineRequest,
 } from '@fitness/contract';
 import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 
@@ -26,7 +36,11 @@ import { getSupabase } from './supabase';
 async function request<T>(
   path: string,
   parse: (data: unknown) => T,
-  options: { auth: boolean; method?: 'GET' | 'POST'; body?: unknown },
+  options: {
+    auth: boolean;
+    method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+    body?: unknown;
+  },
 ): Promise<T> {
   const headers: Record<string, string> = {};
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
@@ -57,8 +71,47 @@ async function request<T>(
       ? new ApiError(body.data.code, response.status, body.data.message)
       : new ApiError('unknown', response.status);
   }
-  return parse(await response.json());
+  // 204 No Content (vd xoá routine): không có body để đọc.
+  return parse(response.status === 204 ? undefined : await response.json());
 }
+
+const routine = (d: unknown): Routine => RoutineSchema.parse(d);
+const write = (
+  method: 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+  path: string,
+  body?: unknown,
+): Promise<Routine> => request(path, routine, { auth: true, method, body });
+
+/** REST routine (UC05), cần mạng (ADR 0002). Mỗi thao tác ghi trả lại cả routine bị sửa. */
+export const routinesApi = {
+  list: (): Promise<RoutinesResponse> =>
+    request('/routines', (d) => RoutinesResponseSchema.parse(d), {
+      auth: true,
+    }),
+  create: (body: CreateRoutineRequest) => write('POST', '/routines', body),
+  update: (id: string, body: UpdateRoutineRequest) =>
+    write('PATCH', `/routines/${id}`, body),
+  archive: (id: string): Promise<void> =>
+    request(`/routines/${id}`, () => undefined, {
+      auth: true,
+      method: 'DELETE',
+    }),
+  addDay: (routineId: string, body: CreateRoutineDayRequest) =>
+    write('POST', `/routines/${routineId}/days`, body),
+  reorderDays: (routineId: string, ids: string[]) =>
+    write('PUT', `/routines/${routineId}/day-order`, { ids }),
+  updateDay: (dayId: string, body: UpdateRoutineDayRequest) =>
+    write('PATCH', `/routine-days/${dayId}`, body),
+  deleteDay: (dayId: string) => write('DELETE', `/routine-days/${dayId}`),
+  addExercise: (dayId: string, body: AddRoutineExerciseRequest) =>
+    write('POST', `/routine-days/${dayId}/exercises`, body),
+  reorderExercises: (dayId: string, ids: string[]) =>
+    write('PUT', `/routine-days/${dayId}/exercise-order`, { ids }),
+  updateExercise: (id: string, body: UpdateRoutineExerciseRequest) =>
+    write('PATCH', `/routine-exercises/${id}`, body),
+  deleteExercise: (id: string) => write('DELETE', `/routine-exercises/${id}`),
+};
+export type RoutinesApi = typeof routinesApi;
 
 export const api = {
   health: (): Promise<HealthResponse> =>
