@@ -5,8 +5,8 @@ import { PublicOnly, RequireOwner } from '@/auth/guards';
 import { SignInPage, SignUpPage } from '@/routes/auth/auth-screen';
 import { ExerciseLibraryPage } from '@/routes/exercise-library';
 import { AccountPage } from '@/routes/me-account';
+import { HistoryPage, HistorySessionPage } from '@/routes/history';
 import {
-  HistoryPage,
   MePage,
   PlansPage,
   ProgressPage,
@@ -52,6 +52,7 @@ export function createRoutes(auth: Auth): RouteObject[] {
             { path: '/plans', Component: PlansPage },
             { path: '/plans/exercises', Component: ExerciseLibraryPage },
             { path: '/history', Component: HistoryPage },
+            { path: '/history/:sessionId', Component: HistorySessionPage },
             { path: '/progress', Component: ProgressPage },
             { path: '/me', Component: MePage },
             { path: '/me/account', Component: AccountPage },

@@ -22,7 +22,7 @@ import { WORKOUT_PATH, WorkoutResumeBar } from '@/workout/workout-resume-bar';
  * buổi đang dở, thanh tab). Nội dung từng màn dựng theo prototypes/<màn> khi làm tính
  * năng tương ứng.
  */
-function RootScreen({
+export function RootScreen({
   title,
   banner,
   dock,
@@ -121,10 +121,6 @@ export function PlansPage() {
       </Block>
     </RootScreen>
   );
-}
-
-export function HistoryPage() {
-  return <RootScreen title={m.nav_history()} />;
 }
 
 export function ProgressPage() {

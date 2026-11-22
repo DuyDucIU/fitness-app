@@ -236,5 +236,25 @@
   "log_next": "Tiếp: {name}",
   "log_chip_label": "{name}, {done}/{total} set",
   "log_set_deleted": "Đã xoá set {n}.",
-  "common_undo": "Hoàn tác"
+  "common_undo": "Hoàn tác",
+  "history_workouts_label": "Buổi tập",
+  "history_empty_title": "Chưa có buổi tập nào",
+  "history_empty_body": "Buổi tập đã kết thúc sẽ hiện ở đây, mới nhất trước.",
+  "history_go_today": "Về Hôm nay",
+  "history_routine_workout": "Buổi tập",
+  "history_set_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} set"
+      }
+    }
+  ],
+  "history_set_label": "Set {n}",
+  "history_stat_sets": "set",
+  "history_stat_minutes": "phút",
+  "history_stat_exercises": "bài",
+  "history_not_found": "Buổi tập này không có trên máy.",
+  "history_back_to_list": "Về Lịch sử"
 }

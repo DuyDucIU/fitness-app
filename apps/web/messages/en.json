@@ -243,5 +243,26 @@
   "log_next": "Next: {name}",
   "log_chip_label": "{name}, {done} of {total} sets",
   "log_set_deleted": "Set {n} deleted.",
-  "common_undo": "Undo"
+  "common_undo": "Undo",
+  "history_workouts_label": "Workouts",
+  "history_empty_title": "No workouts yet",
+  "history_empty_body": "Finished workouts land here, newest first.",
+  "history_go_today": "Go to Today",
+  "history_routine_workout": "Workout",
+  "history_set_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "{count} set",
+        "countPlural=other": "{count} sets"
+      }
+    }
+  ],
+  "history_set_label": "Set {n}",
+  "history_stat_sets": "sets",
+  "history_stat_minutes": "minutes",
+  "history_stat_exercises": "exercises",
+  "history_not_found": "This workout isn’t on this device.",
+  "history_back_to_list": "Back to History"
 }

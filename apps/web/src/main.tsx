@@ -18,6 +18,7 @@ import { requestPersistentStorage } from '@/lib/storage';
 import { getSupabase } from '@/lib/supabase';
 import { createRoutes } from '@/router';
 import { createOutboxPush } from '@/sync/outbox-push';
+import { createSyncPull } from '@/sync/pull';
 
 const queryClient = new QueryClient();
 
@@ -31,8 +32,15 @@ const auth = createAuth({
 });
 // Cache catalog bài tập trên máy: tự làm mới khi có phiên và khi có mạng lại.
 createCatalogSync({ db, auth, fetchCatalog: api.catalog });
-// Đẩy outbox lên server sau mỗi lần ghi, khi có mạng lại và khi quay lại app.
-createOutboxPush({ db, auth, pushEvents: api.syncPush });
+// Đẩy outbox lên server sau mỗi lần ghi, khi mở app, khi có mạng lại và khi quay lại app;
+// đẩy hết thì kéo thay đổi từ server về.
+const syncPull = createSyncPull({ db, auth, pullChanges: api.syncPull });
+createOutboxPush({
+  db,
+  auth,
+  pushEvents: api.syncPush,
+  afterDrain: syncPull.pull,
+});
 const router = createBrowserRouter(createRoutes(auth));
 
 applyDocumentLocale();
