@@ -13,6 +13,8 @@ import {
   TodayPage,
 } from '@/routes/root-screens';
 import { NotFoundPage, RouteError } from '@/routes/route-error';
+import { WorkoutLogPage } from '@/routes/workout-log';
+import { WORKOUT_PATH } from '@/workout/workout-resume-bar';
 
 /** Route chỉ có khi dev: `import.meta.env.DEV` là hằng `false` ở bản build nên bị loại bỏ. */
 const devRoutes: RouteObject[] = import.meta.env.DEV
@@ -53,6 +55,7 @@ export function createRoutes(auth: Auth): RouteObject[] {
             { path: '/progress', Component: ProgressPage },
             { path: '/me', Component: MePage },
             { path: '/me/account', Component: AccountPage },
+            { path: WORKOUT_PATH, Component: WorkoutLogPage },
           ],
         },
         ...devRoutes,

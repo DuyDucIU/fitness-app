@@ -145,7 +145,9 @@ export function ExercisePicker({
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
         </SheetHeader>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-4">
+        {/* Con của vùng cuộn không được co (`flex-none`): nếu không, danh sách dài ép ô tìm
+            thấp lại và khối kết quả bị cắt thay vì cuộn. */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-4 [&>*]:flex-none">
           <ExerciseSearch
             inputRef={inputRef}
             onPick={(exercise) => {

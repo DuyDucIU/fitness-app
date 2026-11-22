@@ -79,6 +79,20 @@ export const SLED_PUSH: CatalogExercise = {
   aliases: [],
 };
 
+/** Bài chỉ ghi reps, không nằm trong `CATALOG` (thêm thẳng vào cache khi cần). */
+export const PUSH_UP: CatalogExercise = {
+  id: '00000000-0000-4000-8000-000000000005',
+  nameEn: 'Pushups',
+  nameVi: 'Hít đất',
+  equipment: 'body only',
+  mechanic: 'compound',
+  metricType: 'reps',
+  mine: false,
+  isArchived: false,
+  muscles: [chest],
+  aliases: [],
+};
+
 export const CATALOG: CatalogResponse = {
   exercises: [SQUAT, BENCH, DUMBBELL_BENCH, SLED_PUSH],
 };
