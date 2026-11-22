@@ -93,6 +93,21 @@ export function formatLongDate(
   }).format(date);
 }
 
+/**
+ * Thứ viết tắt: "Thu" (en) / "T5" (vi, Chủ nhật là "CN"). Tiếng Việt ghép tay vì ICU ra
+ * "Th 5", dài và lạ với cách viết thường ngày.
+ */
+export function formatWeekdayShort(
+  date: Date,
+  locale: Locale = getLocale(),
+): string {
+  if (locale === 'vi') {
+    const day = date.getDay();
+    return day === 0 ? 'CN' : `T${day + 1}`;
+  }
+  return dateFormat(locale, { weekday: 'short' }).format(date);
+}
+
 /** Giờ: "7:05 PM" (en) / "19:05" (vi). */
 export function formatTime(date: Date, locale: Locale = getLocale()): string {
   return dateFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(

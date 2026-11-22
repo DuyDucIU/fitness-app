@@ -7,6 +7,8 @@ import {
   type SessionExercise,
   type SetLog,
   type SyncEvent,
+  type SyncPullResponse,
+  SyncPullResponseSchema,
   SyncPushResponseSchema,
   type WorkoutSession,
 } from '@fitness/contract';
@@ -17,10 +19,10 @@ import { JOSE, JwtVerifierService } from '../src/auth/jwt-verifier.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 /**
- * POST /v1/sync/push qua HTTP với PostgreSQL thật. Token giả: chuỗi token chính là `sub`.
- * Chưa có pull nên kiểm dữ liệu đã lưu bằng Prisma.
+ * POST /v1/sync/push và GET /v1/sync/pull qua HTTP với PostgreSQL thật. Token giả: chuỗi
+ * token chính là `sub`. Test push kiểm dữ liệu đã lưu bằng Prisma.
  */
-describe('POST /v1/sync/push (e2e)', () => {
+describe('/v1/sync (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const run = `e2e-sync-${Date.now()}`;
@@ -95,6 +97,31 @@ describe('POST /v1/sync/push (e2e)', () => {
     }),
   };
 
+  const pull = (sub: string, query: { since?: string; limit?: number } = {}) =>
+    request(app.getHttpServer() as App)
+      .get('/v1/sync/pull')
+      .query(query)
+      .set('Authorization', `Bearer ${sub}`);
+
+  /**
+   * Kéo hết các trang từ `since` với trang `limit` thay đổi. Giới hạn số trang để lỗi
+   * cursor (vd trả lại mãi cùng một bản ghi) làm test hỏng thay vì treo.
+   */
+  async function pullAll(sub: string, since?: string, limit = 2) {
+    const pages: SyncPullResponse[] = [];
+    let cursor = since;
+    for (let i = 0; i < 50; i++) {
+      const res = await pull(sub, { since: cursor, limit }).expect(200);
+      const page = SyncPullResponseSchema.parse(res.body);
+      pages.push(page);
+      cursor = page.cursor ?? undefined;
+      if (!page.hasMore) {
+        return { changes: pages.flatMap((p) => p.changes), cursor, pages };
+      }
+    }
+    throw new Error('pull không dừng sau 50 trang');
+  }
+
   /** Buổi của `sub` gồm một bài và một set; trả về bản ghi và các sự kiện theo thứ tự ghi. */
   function workout(over: { exerciseId?: string } = {}) {
     const s = session();
@@ -149,7 +176,7 @@ describe('POST /v1/sync/push (e2e)', () => {
 
   afterAll(async () => {
     await prisma.user.deleteMany({
-      where: { authSubject: { in: [subA, subB] } },
+      where: { authSubject: { startsWith: run } },
     });
     await prisma.exercise.deleteMany({ where: { id: benchId } });
     await app.close();
@@ -327,5 +354,93 @@ describe('POST /v1/sync/push (e2e)', () => {
     expect(
       await prisma.exercise.findUnique({ where: { id: custom.id } }),
     ).toBeNull();
+  });
+
+  describe('GET /v1/sync/pull', () => {
+    it('không có token: 401', async () => {
+      await request(app.getHttpServer() as App)
+        .get('/v1/sync/pull')
+        .expect(401);
+    });
+
+    it('user chưa có dữ liệu: không có thay đổi, cursor null', async () => {
+      const res = await pull(`${run}-empty`).expect(200);
+      expect(SyncPullResponseSchema.parse(res.body)).toEqual({
+        changes: [],
+        cursor: null,
+        hasMore: false,
+      });
+    });
+
+    it('cursor không hợp lệ: 400', async () => {
+      await pull(subA, { since: 'không-phải-cursor' }).expect(400);
+    });
+
+    describe('phân trang theo cursor', () => {
+      const sub = `${run}-pull`;
+      let w: ReturnType<typeof workout>;
+      let second: SessionExercise;
+      let secondSet: SetLog;
+
+      beforeAll(async () => {
+        // Một batch = một transaction: mọi bản ghi cùng `updated_at`, trang 2 bản ghi cắt
+        // ngang giữa các bản ghi trùng thời điểm.
+        w = workout();
+        second = exercise(w.session.id, { position: 1 });
+        secondSet = set(second.id, { weightValue: 22.5, reps: 12 });
+        await push(sub, [
+          ...w.events,
+          events.exercise(second),
+          events.set(secondSet),
+        ]).expect(200);
+        // Batch sau: kết thúc buổi và xoá một set (tombstone).
+        await push(sub, [
+          events.set({ ...secondSet, deletedAt: '2026-11-22T10:30:00.000Z' }),
+          events.session({ ...w.session, endedAt: '2026-11-22T11:00:00.000Z' }),
+        ]).expect(200);
+      });
+
+      it('kéo từ đầu: đủ mọi bản ghi, mỗi bản ghi một lần, bản mới nhất, kể cả tombstone; không có dữ liệu user khác', async () => {
+        const { changes, pages } = await pullAll(sub);
+
+        expect(pages.length).toBeGreaterThan(2);
+        expect(pages.every((p) => p.changes.length <= 2)).toBe(true);
+        const byId = new Map(changes.map((c) => [c.payload.id, c]));
+        expect(changes).toHaveLength(byId.size);
+        expect([...byId.keys()].sort()).toEqual(
+          [
+            w.session.id,
+            w.exercise.id,
+            w.set.id,
+            second.id,
+            secondSet.id,
+          ].sort(),
+        );
+        expect(byId.get(w.session.id)).toEqual(
+          events.session({ ...w.session, endedAt: '2026-11-22T11:00:00.000Z' }),
+        );
+        expect(byId.get(second.id)).toEqual(events.exercise(second));
+        expect(byId.get(w.set.id)).toEqual(events.set(w.set));
+        expect(byId.get(secondSet.id)).toEqual(
+          events.set({ ...secondSet, deletedAt: '2026-11-22T10:30:00.000Z' }),
+        );
+      });
+
+      it('since: chỉ trả thay đổi sau cursor; không có gì mới thì giữ nguyên cursor', async () => {
+        const { cursor } = await pullAll(sub);
+        expect(cursor).toEqual(expect.any(String));
+
+        const idle = SyncPullResponseSchema.parse(
+          (await pull(sub, { since: cursor }).expect(200)).body,
+        );
+        expect(idle).toEqual({ changes: [], cursor, hasMore: false });
+
+        const renamed = { ...w.session, notes: 'Chân yếu' };
+        await push(sub, [events.session(renamed)]).expect(200);
+        const next = await pullAll(sub, cursor);
+        expect(next.changes).toEqual([events.session(renamed)]);
+        expect(next.cursor).not.toBe(cursor);
+      });
+    });
   });
 });

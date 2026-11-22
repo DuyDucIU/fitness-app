@@ -1,9 +1,9 @@
-import type { LoadInput, SetLog } from '@fitness/contract';
+import type { SetLog } from '@fitness/contract';
 import { equipmentDefaults } from '@fitness/engine';
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router';
 
-import { equipmentLabel, exerciseNames } from '@/catalog/display';
+import { equipmentLabel } from '@/catalog/display';
 import { ExercisePicker } from '@/catalog/exercise-search';
 import { AppShell, Foot, TopBar } from '@/components/app-shell';
 import {
@@ -31,7 +31,6 @@ import {
 } from '@/components/ui/sheet';
 import { useNow } from '@/hooks/use-now';
 import { formatElapsed, formatNumber } from '@/lib/format';
-import { getLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
 import {
@@ -46,6 +45,13 @@ import {
   updateSet,
   useOpenSession,
 } from '@/workout/session';
+import {
+  exerciseName,
+  loadLabel,
+  type LogKind,
+  logKind,
+  setText,
+} from '@/workout/display';
 
 /**
  * Màn ghi buổi tập (prototypes/workout-log), phần cốt lõi của tập tự do: thêm bài từ
@@ -59,48 +65,8 @@ export function WorkoutLogPage() {
   return <WorkoutLog workout={workout} />;
 }
 
-function loadLabel(loadInput: LoadInput): string {
-  switch (loadInput) {
-    case 'total':
-      return m.log_load_total();
-    case 'per_side':
-      return m.log_load_per_side();
-    case 'per_dumbbell':
-      return m.log_load_per_dumbbell();
-    case 'stack':
-      return m.log_load_stack();
-    case 'added_weight':
-      return m.log_load_added_weight();
-  }
-}
-
-/** Bài ghi bằng tạ × reps, chỉ reps, hay chưa ghi được (thời gian, quãng đường — #13). */
-type LogKind = 'weight_reps' | 'reps' | 'unsupported';
-
-function logKind(item: OpenExercise): LogKind {
-  const metric = item.exercise?.metricType ?? 'weight_reps';
-  return metric === 'weight_reps' || metric === 'reps' ? metric : 'unsupported';
-}
-
-function exerciseName(item: OpenExercise): string {
-  return item.exercise
-    ? exerciseNames(item.exercise, getLocale()).name
-    : m.log_unknown_exercise();
-}
-
 /** Bài ad hoc có sẵn 3 set chờ tập, như prototype (`makeEx(key, {sets:3})`). */
 const DEFAULT_PLANNED_SETS = 3;
-
-/** "80 × 8", "12 reps"; số chưa có hiện "–". */
-function setText(
-  kind: LogKind,
-  weight: number | null,
-  reps: number | null,
-): string {
-  const r = reps ?? '–';
-  if (kind === 'reps') return `${r} ${m.log_unit_reps()}`;
-  return `${weight === null ? '–' : formatNumber(weight)} × ${r}`;
-}
 
 interface Draft {
   weight: number | null;

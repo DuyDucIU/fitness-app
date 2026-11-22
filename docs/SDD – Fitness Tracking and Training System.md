@@ -94,7 +94,7 @@ Lớp truy cập thiết bị sức khoẻ vẫn bọc qua interface `DeviceProv
 - **Ghi ngoài buổi tập cần mạng:** tạo/sửa routine, chọn program, tạo bài tuỳ chỉnh, alias, cài đặt tài khoản, mục tiêu, chỉ số cơ thể, onboarding gọi REST thẳng; khi offline app báo cần có mạng, không xếp hàng chờ. Lý do: ADR 0002.
 - Mỗi thay đổi ghi thêm một sự kiện vào bảng outbox (khoá tự tăng = thứ tự đẩy), trong **cùng một transaction Dexie** với bản ghi gốc. Outbox được đẩy lên server theo thứ tự, dùng `POST /sync/push` với upsert idempotent (`INSERT ... ON CONFLICT (id) DO UPDATE`) — gửi lại không tạo trùng.
 - **Thời điểm đẩy:** sau mỗi lần ghi, khi có sự kiện `online`, và khi `visibilitychange` chuyển sang hiện. Không dùng Background Sync API (Safari không hỗ trợ); service worker không tham gia đồng bộ.
-- Kéo dữ liệu mới từ server bằng `GET /sync/pull?since=<cursor>`, cursor là `updated_at` lớn nhất đã nhận; xoá được biểu diễn bằng tombstone (`deleted_at`) để đồng bộ đúng cả việc xoá. Pull trả về mọi bảng đi qua outbox (phiên tập, gợi ý, deload, cài đặt bài tập).
+- Kéo dữ liệu mới từ server bằng `GET /sync/pull?since=<cursor>`, cursor (chuỗi mờ) là vị trí của thay đổi cuối đã nhận theo (`updated_at`, bảng, id) — cần cả bảng và id vì mọi bản ghi trong một lần push cùng `updated_at`; xoá được biểu diễn bằng tombstone (`deleted_at`) để đồng bộ đúng cả việc xoá. Pull trả về mọi bảng đi qua outbox (phiên tập, gợi ý, deload, cài đặt bài tập).
 - Đóng tab hoặc hệ điều hành dừng app giữa buổi tập: phiên đang dở được khôi phục từ IndexedDB khi mở lại (không mất dữ liệu chưa sync).
 - Sửa một set đã sync: ghi đè cục bộ rồi đẩy lại; xung đột xử lý last-write-wins (chấp nhận được vì bình thường chỉ một thiết bị ghi cho một user).
 - **Chống trình duyệt xoá dữ liệu chưa sync** (SRS 5.3): gọi `navigator.storage.persist()` khi khởi động; đẩy outbox sớm; trên iOS, nếu app đang chạy trong tab (không phải `display-mode: standalone`) thì hiện hướng dẫn thêm vào màn hình chính trước khi bắt đầu tập; hiện số sự kiện outbox chưa đẩy.
@@ -536,7 +536,7 @@ Contract chi tiết (request/response schema của từng route) được viết
 - CORS: chỉ cho phép các origin trong `CORS_ORIGINS`; header `Authorization` phải nằm trong danh sách header được phép.
 - Xác thực: header `Authorization: Bearer <JWT>` (từ Supabase Auth), NestJS verify JWT ở guard, không cần truyền `user_id` trong body.
 - Response lỗi có cấu trúc thống nhất (`code` + `message`). Client hiển thị thông báo theo `code` bằng message đã dịch (`error_<code>`); `message` chỉ để debug và ghi log, không hiển thị cho user (3.5).
-- Đồng bộ dùng cursor-based pagination (`since=<updated_at>`), không dùng offset — tránh bỏ sót khi có ghi đồng thời.
+- Đồng bộ dùng cursor-based pagination (`since=<cursor>`, cursor mờ theo `updated_at` rồi bảng, id), không dùng offset — tránh bỏ sót khi có ghi đồng thời.
 
 ### 8.2 Nhóm endpoint theo UC (mức khái niệm)
 

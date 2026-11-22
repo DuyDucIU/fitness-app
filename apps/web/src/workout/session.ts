@@ -191,24 +191,34 @@ export function finishSession(sessionId: string): Promise<void> {
   });
 }
 
-/** Một bài trong buổi đang mở, kèm bài trong catalog và các set chưa xoá theo thứ tự ghi. */
-export interface OpenExercise {
+/** Một bài trong buổi, kèm bài trong catalog và các set chưa xoá theo thứ tự ghi. */
+export interface WorkoutExercise {
   row: SessionExercise;
   /** `undefined` nếu bài không còn trong cache catalog. */
   exercise: CatalogExercise | undefined;
   sets: SetLog[];
 }
 
-export interface OpenSession {
+/** Một buổi kèm các bài chưa xoá (theo vị trí) và set của chúng. */
+export interface Workout {
   session: WorkoutSession;
-  exercises: OpenExercise[];
-  /** Tổng số set đã ghi. */
+  exercises: WorkoutExercise[];
+  /** Tổng số set đã ghi (chưa xoá, trong bài chưa xoá). */
   setCount: number;
 }
 
+/** Bài trong buổi đang mở. */
+export type OpenExercise = WorkoutExercise;
+/** Buổi đang mở. */
+export type OpenSession = Workout;
+
 async function readOpenSession(): Promise<OpenSession | null> {
   const session = await findOpenSession();
-  if (!session) return null;
+  return session ? readWorkout(session) : null;
+}
+
+/** Đọc các bài và set của một buổi; gọi trong `useLiveQuery` để tự cập nhật. */
+export async function readWorkout(session: WorkoutSession): Promise<Workout> {
   const rows = (
     await db.sessionExercises.where('sessionId').equals(session.id).toArray()
   )

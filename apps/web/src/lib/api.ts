@@ -7,6 +7,8 @@ import {
   type MeResponse,
   MeResponseSchema,
   type SyncEvent,
+  type SyncPullResponse,
+  SyncPullResponseSchema,
   type SyncPushRequest,
   type SyncPushResponse,
   SyncPushResponseSchema,
@@ -71,4 +73,10 @@ export const api = {
       method: 'POST',
       body: { events } satisfies SyncPushRequest,
     }),
+  syncPull: (since?: string): Promise<SyncPullResponse> =>
+    request(
+      `/sync/pull${since ? `?since=${encodeURIComponent(since)}` : ''}`,
+      (d) => SyncPullResponseSchema.parse(d),
+      { auth: true },
+    ),
 };

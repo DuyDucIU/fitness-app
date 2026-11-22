@@ -57,7 +57,7 @@ function toSyncEvent(event: OutboxEvent): SyncEvent {
  * outbox, không bỏ qua sự kiện nào, và thử lại sau (backoff), khi có mạng lại, khi quay lại
  * app hoặc lần ghi tiếp theo. Đẩy sau mỗi lần ghi (outbox đổi, kể cả từ tab khác), khi
  * `online`, khi `visibilitychange` sang hiện và khi phiên được xác nhận (mở app, đăng nhập
- * lại). Không dùng Background Sync.
+ * lại). Không dùng Background Sync. Đẩy hết thì gọi `afterDrain` (kéo về).
  *
  * Server từ chối hẳn (4xx, xem `isRejected`) thì tìm đúng sự kiện bị từ chối (đẩy từng sự
  * kiện), chuyển nó sang `syncRejects` và đẩy tiếp phần sau, để một thay đổi lỗi không chặn
@@ -75,6 +75,11 @@ export function createOutboxPush(deps: {
   onVisible?: (listener: () => void) => () => void;
   /** Chờ bao lâu rồi thử lại lần đẩy lỗi thứ `attempt`; `Infinity` = không tự thử lại. */
   retryDelayMs?: (attempt: number) => number;
+  /**
+   * Chạy mỗi khi outbox đã đẩy hết (kéo thay đổi về, `createSyncPull`). Chạy trong lượt đẩy
+   * nên không trùng lúc đang đẩy; không được ném lỗi.
+   */
+  afterDrain?: () => Promise<void>;
 }): { flush(): Promise<void>; stop(): void } {
   const { db, auth } = deps;
   const retryDelayMs = deps.retryDelayMs ?? defaultRetryDelayMs;
@@ -119,6 +124,7 @@ export function createOutboxPush(deps: {
       const batch = await db.outbox.orderBy('seq').limit(batchSize).toArray();
       if (batch.length === 0) {
         retryAttempt = 0;
+        await deps.afterDrain?.();
         return;
       }
       try {
