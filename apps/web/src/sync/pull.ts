@@ -46,8 +46,19 @@ export function createSyncPull(deps: {
     set_logs: db.setLogs,
   };
 
-  /** Ghi một trang; trả về `false` nếu chủ máy đã đổi (bỏ trang, dừng kéo). */
-  function apply(owner: AuthUser, page: SyncPullResponse): Promise<boolean> {
+  /**
+   * Ghi trang kéo từ `since`; trả về `false` (bỏ trang, dừng kéo) nếu chủ máy đã đổi hoặc
+   * cursor trên máy không còn là `since` (dữ liệu trên máy đã bị xoá trong lúc chờ, vd đăng
+   * xuất rồi đăng nhập lại): ghi trang giữa luồng vào đó sẽ mất các trang trước.
+   *
+   * TODO(sync): thay đổi trong `syncRejects` được giữ, còn cursor vẫn đi qua bản ghi đó. Khi
+   * có thao tác bỏ thay đổi bị từ chối, phải kéo lại bản ghi trên server (vd xoá cursor).
+   */
+  function apply(
+    owner: AuthUser,
+    since: string | undefined,
+    page: SyncPullResponse,
+  ): Promise<boolean> {
     return db.transaction(
       'rw',
       [
@@ -61,6 +72,9 @@ export function createSyncPull(deps: {
         const current = (await db.meta.get(OWNER_KEY))?.value as
           AuthUser | undefined;
         if (current?.id !== owner.id) return false;
+        if ((await db.syncState.get(PULL_CURSOR_KEY))?.value !== since) {
+          return false;
+        }
         const rejected = new Set(
           (await db.syncRejects.toArray()).map(
             (r) => `${r.event.entity}|${r.event.entityId}`,
@@ -95,7 +109,7 @@ export function createSyncPull(deps: {
       if (!canFetch(auth.getState())) return;
       const since = (await db.syncState.get(PULL_CURSOR_KEY))?.value;
       const page = await deps.pullChanges(since);
-      if (!(await apply(owner, page)) || !page.hasMore) return;
+      if (!(await apply(owner, since, page)) || !page.hasMore) return;
     }
   }
 

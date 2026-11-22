@@ -23,6 +23,9 @@ export interface PulledRow {
   change: SyncEvent;
 }
 
+/** Chặn dưới `(updated_at, id) <op> (ts, id)` khi đọc một bảng; `null` = từ đầu. */
+type Lower = { ts: string; id: string; op: '>' | '>=' } | null;
+
 /**
  * Một bảng trong pull. `read` trả tối đa `limit` bản ghi của user có
  * `(updated_at, id) <op> (ts, id)`, theo thứ tự đó; `op` là `>` hoặc `>=`.
@@ -32,7 +35,7 @@ interface PullSource {
   read(
     tx: Tx,
     userId: string,
-    after: { ts: string; id: string; op: '>' | '>=' } | null,
+    after: Lower,
     limit: number,
   ): Promise<PulledRow[]>;
 }
@@ -45,7 +48,7 @@ const tsText = (column: string) =>
 
 function afterClause(
   column: string,
-  after: { ts: string; id: string; op: '>' | '>=' } | null,
+  after: Lower,
   idColumn: string,
 ): Prisma.Sql {
   if (!after) return Prisma.empty;
@@ -250,7 +253,7 @@ export async function readChanges(
 ): Promise<{ rows: PulledRow[]; hasMore: boolean }> {
   const all: PulledRow[] = [];
   for (const source of SOURCES) {
-    let after: { ts: string; id: string; op: '>' | '>=' } | null = null;
+    let after: Lower = null;
     if (since) {
       const order = rank(source.entity) - rank(since.entity);
       // Bảng xếp trước bảng của cursor: chỉ lấy sau thời điểm đó; cùng bảng: sau id đó;
