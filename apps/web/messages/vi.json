@@ -136,5 +136,36 @@
   "sign_out_stay": "Ở lại",
   "signed_out": "Đã đăng xuất.",
   "auth_email_placeholder": "ban@example.com",
-  "auth_example_last_value": "80×8 · 8 · 8 · 7"
+  "auth_example_last_value": "80×8 · 8 · 8 · 7",
+  "plans_exercises_heading": "Bài tập",
+  "plans_library_title": "Thư viện bài tập",
+  "plans_library_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} bài tập"
+      }
+    }
+  ],
+  "plans_library_search_label": "Tìm bài tập",
+  "plans_library_search_placeholder": "Tìm theo tên hoặc tên gọi khác",
+  "plans_library_results": "Bài tập",
+  "plans_library_no_match": "Không có bài nào khớp “{query}”.",
+  "plans_library_not_downloaded": "Danh sách bài tập chưa tải về máy. Có mạng là app tự tải.",
+  "plans_library_your_name": "tên bạn đặt “{alias}”",
+  "plans_library_yours": "Của bạn",
+  "plans_picker_add_title": "Thêm bài tập",
+  "equipment_barbell": "Tạ đòn",
+  "equipment_dumbbell": "Tạ đơn",
+  "equipment_cable": "Cáp",
+  "equipment_machine": "Máy",
+  "equipment_body_only": "Không tạ",
+  "equipment_kettlebells": "Tạ ấm",
+  "equipment_bands": "Dây kháng lực",
+  "equipment_ez_bar": "Thanh EZ",
+  "equipment_medicine_ball": "Bóng tạ",
+  "equipment_exercise_ball": "Bóng tập",
+  "equipment_foam_roll": "Con lăn",
+  "equipment_other": "Khác"
 }

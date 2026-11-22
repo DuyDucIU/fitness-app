@@ -3,6 +3,7 @@ import type { RouteObject } from 'react-router';
 import type { Auth } from '@/auth/auth';
 import { PublicOnly, RequireOwner } from '@/auth/guards';
 import { SignInPage, SignUpPage } from '@/routes/auth/auth-screen';
+import { ExerciseLibraryPage } from '@/routes/exercise-library';
 import { AccountPage } from '@/routes/me-account';
 import {
   HistoryPage,
@@ -47,6 +48,7 @@ export function createRoutes(auth: Auth): RouteObject[] {
           children: [
             { path: '/', Component: TodayPage },
             { path: '/plans', Component: PlansPage },
+            { path: '/plans/exercises', Component: ExerciseLibraryPage },
             { path: '/history', Component: HistoryPage },
             { path: '/progress', Component: ProgressPage },
             { path: '/me', Component: MePage },

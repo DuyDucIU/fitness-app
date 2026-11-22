@@ -1,4 +1,6 @@
 import {
+  type CatalogResponse,
+  CatalogResponseSchema,
   ErrorResponseSchema,
   type HealthResponse,
   HealthResponseSchema,
@@ -51,4 +53,6 @@ export const api = {
     request('/health', (d) => HealthResponseSchema.parse(d), { auth: false }),
   me: (): Promise<MeResponse> =>
     request('/me', (d) => MeResponseSchema.parse(d), { auth: true }),
+  catalog: (): Promise<CatalogResponse> =>
+    request('/catalog', (d) => CatalogResponseSchema.parse(d), { auth: true }),
 };

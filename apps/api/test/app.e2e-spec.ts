@@ -64,13 +64,13 @@ describe('API (e2e)', () => {
     });
   });
 
-  it('GET /api-json: OpenAPI sinh từ Zod có /v1/health và /v1/me', async () => {
+  it('GET /api-json: OpenAPI sinh từ Zod có /v1/health, /v1/me và /v1/catalog', async () => {
     const response = await request(app.getHttpServer() as App)
       .get('/api-json')
       .expect(200);
     const body = response.body as { paths: Record<string, unknown> };
     expect(Object.keys(body.paths)).toEqual(
-      expect.arrayContaining(['/v1/health', '/v1/me']),
+      expect.arrayContaining(['/v1/health', '/v1/me', '/v1/catalog']),
     );
   });
 });
