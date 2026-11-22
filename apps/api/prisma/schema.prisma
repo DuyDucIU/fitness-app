@@ -179,6 +179,8 @@ model WorkoutSession {
   exercises SessionExercise[]
 
   @@index([userId, updatedAt])
+  /// "Lần trước" của user (SDD 7.2)
+  @@index([userId, startedAt(sort: Desc)])
   @@map("workout_sessions")
 }
 
@@ -201,6 +203,8 @@ model SessionExercise {
   sets     SetLog[]
 
   @@index([sessionId])
+  /// "Lần trước" của một bài (SDD 7.2)
+  @@index([exerciseId])
   @@map("session_exercises")
 }
 
