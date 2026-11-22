@@ -144,20 +144,26 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const nextNo = logged.length + 1;
   const allDone = !!current && logged.length >= planned;
 
-  // Ô nhập: sửa set thì lấy số của set đó; set mới thì điền sẵn set vừa ghi của bài
-  // (chưa có thì để trống — R8). Chỉ làm mới khi đổi bài hay vào/ra chế độ sửa: ghi xong
-  // một set thì ô nhập vốn đã là số của set vừa ghi, và làm mới lúc IndexedDB báo về sẽ
-  // xoá mất chỉnh sửa user bấm ngay sau khi ghi.
-  const draftKey = `${current?.row.id}:${editing?.id ?? 'next'}`;
-  const [draft, setDraft] = React.useState<Draft>({
-    weight: null,
-    reps: null,
-  });
-  const [draftFor, setDraftFor] = React.useState<string>();
-  if (draftFor !== draftKey) {
-    setDraftFor(draftKey);
-    setDraft(draftFrom(editing ?? logged.at(-1)));
+  // Hai bản nháp riêng, để sửa set cũ không đụng tới số của set chuẩn bị tập.
+  // - Set chuẩn bị tập: điền sẵn set vừa ghi của bài (chưa có thì để trống — R8), chỉ
+  //   làm mới khi đổi bài. Ghi xong một set thì giữ nguyên (vốn đã là số vừa ghi); làm
+  //   mới lúc IndexedDB báo về sẽ xoá mất chỉnh sửa user bấm ngay sau khi ghi.
+  // - Set đang sửa: lấy số của set đó mỗi khi bắt đầu sửa.
+  const emptyDraft: Draft = { weight: null, reps: null };
+  const [nextDraft, setNextDraft] = React.useState<Draft>(emptyDraft);
+  const [nextFor, setNextFor] = React.useState<string>();
+  if (current && nextFor !== current.row.id) {
+    setNextFor(current.row.id);
+    setNextDraft(draftFrom(logged.at(-1)));
   }
+  const [editDraft, setEditDraft] = React.useState<Draft>(emptyDraft);
+  const [editFor, setEditFor] = React.useState<string>();
+  if (editing && editFor !== editing.id) {
+    setEditFor(editing.id);
+    setEditDraft(draftFrom(editing));
+  }
+  const draft = editing ? editDraft : nextDraft;
+  const setDraft = editing ? setEditDraft : setNextDraft;
 
   const kind = current ? logKind(current) : 'unsupported';
   const values: SetValues | null =
@@ -319,13 +325,15 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
               >
                 {Array.from({ length: planned }, (_, i) => {
                   const set = logged[i];
+                  const isNext = !set && i === logged.length;
                   const isCurrent = set
                     ? set.id === editingId
-                    : !editing && i === logged.length;
+                    : !editing && isNext;
                   let value: string;
                   if (set) value = setText(kind, set.weightValue, set.reps);
-                  else if (isCurrent)
-                    value = setText(kind, draft.weight, draft.reps);
+                  // Set chuẩn bị tập luôn hiện số sẽ ghi, kể cả khi đang sửa set khác.
+                  else if (isNext)
+                    value = setText(kind, nextDraft.weight, nextDraft.reps);
                   else value = setText(kind, null, null);
                   return (
                     <li

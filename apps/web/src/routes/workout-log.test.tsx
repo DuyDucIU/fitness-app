@@ -244,6 +244,29 @@ describe('tập tự do ghi trên máy', () => {
     ).toEqual([null, expect.any(String), null]);
   });
 
+  it('sửa set cũ: set chuẩn bị tập giữ nguyên số đã điền sẵn và số user vừa chỉnh', async () => {
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'squat', /Barbell Squat/);
+    await type(user, 'Weight (total)', '100');
+    await type(user, 'Reps', '5');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+    await screen.findByRole('button', { name: 'Log set 2' });
+    // Chỉnh trước số cho set 2 rồi mới quay lại sửa set 1.
+    await user.click(screen.getByRole('button', { name: 'One rep fewer' }));
+
+    await user.click(screen.getByRole('button', { name: /^Set 1/ }));
+    await screen.findByText('Edit set 1 · Barbell Squat');
+    expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('5');
+    expect(setRows()[1]).toBe('Set 2 100 × 4');
+
+    // Thoát sửa: ô nhập về đúng số đã chỉnh cho set 2.
+    await user.click(screen.getByRole('button', { name: /^Set 2/ }));
+    await screen.findByRole('button', { name: 'Log set 2' });
+    expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('4');
+  });
+
   it('thêm set ngoài 3 set có sẵn', async () => {
     const user = userEvent.setup();
     await openApp('/', signedInAn);
