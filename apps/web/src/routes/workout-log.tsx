@@ -732,7 +732,8 @@ function LastTimeStub({
         <i className={cn(notch, '-left-2.25')} />
         <i className={cn(notch, '-right-2.25')} />
       </div>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 pt-1 pb-4">
+      {/* Nhãn trên, số dưới như prototype, dù số ngắn hay dài. */}
+      <div className="flex flex-col items-start gap-1 px-4 pt-1 pb-4">
         <span id={id} className="label-caps">
           {label}
         </span>{' '}
