@@ -2,6 +2,7 @@ import type {
   CatalogExercise,
   SessionExercise,
   SetLog,
+  SyncEntity,
   UnitPref,
   WorkoutSession,
 } from '@fitness/contract';
@@ -24,15 +25,12 @@ import { db, type OutboxEvent } from '@/db/db';
  */
 export const INPUT_UNIT: UnitPref = 'kg';
 
-/** Tên bảng phía server, dùng làm `entity` của sự kiện outbox. */
-type Entity = 'workout_sessions' | 'session_exercises' | 'set_logs';
-
 const now = () => new Date().toISOString();
 
 /** Ghi bản ghi và sự kiện outbox; gọi bên trong transaction có `db.outbox`. */
 async function put<T extends { id: string }>(
   table: EntityTable<T, 'id'>,
-  entity: Entity,
+  entity: SyncEntity,
   row: T,
 ) {
   await table.put(row);

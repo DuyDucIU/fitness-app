@@ -27,7 +27,7 @@ describe('outbox', () => {
     await db.outbox.add({
       entity: 'set_logs',
       entityId: 'a',
-      op: 'delete',
+      op: 'upsert',
       payload: null,
       createdAt: 0,
       attempts: 0,
@@ -37,6 +37,6 @@ describe('outbox', () => {
       .where('[entity+entityId]')
       .equals(['set_logs', 'a'])
       .first();
-    expect(found?.op).toBe('delete');
+    expect(found?.op).toBe('upsert');
   });
 });

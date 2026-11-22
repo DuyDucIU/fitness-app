@@ -2,6 +2,7 @@ import type {
   CatalogExercise,
   SessionExercise,
   SetLog,
+  SyncEntity,
   WorkoutSession,
 } from '@fitness/contract';
 import { Dexie, type EntityTable } from 'dexie';
@@ -14,10 +15,11 @@ export interface OutboxEvent {
   /** Khoá tự tăng = thứ tự đẩy lên server. */
   seq: number;
   /** Bảng gốc của sự kiện, vd "set_logs". */
-  entity: string;
+  entity: SyncEntity;
   /** UUID sinh ở client của bản ghi. */
   entityId: string;
-  op: 'upsert' | 'delete';
+  /** Xoá là tombstone `deletedAt`, nên mọi sự kiện đều là upsert. */
+  op: 'upsert';
   /** Bản ghi tại thời điểm thay đổi. */
   payload: unknown;
   createdAt: number;

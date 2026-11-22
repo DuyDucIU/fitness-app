@@ -6,6 +6,10 @@ import {
   HealthResponseSchema,
   type MeResponse,
   MeResponseSchema,
+  type SyncEvent,
+  type SyncPushRequest,
+  type SyncPushResponse,
+  SyncPushResponseSchema,
 } from '@fitness/contract';
 import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 
@@ -20,9 +24,10 @@ import { getSupabase } from './supabase';
 async function request<T>(
   path: string,
   parse: (data: unknown) => T,
-  options: { auth: boolean },
+  options: { auth: boolean; method?: 'GET' | 'POST'; body?: unknown },
 ): Promise<T> {
   const headers: Record<string, string> = {};
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (options.auth) {
     const { data, error } = await getSupabase().auth.getSession();
     // Offline với token hết hạn: chưa refresh được, không phải mất phiên (SDD 9.1).
@@ -32,7 +37,12 @@ async function request<T>(
   }
   let response: Response;
   try {
-    response = await fetch(`${env.apiUrl}${path}`, { headers });
+    response = await fetch(`${env.apiUrl}${path}`, {
+      method: options.method ?? 'GET',
+      headers,
+      body:
+        options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
   } catch (error) {
     // fetch chỉ ném khi không tới được server (mất mạng, server tắt, CORS).
     throw new ApiError('network', 0, String(error));
@@ -55,4 +65,10 @@ export const api = {
     request('/me', (d) => MeResponseSchema.parse(d), { auth: true }),
   catalog: (): Promise<CatalogResponse> =>
     request('/catalog', (d) => CatalogResponseSchema.parse(d), { auth: true }),
+  syncPush: (events: SyncEvent[]): Promise<SyncPushResponse> =>
+    request('/sync/push', (d) => SyncPushResponseSchema.parse(d), {
+      auth: true,
+      method: 'POST',
+      body: { events } satisfies SyncPushRequest,
+    }),
 };
