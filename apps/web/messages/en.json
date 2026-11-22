@@ -186,7 +186,6 @@
   "log_empty": "No exercises yet. Add your first one and start logging.",
   "log_unknown_exercise": "Exercise",
   "log_set_tag": "Set {n}",
-  "log_edit_set": "Edit set {n}",
   "log_weight_label": "Weight ({load})",
   "log_reps_label": "Reps",
   "log_weight_less": "Decrease by {step} kg",
@@ -207,8 +206,6 @@
   "log_log_set": "Log set {n}",
   "log_save_set": "Save set {n}",
   "log_delete_set": "Delete set {n}",
-  "log_logged_sets": "Logged sets",
-  "log_no_sets": "No sets yet.",
   "log_set_saved": "Set {n} saved.",
   "log_finish_title": "Finish workout?",
   "log_finish_sets": [
@@ -223,5 +220,15 @@
   ],
   "log_finish_confirm": "Finish workout",
   "log_keep_going": "Keep going",
-  "log_finished": "Workout finished. It syncs when you’re online."
+  "log_finished": "Workout finished. It syncs when you’re online.",
+  "log_set_progress": "Set {n}/{total}",
+  "log_edit_set_name": "Edit set {n} · {name}",
+  "log_done_name": "{name} · done",
+  "log_all_done": "Every set of {name} is done.",
+  "log_add_set": "Add set",
+  "log_working_sets": "Working sets",
+  "log_now": "now",
+  "log_logged": "Logged",
+  "log_next": "Next: {name}",
+  "log_chip_label": "{name}, {done} of {total} sets"
 }

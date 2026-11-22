@@ -180,7 +180,6 @@
   "log_empty": "Chưa có bài nào. Thêm bài đầu tiên rồi bắt đầu ghi.",
   "log_unknown_exercise": "Bài tập",
   "log_set_tag": "Set {n}",
-  "log_edit_set": "Sửa set {n}",
   "log_weight_label": "Mức tạ ({load})",
   "log_reps_label": "Số rep",
   "log_weight_less": "Giảm {step} kg",
@@ -201,8 +200,6 @@
   "log_log_set": "Xong set {n}",
   "log_save_set": "Lưu set {n}",
   "log_delete_set": "Xoá set {n}",
-  "log_logged_sets": "Các set đã ghi",
-  "log_no_sets": "Chưa có set nào.",
   "log_set_saved": "Đã lưu set {n}.",
   "log_finish_title": "Kết thúc buổi tập?",
   "log_finish_sets": [
@@ -217,5 +214,15 @@
   ],
   "log_finish_confirm": "Kết thúc buổi",
   "log_keep_going": "Tập tiếp",
-  "log_finished": "Đã kết thúc buổi tập. Sẽ đồng bộ khi có mạng."
+  "log_finished": "Đã kết thúc buổi tập. Sẽ đồng bộ khi có mạng.",
+  "log_set_progress": "Set {n}/{total}",
+  "log_edit_set_name": "Sửa set {n} · {name}",
+  "log_done_name": "{name} · xong",
+  "log_all_done": "Đã xong mọi set của {name}.",
+  "log_add_set": "Thêm set",
+  "log_working_sets": "Set chính",
+  "log_now": "đang tập",
+  "log_logged": "Đã ghi",
+  "log_next": "Tiếp: {name}",
+  "log_chip_label": "{name}, {done}/{total} set"
 }

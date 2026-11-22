@@ -50,11 +50,20 @@ async function type(user: User, label: string, value: string) {
   await user.type(input, value);
 }
 
-/** Các hàng set đã ghi, dạng chữ "Set 1 80 × 8". */
-function loggedSets() {
-  const list = screen.getByRole('list', { name: 'Logged sets' });
+/** Các hàng set (đã ghi và đang chờ), dạng chữ "Set 1 80 × 8". */
+function setRows() {
+  const list = screen.getByRole('list', { name: 'Working sets' });
   return within(list)
     .queryAllByRole('listitem')
+    .map((item) => item.textContent?.replace(/\s+/g, ' ').trim());
+}
+
+/** Các hàng set đã ghi (có dấu ✓ "Logged"). */
+function loggedSets() {
+  const list = screen.getByRole('list', { name: 'Working sets' });
+  return within(list)
+    .queryAllByRole('listitem')
+    .filter((item) => within(item).queryByRole('img', { name: 'Logged' }))
     .map((item) => item.textContent?.replace(/\s+/g, ' ').trim());
 }
 
@@ -66,10 +75,16 @@ describe('tập tự do ghi trên máy', () => {
     await startFreestyle(user);
     await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
 
-    // Set đầu: chưa có gì để điền sẵn (R8), user tự nhập.
+    // Bài ad hoc có sẵn 3 set chờ tập; set đầu chưa có gì để điền sẵn (R8).
     expect(
       await screen.findByRole('textbox', { name: 'Weight (total)' }),
     ).toHaveValue('');
+    expect(screen.getByText('Set 1/3')).toBeInTheDocument();
+    expect(setRows()).toEqual([
+      'Set 1 – × – now',
+      'Set 2 – × –',
+      'Set 3 – × –',
+    ]);
     await type(user, 'Weight (total)', '80');
     await type(user, 'Reps', '8');
     await user.click(screen.getByRole('button', { name: 'Log set 1' }));
@@ -84,7 +99,15 @@ describe('tập tự do ghi trên máy', () => {
       await screen.findByRole('button', { name: 'One rep fewer' }),
     );
     await user.click(screen.getByRole('button', { name: 'Log set 3' }));
-    await screen.findByRole('button', { name: 'Log set 4' });
+    // Hết set dự định: tấm số áo báo xong, nút đáy mời kết thúc buổi.
+    expect(
+      await screen.findByText(
+        'Every set of Barbell Bench Press - Medium Grip is done.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Finish workout' }),
+    ).toBeInTheDocument();
 
     expect(loggedSets()).toEqual([
       'Set 1 80 × 8',
@@ -145,8 +168,14 @@ describe('tập tự do ghi trên máy', () => {
     await user.click(await screen.findByRole('button', { name: 'Log set 2' }));
     await screen.findByRole('button', { name: 'Log set 3' });
 
-    // Sửa set 1: 100 × 5 → 102,5 × 5 bằng nút +.
+    // Sửa set 1: 100 × 5 → 102,5 × 5 bằng nút +. Chỉ có một nút lưu ở đáy.
     await user.click(screen.getByRole('button', { name: /^Set 1/ }));
+    expect(
+      await screen.findByText('Edit set 1 · Barbell Squat'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Cancel' }),
+    ).not.toBeInTheDocument();
     await user.click(
       screen.getByRole('button', { name: 'Increase by 2.5 kg' }),
     );
@@ -154,6 +183,15 @@ describe('tập tự do ghi trên máy', () => {
     await waitFor(() =>
       expect(loggedSets()).toEqual(['Set 1 102.5 × 5', 'Set 2 100 × 5']),
     );
+
+    // Chạm hàng chờ thì thoát sửa mà không lưu.
+    await user.click(screen.getByRole('button', { name: /^Set 2/ }));
+    await user.click(screen.getByRole('button', { name: 'One rep fewer' }));
+    await user.click(screen.getByRole('button', { name: /^Set 3/ }));
+    expect(
+      await screen.findByRole('button', { name: 'Log set 3' }),
+    ).toBeInTheDocument();
+    expect(loggedSets()).toEqual(['Set 1 102.5 × 5', 'Set 2 100 × 5']);
 
     // Xoá set 2.
     await user.click(screen.getByRole('button', { name: /^Set 2/ }));
@@ -176,6 +214,28 @@ describe('tập tự do ghi trên máy', () => {
     expect(deleted.entityId).toBe(second.entityId);
     expect(deleted.op).toBe('upsert');
     expect(deleted.payload).toMatchObject({ deletedAt: expect.any(String) });
+  });
+
+  it('thêm set ngoài 3 set có sẵn', async () => {
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+    await type(user, 'Weight (total)', '60');
+    await type(user, 'Reps', '10');
+    for (const n of [1, 2, 3]) {
+      await user.click(
+        await screen.findByRole('button', { name: `Log set ${n}` }),
+      );
+    }
+    await screen.findByText(/is done/);
+
+    await user.click(screen.getAllByRole('button', { name: 'Add set' })[0]);
+    expect(
+      await screen.findByRole('button', { name: 'Log set 4' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Set 4/4')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('10');
   });
 
   it('bài chỉ reps: chỉ có ô reps, set ghi không có tạ và đơn vị', async () => {
