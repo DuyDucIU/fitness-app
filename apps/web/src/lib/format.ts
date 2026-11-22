@@ -110,3 +110,12 @@ export function parseDecimal(input: string): number | null {
   const value = Number(text.replace(',', '.'));
   return Number.isFinite(value) ? value : null;
 }
+
+/** Thời gian đã tập: "4:05", "31:12", quá một giờ thì "1:02:03". */
+export function formatElapsed(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const min = Math.floor((total % 3600) / 60);
+  const ss = String(total % 60).padStart(2, '0');
+  return h ? `${h}:${String(min).padStart(2, '0')}:${ss}` : `${min}:${ss}`;
+}

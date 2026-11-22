@@ -1,4 +1,9 @@
-import type { CatalogExercise } from '@fitness/contract';
+import type {
+  CatalogExercise,
+  SessionExercise,
+  SetLog,
+  WorkoutSession,
+} from '@fitness/contract';
 import { Dexie, type EntityTable } from 'dexie';
 
 /**
@@ -34,7 +39,6 @@ export interface MetaEntry {
 /**
  * IndexedDB cục bộ qua Dexie: nguồn dữ liệu tạm thời khi offline.
  * Đổi schema = thêm db.version(n + 1) (SDD 11.5), không sửa version cũ.
- * Các bảng WORKOUT_SESSIONS / SESSION_EXERCISES / SET_LOGS thêm cùng tính năng ghi buổi tập.
  */
 export const db = new Dexie('fitness') as Dexie & {
   outbox: EntityTable<OutboxEvent, 'seq'>;
@@ -45,6 +49,13 @@ export const db = new Dexie('fitness') as Dexie & {
    * `catalog-sync` thay cả bảng khi làm mới, không sửa từng bài.
    */
   exercises: EntityTable<CatalogExercise, 'id'>;
+  /**
+   * Dữ liệu buổi tập (SDD 3.2), local-first qua outbox: chỉ ghi qua `workout/session`,
+   * mỗi lần ghi kèm một sự kiện outbox trong cùng transaction. Xoá bằng tombstone.
+   */
+  workoutSessions: EntityTable<WorkoutSession, 'id'>;
+  sessionExercises: EntityTable<SessionExercise, 'id'>;
+  setLogs: EntityTable<SetLog, 'id'>;
 };
 
 db.version(1).stores({
@@ -56,4 +67,9 @@ db.version(2).stores({
 });
 db.version(3).stores({
   exercises: 'id',
+});
+db.version(4).stores({
+  workoutSessions: 'id, startedAt',
+  sessionExercises: 'id, sessionId',
+  setLogs: 'id, sessionExerciseId',
 });
