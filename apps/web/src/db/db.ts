@@ -91,3 +91,7 @@ db.version(4).stores({
 db.version(5).stores({
   syncRejects: '++id',
 });
+// Index `exerciseId` cho truy vấn "lần trước" của một bài (UC07 bước 2, SDD 7.1).
+db.version(6).stores({
+  sessionExercises: 'id, sessionId, exerciseId',
+});

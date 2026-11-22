@@ -232,6 +232,7 @@
   "log_add_set": "Thêm set",
   "log_working_sets": "Set chính",
   "log_now": "đang tập",
+  "log_last_time": "Lần trước · {date}",
   "log_logged": "Đã ghi",
   "log_next": "Tiếp: {name}",
   "log_chip_label": "{name}, {done}/{total} set",

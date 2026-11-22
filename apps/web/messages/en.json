@@ -239,6 +239,7 @@
   "log_add_set": "Add set",
   "log_working_sets": "Working sets",
   "log_now": "now",
+  "log_last_time": "Last time · {date}",
   "log_logged": "Logged",
   "log_next": "Next: {name}",
   "log_chip_label": "{name}, {done} of {total} sets",

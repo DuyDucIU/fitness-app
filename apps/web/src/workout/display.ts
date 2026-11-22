@@ -1,4 +1,5 @@
 import type { LoadInput } from '@fitness/contract';
+import type { PastSet } from '@fitness/engine';
 
 import { exerciseNames } from '@/catalog/display';
 import { formatNumber } from '@/lib/format';
@@ -31,6 +32,21 @@ export function setText(
   const r = reps ?? '–';
   if (kind === 'reps') return `${r} ${m.log_unit_reps()}`;
   return `${weight === null ? '–' : formatNumber(weight)} × ${r}`;
+}
+
+/**
+ * Các set của lần trước, mỗi set một mục, như prototype: chỉ ghi mức tạ khi khác set
+ * trước, nên cùng mức tạ là ["80×8", "8", "7"], đổi mức là ["100×3", "95×4", "80×10",
+ * "8"]; bài chỉ reps ["12", "10", "9"]. Dấu × sát hai số để mỗi cặp đọc là một set.
+ */
+export function pastSetTexts(kind: LogKind, sets: PastSet[]): string[] {
+  return sets.map((s, i) => {
+    const reps = String(s.reps ?? '–');
+    if (kind === 'reps' || (i > 0 && s.weight === sets[i - 1].weight)) {
+      return reps;
+    }
+    return `${s.weight === null ? '–' : formatNumber(s.weight)}×${reps}`;
+  });
 }
 
 /** Quy ước ghi tạ đã dịch (SRS Phụ lục B). */
