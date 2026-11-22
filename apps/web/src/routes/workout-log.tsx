@@ -688,7 +688,11 @@ function SetBib({
           </b>
         )}
         <b className="text-num leading-none whitespace-nowrap numeral">
-          <small aria-hidden className="mr-1.5 align-[0.4em] label-caps">
+          {/* Nhãn chữ dùng Be Vietnam Pro như prototype (.band .setno small), không theo font số. */}
+          <small
+            aria-hidden
+            className="mr-1.5 align-[0.4em] font-sans label-caps"
+          >
             {rest.paused ? m.log_rest_paused() : m.log_rest()}
           </small>
           <span
