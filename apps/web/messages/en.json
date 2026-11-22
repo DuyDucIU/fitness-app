@@ -244,25 +244,36 @@
   "log_chip_label": "{name}, {done} of {total} sets",
   "log_set_deleted": "Set {n} deleted.",
   "common_undo": "Undo",
-  "history_workouts_label": "Workouts",
   "history_empty_title": "No workouts yet",
-  "history_empty_body": "Finished workouts land here, newest first.",
+  "history_empty_body": "Finished workouts land here, newest first. Your first one is a tap away.",
   "history_go_today": "Go to Today",
   "history_routine_workout": "Workout",
-  "history_set_count": [
+  "history_set_label": "Set {n}",
+  "history_stat_sets": "working sets",
+  "history_stat_minutes": "minutes",
+  "history_stat_exercises": "exercises",
+  "history_not_found": "This workout isn’t on this device.",
+  "history_back_to_list": "Back to History",
+  "history_tab_workouts": "Workouts",
+  "history_tab_prs": "PRs",
+  "history_tabs_label": "History views",
+  "history_filters_label": "Filters",
+  "history_filter_exercise": "Exercise",
+  "history_filter_4w": "4 weeks",
+  "history_filter_3m": "3 months",
+  "history_filter_all": "All",
+  "history_week_label": "Week of {start} to {end}",
+  "history_row_sub": "{sets} · {minutes} min",
+  "history_working_sets": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=one": "{count} set",
-        "countPlural=other": "{count} sets"
+        "countPlural=one": "{count} working set",
+        "countPlural=other": "{count} working sets"
       }
     }
   ],
-  "history_set_label": "Set {n}",
-  "history_stat_sets": "sets",
-  "history_stat_minutes": "minutes",
-  "history_stat_exercises": "exercises",
-  "history_not_found": "This workout isn’t on this device.",
-  "history_back_to_list": "Back to History"
+  "history_not_synced": "not synced yet",
+  "history_options": "Workout options"
 }

@@ -237,24 +237,35 @@
   "log_chip_label": "{name}, {done}/{total} set",
   "log_set_deleted": "Đã xoá set {n}.",
   "common_undo": "Hoàn tác",
-  "history_workouts_label": "Buổi tập",
   "history_empty_title": "Chưa có buổi tập nào",
-  "history_empty_body": "Buổi tập đã kết thúc sẽ hiện ở đây, mới nhất trước.",
+  "history_empty_body": "Buổi tập đã kết thúc sẽ hiện ở đây, mới nhất trước. Bắt đầu buổi đầu tiên ngay thôi.",
   "history_go_today": "Về Hôm nay",
   "history_routine_workout": "Buổi tập",
-  "history_set_count": [
+  "history_set_label": "Set {n}",
+  "history_stat_sets": "set chính",
+  "history_stat_minutes": "phút",
+  "history_stat_exercises": "bài",
+  "history_not_found": "Buổi tập này không có trên máy.",
+  "history_back_to_list": "Về Lịch sử",
+  "history_tab_workouts": "Buổi tập",
+  "history_tab_prs": "PR",
+  "history_tabs_label": "Chế độ xem lịch sử",
+  "history_filters_label": "Bộ lọc",
+  "history_filter_exercise": "Bài tập",
+  "history_filter_4w": "4 tuần",
+  "history_filter_3m": "3 tháng",
+  "history_filter_all": "Tất cả",
+  "history_week_label": "Tuần từ {start} đến {end}",
+  "history_row_sub": "{sets} · {minutes} phút",
+  "history_working_sets": [
     {
       "declarations": ["input count", "local countPlural = count: plural"],
       "selectors": ["countPlural"],
       "match": {
-        "countPlural=other": "{count} set"
+        "countPlural=other": "{count} set chính"
       }
     }
   ],
-  "history_set_label": "Set {n}",
-  "history_stat_sets": "set",
-  "history_stat_minutes": "phút",
-  "history_stat_exercises": "bài",
-  "history_not_found": "Buổi tập này không có trên máy.",
-  "history_back_to_list": "Về Lịch sử"
+  "history_not_synced": "chưa đồng bộ",
+  "history_options": "Tuỳ chọn buổi tập"
 }

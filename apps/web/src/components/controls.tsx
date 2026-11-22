@@ -141,14 +141,17 @@ export function Stepper({
 
 /**
  * Tab con trong một màn (prototypes/shared/base.css › .subtabs), vd Workouts | PRs ở
- * History, Training | Body ở Progress. Mỗi tab là một link (`role="tab"`), tab hiện tại
- * nền mực.
+ * History, Training | Body ở Progress. Tab là link (`to`, `role="tab"`, tab hiện tại nền
+ * mực), hoặc nút (`onClick`) cho tab chưa có màn, vd báo "Coming soon".
  */
 export function Subtabs({
   items,
   'aria-label': ariaLabel,
 }: {
-  items: readonly { to: string; label: React.ReactNode }[];
+  items: readonly (
+    | { to: string; label: React.ReactNode }
+    | { onClick: () => void; label: React.ReactNode }
+  )[];
   'aria-label'?: string;
 }) {
   return (
@@ -157,14 +160,30 @@ export function Subtabs({
       aria-label={ariaLabel}
       className="flex flex-none gap-1.5 px-3 pb-2"
     >
-      {items.map((item) => (
-        <SubtabLink key={item.to} to={item.to}>
-          {item.label}
-        </SubtabLink>
-      ))}
+      {items.map((item, i) =>
+        'to' in item ? (
+          <SubtabLink key={item.to} to={item.to}>
+            {item.label}
+          </SubtabLink>
+        ) : (
+          <button
+            key={i}
+            type="button"
+            role="tab"
+            aria-selected={false}
+            onClick={item.onClick}
+            className={SUBTAB_CLASS}
+          >
+            {item.label}
+          </button>
+        ),
+      )}
     </div>
   );
 }
+
+const SUBTAB_CLASS =
+  'flex min-h-10 flex-1 items-center justify-center rounded-sm border-[1.5px] border-rule bg-tyvek font-semibold no-underline aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-tyvek';
 
 /** Một tab của `Subtabs`: `aria-selected` theo route hiện tại (role="tab" cần thuộc tính này). */
 function SubtabLink({
@@ -181,7 +200,7 @@ function SubtabLink({
       end
       role="tab"
       aria-selected={!!selected}
-      className="flex min-h-10 flex-1 items-center justify-center rounded-sm border-[1.5px] border-rule bg-tyvek font-semibold no-underline aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-tyvek"
+      className={SUBTAB_CLASS}
     >
       {children}
     </NavLink>

@@ -1,3 +1,5 @@
+import type { LoadInput } from '@fitness/contract';
+
 import { exerciseNames } from '@/catalog/display';
 import { formatNumber } from '@/lib/format';
 import { getLocale } from '@/lib/i18n';
@@ -29,4 +31,20 @@ export function setText(
   const r = reps ?? '–';
   if (kind === 'reps') return `${r} ${m.log_unit_reps()}`;
   return `${weight === null ? '–' : formatNumber(weight)} × ${r}`;
+}
+
+/** Quy ước ghi tạ đã dịch (SRS Phụ lục B). */
+export function loadLabel(loadInput: LoadInput): string {
+  switch (loadInput) {
+    case 'total':
+      return m.log_load_total();
+    case 'per_side':
+      return m.log_load_per_side();
+    case 'per_dumbbell':
+      return m.log_load_per_dumbbell();
+    case 'stack':
+      return m.log_load_stack();
+    case 'added_weight':
+      return m.log_load_added_weight();
+  }
 }

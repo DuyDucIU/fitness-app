@@ -5,6 +5,7 @@ import {
   formatNumber,
   formatShortDate,
   formatTime,
+  formatWeekdayShort,
   parseDecimal,
 } from './format';
 
@@ -48,6 +49,11 @@ describe('ngày giờ', () => {
   it('ngày ngắn', () => {
     expect(formatShortDate(date, 'en')).toBe('Nov 19');
     expect(formatShortDate(date, 'vi')).toBe('19/11');
+  });
+
+  it('thứ viết tắt', () => {
+    expect(formatWeekdayShort(date, 'en')).toBe('Thu');
+    expect(formatWeekdayShort(date, 'vi')).toBe('T5');
   });
 
   it('ngày dài có thứ', () => {

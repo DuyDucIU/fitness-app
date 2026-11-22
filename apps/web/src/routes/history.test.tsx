@@ -130,12 +130,25 @@ function fakePullServer(initial: SyncEvent[] = []) {
   };
 }
 
+/** Các tuần trong History: tên danh sách và nội dung từng dòng. */
+const historyWeeks = () =>
+  screen.queryAllByRole('list', { name: /^Week of/ }).map((list) => ({
+    week: list.getAttribute('aria-label'),
+    rows: within(list)
+      .getAllByRole('link')
+      .map((row) => row.textContent),
+  }));
 const historyRows = () =>
-  within(screen.getByRole('list', { name: 'Workouts' })).getAllByRole('link');
+  screen
+    .queryAllByRole('list', { name: /^Week of/ })
+    .flatMap((list) => within(list).getAllByRole('link'));
 
 describe('lịch sử buổi tập', () => {
-  it('máy trống: đăng nhập xong, History hiện lại các buổi trên server, mới nhất trước', async () => {
+  it('máy trống: đăng nhập xong, History hiện lại các buổi trên server, nhóm theo tuần, mới nhất trước', async () => {
     const user = userEvent.setup();
+    const lastWeek = serverWorkout('2026-11-10T10:00:00.000Z', [
+      { exerciseId: SQUAT.id, sets: [[100, 5]] },
+    ]);
     const older = serverWorkout('2026-11-17T10:00:00.000Z', [
       { exerciseId: SQUAT.id, sets: [[100, 5]] },
     ]);
@@ -149,7 +162,11 @@ describe('lịch sử buổi tập', () => {
       },
       { exerciseId: SQUAT.id, sets: [[100, 5]] },
     ]);
-    const server = fakePullServer([...older.changes, ...newer.changes]);
+    const server = fakePullServer([
+      ...lastWeek.changes,
+      ...older.changes,
+      ...newer.changes,
+    ]);
     const app = await openApp('/sign-in', {
       pullChanges: server.pullChanges,
     });
@@ -160,10 +177,19 @@ describe('lịch sử buổi tập', () => {
     await screen.findByRole('heading', { name: 'Today' });
     await app.router.navigate('/history');
 
-    await screen.findByRole('list', { name: 'Workouts' });
-    expect(historyRows().map((row) => row.textContent)).toEqual([
-      expect.stringMatching(/Freestyle.*Thursday, Nov 19.*3 sets/),
-      expect.stringMatching(/Freestyle.*Tuesday, Nov 17.*1 set/),
+    await waitFor(() => expect(historyRows()).toHaveLength(3));
+    expect(historyWeeks()).toEqual([
+      {
+        week: 'Week of Nov 16 to Nov 22',
+        rows: [
+          '19ThuFreestyle3 working sets · 45 min',
+          '17TueFreestyle1 working set · 45 min',
+        ],
+      },
+      {
+        week: 'Week of Nov 9 to Nov 15',
+        rows: ['10TueFreestyle1 working set · 45 min'],
+      },
     ]);
 
     await user.click(historyRows()[0]);
@@ -211,8 +237,7 @@ describe('lịch sử buổi tập', () => {
       ...signedInAn,
       pullChanges: server.pullChanges,
     });
-    await screen.findByText(/Nov 19/);
-    expect(historyRows()).toHaveLength(2);
+    await waitFor(() => expect(historyRows()).toHaveLength(2));
 
     // Máy khác xoá buổi (tombstone); user quay lại app.
     server.publish(
@@ -223,8 +248,8 @@ describe('lịch sử buổi tập', () => {
     );
     app.becomeVisible();
 
-    await waitFor(() => expect(screen.queryByText(/Nov 19/)).toBeNull());
-    expect(historyRows()).toHaveLength(1);
+    await waitFor(() => expect(historyRows()).toHaveLength(1));
+    expect(historyRows()[0]).toHaveTextContent(/^17Tue/);
     // Lần kéo đầu đi hết 3 trang từ đầu; lần sau đi tiếp từ cursor, không kéo lại từ đầu.
     expect(server.sinces()).toEqual([undefined, '2', '4', '6']);
   });
@@ -284,5 +309,79 @@ describe('lịch sử buổi tập', () => {
         .getAllByRole('listitem')
         .map((item) => item.textContent),
     ).toEqual(['Set 182.5 × 8', 'Set 280 × 6']);
+  });
+
+  it('buổi còn thay đổi chưa lên server: dòng báo "not synced yet"', async () => {
+    const user = userEvent.setup();
+    // Đẩy lỗi mạng: buổi vừa tập còn nằm trong outbox.
+    await openApp('/', signedInAn);
+    await user.click(
+      await screen.findByRole('button', { name: 'Start freestyle' }),
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Add exercise' }),
+    );
+    await user.keyboard('bench');
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Barbell Bench Press - Medium Grip/,
+      }),
+    );
+    await user.type(
+      await screen.findByRole('textbox', { name: 'Weight (total)' }),
+      '80',
+    );
+    await user.type(screen.getByRole('textbox', { name: 'Reps' }), '8');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+    await screen.findByRole('button', { name: 'Log set 2' });
+    await user.click(screen.getByRole('button', { name: 'Finish' }));
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Finish workout?',
+    });
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Finish workout' }),
+    );
+    await screen.findByRole('button', { name: 'Start freestyle' });
+    await user.click(screen.getByRole('link', { name: 'History' }));
+
+    await waitFor(() => expect(historyRows()).toHaveLength(1));
+    expect(historyRows()[0]).toHaveTextContent(
+      /Freestyle1 working set · \d+ min · not synced yet$/,
+    );
+  });
+
+  it('tính năng chưa có (tab PR, bộ lọc, tuỳ chọn buổi, lịch sử bài) báo Coming soon', async () => {
+    const user = userEvent.setup();
+    const w = serverWorkout('2026-11-19T10:00:00.000Z', [
+      { exerciseId: BENCH.id, sets: [[80, 8]] },
+    ]);
+    await openApp('/history', {
+      ...signedInAn,
+      pullChanges: fakePullServer(w.changes).pullChanges,
+    });
+    await waitFor(() => expect(historyRows()).toHaveLength(1));
+    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    for (const name of ['Exercise', '4 weeks', '3 months']) {
+      await user.click(screen.getByRole('button', { name }));
+      expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
+    }
+    await user.click(screen.getByRole('tab', { name: 'PRs' }));
+    expect(screen.getByRole('tab', { name: 'Workouts' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+
+    await user.click(historyRows()[0]);
+    await user.click(
+      await screen.findByRole('button', { name: 'Workout options' }),
+    );
+    await user.click(
+      screen.getByRole('button', { name: /Barbell Bench Press - Medium Grip/ }),
+    );
+    expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
   });
 });

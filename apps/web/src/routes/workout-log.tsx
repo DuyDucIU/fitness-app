@@ -1,4 +1,4 @@
-import type { LoadInput, SetLog } from '@fitness/contract';
+import type { SetLog } from '@fitness/contract';
 import { equipmentDefaults } from '@fitness/engine';
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router';
@@ -47,6 +47,7 @@ import {
 } from '@/workout/session';
 import {
   exerciseName,
+  loadLabel,
   type LogKind,
   logKind,
   setText,
@@ -62,21 +63,6 @@ export function WorkoutLogPage() {
   if (workout === undefined) return null;
   if (workout === null) return <Navigate to="/" replace />;
   return <WorkoutLog workout={workout} />;
-}
-
-function loadLabel(loadInput: LoadInput): string {
-  switch (loadInput) {
-    case 'total':
-      return m.log_load_total();
-    case 'per_side':
-      return m.log_load_per_side();
-    case 'per_dumbbell':
-      return m.log_load_per_dumbbell();
-    case 'stack':
-      return m.log_load_stack();
-    case 'added_weight':
-      return m.log_load_added_weight();
-  }
 }
 
 /** Bài ad hoc có sẵn 3 set chờ tập, như prototype (`makeEx(key, {sets:3})`). */
