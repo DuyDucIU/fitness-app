@@ -20,7 +20,7 @@ export interface LastTime {
 }
 
 /**
- * Số điền sẵn cho working set thứ `setIndex` (từ 0) theo lần trước (UC07 bước 3, R4):
+ * Số điền sẵn cho working set thứ `setIndex` (từ 0) theo lần trước (UC07 bước 3):
  * đúng set cùng thứ tự, set dư thì lấy set cuối. Không điền (`null`) khi chưa có lịch
  * sử (R8) hoặc lần trước ghi tạ theo quy ước khác, vì con số không còn cùng nghĩa.
  *

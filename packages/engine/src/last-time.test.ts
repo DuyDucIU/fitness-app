@@ -12,7 +12,7 @@ const bench: LastTime = {
 };
 
 describe('prefillFromLast', () => {
-  it('Given lần trước 3 set, When điền set thứ i, Then lấy đúng set thứ i của lần trước (R4)', () => {
+  it('Given lần trước 3 set, When điền set thứ i, Then lấy đúng set thứ i của lần trước', () => {
     expect(prefillFromLast(bench, 0, 'total')).toEqual({ weight: 80, reps: 8 });
     expect(prefillFromLast(bench, 2, 'total')).toEqual({ weight: 80, reps: 7 });
   });

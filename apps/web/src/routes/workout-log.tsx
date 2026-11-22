@@ -1,4 +1,4 @@
-import type { SetLog } from '@fitness/contract';
+import type { LoadInput, SetLog } from '@fitness/contract';
 import {
   equipmentDefaults,
   type LastTime,
@@ -83,7 +83,7 @@ function draftFrom(set: SetLog | undefined): Draft {
 }
 
 /**
- * Số điền sẵn cho working set thứ `index` (từ 0) theo lần trước (UC07 bước 3, R4);
+ * Số điền sẵn cho working set thứ `index` (từ 0) theo lần trước (UC07 bước 3);
  * `null` khi bài chưa có lịch sử hoặc lần trước ghi tạ theo quy ước khác.
  */
 function prefillAt(item: OpenExercise, index: number): Draft | null {
@@ -129,7 +129,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const allDone = !!current && logged.length >= planned;
 
   // Hai bản nháp riêng, để sửa set cũ không đụng tới số của set chuẩn bị tập.
-  // - Set chuẩn bị tập: điền sẵn đúng set đó của lần trước (R4); bài chưa có lịch sử
+  // - Set chuẩn bị tập: điền sẵn đúng set đó của lần trước (UC07 bước 3); bài chưa có lịch sử
   //   thì lấy set vừa ghi của bài, chưa ghi set nào thì để trống (R8). Chỉ làm mới khi
   //   đổi bài và ngay sau khi ghi set; làm mới lúc IndexedDB báo về sẽ xoá mất chỉnh
   //   sửa user bấm ngay sau khi ghi.
@@ -693,38 +693,53 @@ function SetBib({
         </>
       )}
       {item.lastTime && kind !== 'unsupported' && mode.type !== 'edit' && (
-        <LastTimeStub kind={kind} lastTime={item.lastTime} />
+        <LastTimeStub
+          kind={kind}
+          lastTime={item.lastTime}
+          loadInput={item.row.loadInput}
+        />
       )}
     </section>
   );
 }
 
 /**
- * Cuống vé dưới tấm số áo (prototypes/workout-log › .stub): ngày và các working set của
- * lần tập gần nhất cùng bài (UC07 bước 2). Bài chưa có lịch sử thì không hiện.
+ * Cuống vé dưới tấm số áo (prototypes/workout-log › .stub), tách khỏi mặt số bằng đường
+ * răng cưa (DESIGN.md): ngày và các working set của lần tập gần nhất cùng bài (UC07 bước
+ * 2). Lần trước ghi tạ theo quy ước khác thì nêu quy ước đó, để không so nhầm con số.
  */
 function LastTimeStub({
   kind,
   lastTime,
+  loadInput,
 }: {
   kind: LogKind;
   lastTime: LastTime;
+  loadInput: LoadInput;
 }) {
   const id = React.useId();
+  const notch = 'absolute top-0 size-4.5 rounded-full bg-ground';
+  let label: string = m.log_last_time({
+    date: formatShortDate(new Date(lastTime.startedAt)),
+  });
+  if (kind === 'weight_reps' && lastTime.loadInput !== loadInput) {
+    label += ` · ${loadLabel(lastTime.loadInput)}`;
+  }
   return (
-    <div
-      role="note"
-      aria-labelledby={id}
-      className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t-2 border-dashed border-rule px-4 py-3"
-    >
-      <span id={id} className="label-caps">
-        {m.log_last_time({
-          date: formatShortDate(new Date(lastTime.startedAt)),
-        })}
-      </span>{' '}
-      <b className="text-num leading-none numeral">
-        {pastSetsText(kind, lastTime.sets)}
-      </b>
+    <div role="note" aria-labelledby={id}>
+      <div aria-hidden className="relative h-4.5">
+        <i className="absolute inset-x-3.5 top-2 border-t-2 border-dashed border-rule" />
+        <i className={cn(notch, '-left-2.25')} />
+        <i className={cn(notch, '-right-2.25')} />
+      </div>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 pt-1 pb-4">
+        <span id={id} className="label-caps">
+          {label}
+        </span>{' '}
+        <b className="text-num leading-none numeral">
+          {pastSetsText(kind, lastTime.sets)}
+        </b>
+      </div>
     </div>
   );
 }

@@ -452,7 +452,7 @@ describe('số liệu lần trước', () => {
       'Set 3 80 × 7',
     ]);
 
-    // User sửa set đầu; set sau vẫn điền theo đúng set đó của lần trước (R4).
+    // User sửa set đầu; set sau vẫn điền theo đúng set đó của lần trước.
     await type(user, 'Weight (total)', '82.5');
     await user.click(screen.getByRole('button', { name: 'Log set 1' }));
     await user.click(await screen.findByRole('button', { name: 'Log set 2' }));
@@ -490,7 +490,7 @@ describe('số liệu lần trước', () => {
     ]);
   });
 
-  it('lần trước ghi tạ theo quy ước khác: vẫn hiện nhưng không điền sẵn', async () => {
+  it('lần trước ghi tạ theo quy ước khác: hiện kèm quy ước đó, không điền sẵn', async () => {
     await seedPastWorkout(
       '2026-11-19T10:00:00.000Z',
       BENCH.id,
@@ -505,7 +505,7 @@ describe('số liệu lần trước', () => {
     await startFreestyle(user);
     await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
 
-    expect(lastTime()).toBe('Last time · Nov 19 30 × 10 · 32.5 × 8');
+    expect(lastTime()).toBe('Last time · Nov 19 · per side 30 × 10 · 32.5 × 8');
     expect(screen.getByRole('textbox', { name: 'Weight (total)' })).toHaveValue(
       '',
     );

@@ -18,13 +18,15 @@ export async function findLastTime(
     rows.map((r) => r.sessionId),
   );
   const candidates = rows
-    .map((row, i) => ({ row, session: sessions[i] }))
-    .filter(
-      (c) => c.session && c.session.endedAt !== null && !c.session.deletedAt,
-    )
+    .flatMap((row, i) => {
+      const session = sessions[i];
+      return session && session.endedAt !== null && !session.deletedAt
+        ? [{ row, session }]
+        : [];
+    })
     .sort(
       (a, b) =>
-        Date.parse(b.session!.startedAt) - Date.parse(a.session!.startedAt),
+        Date.parse(b.session.startedAt) - Date.parse(a.session.startedAt),
     );
   for (const { row, session } of candidates) {
     const sets = (
@@ -34,7 +36,7 @@ export async function findLastTime(
       .sort((a, b) => a.setIndex - b.setIndex);
     if (sets.length === 0) continue;
     return {
-      startedAt: session!.startedAt,
+      startedAt: session.startedAt,
       loadInput: row.loadInput,
       sets: sets.map((s) => ({ weight: s.weightValue, reps: s.reps })),
     };
