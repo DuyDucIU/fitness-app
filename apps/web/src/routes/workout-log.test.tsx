@@ -438,7 +438,7 @@ describe('số liệu lần trước', () => {
     await startFreestyle(user);
     await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
 
-    expect(lastTime()).toBe('Last time · Nov 19 80 × 8 · 8 · 7');
+    expect(lastTime()).toBe('Last time · Nov 19 80×8 · 8 · 7');
     expect(screen.getByRole('textbox', { name: 'Weight (total)' })).toHaveValue(
       '80',
     );
@@ -457,7 +457,7 @@ describe('số liệu lần trước', () => {
     expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('7');
     expect(loggedSets()).toEqual(['Set 1 82.5 × 8', 'Set 2 80 × 8']);
     // Buổi đang mở không thành "lần trước" dù vừa có set mới hơn.
-    expect(lastTime()).toBe('Last time · Nov 19 80 × 8 · 8 · 7');
+    expect(lastTime()).toBe('Last time · Nov 19 80×8 · 8 · 7');
   });
 
   it('bỏ qua buổi đã xoá, set đã xoá và buổi không còn working set', async () => {
@@ -481,7 +481,7 @@ describe('số liệu lần trước', () => {
     await startFreestyle(user);
     await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
 
-    expect(lastTime()).toBe('Last time · Nov 10 75 × 9 · 8');
+    expect(lastTime()).toBe('Last time · Nov 10 75×9 · 8');
     expect(setRows()).toEqual([
       'Set 1 75 × 9 now',
       'Set 2 75 × 8',
@@ -504,7 +504,7 @@ describe('số liệu lần trước', () => {
     await startFreestyle(user);
     await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
 
-    expect(lastTime()).toBe('Last time · Nov 19 · per side 30 × 10 · 32.5 × 8');
+    expect(lastTime()).toBe('Last time · Nov 19 · per side 30×10 · 32.5×8');
     expect(screen.getByRole('textbox', { name: 'Weight (total)' })).toHaveValue(
       '',
     );
@@ -514,6 +514,21 @@ describe('số liệu lần trước', () => {
       'Set 2 – × –',
       'Set 3 – × –',
     ]);
+  });
+
+  it('lần trước nhiều mức tạ: chỉ ghi lại mức tạ khi đổi so với set trước', async () => {
+    await seedPastWorkout('2026-11-19T10:00:00.000Z', BENCH.id, [
+      { weight: 100, reps: 3 },
+      { weight: 95, reps: 4 },
+      { weight: 80, reps: 10 },
+      { weight: 80, reps: 8 },
+    ]);
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+
+    expect(lastTime()).toBe('Last time · Nov 19 100×3 · 95×4 · 80×10 · 8');
   });
 
   it('bài chỉ reps: hiện và điền sẵn reps của lần trước', async () => {

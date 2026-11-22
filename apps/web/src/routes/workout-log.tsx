@@ -54,7 +54,7 @@ import {
   loadLabel,
   type LogKind,
   logKind,
-  pastSetsText,
+  pastSetTexts,
   setText,
 } from '@/workout/display';
 
@@ -738,7 +738,13 @@ function LastTimeStub({
           {label}
         </span>{' '}
         <b className="text-num leading-none numeral">
-          {pastSetsText(kind, lastTime.sets)}
+          {pastSetTexts(kind, lastTime.sets).map((text, i) => (
+            <React.Fragment key={i}>
+              {/* Dấu · giãn rộng hơn dấu × để không đọc nhầm số của hai set. */}
+              {i > 0 && <span className="mx-0.5"> · </span>}
+              <span className="whitespace-nowrap">{text}</span>
+            </React.Fragment>
+          ))}
         </b>
       </div>
     </div>
