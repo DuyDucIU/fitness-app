@@ -91,17 +91,14 @@ async function seedPastWorkout(
   sets: PastSetSeed[],
   {
     loadInput = 'total',
-    open = false,
     deleted = false,
-  }: { loadInput?: LoadInput; open?: boolean; deleted?: boolean } = {},
+  }: { loadInput?: LoadInput; deleted?: boolean } = {},
 ) {
   const session: WorkoutSession = {
     id: crypto.randomUUID(),
     routineDayId: null,
     startedAt,
-    endedAt: open
-      ? null
-      : new Date(Date.parse(startedAt) + 45 * 60_000).toISOString(),
+    endedAt: new Date(Date.parse(startedAt) + 45 * 60_000).toISOString(),
     notes: null,
     deletedAt: deleted ? startedAt : null,
   };
@@ -459,9 +456,11 @@ describe('số liệu lần trước', () => {
     await screen.findByRole('button', { name: 'Log set 3' });
     expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('7');
     expect(loggedSets()).toEqual(['Set 1 82.5 × 8', 'Set 2 80 × 8']);
+    // Buổi đang mở không thành "lần trước" dù vừa có set mới hơn.
+    expect(lastTime()).toBe('Last time · Nov 19 80 × 8 · 8 · 7');
   });
 
-  it('bỏ qua buổi đã xoá, buổi đang mở, set đã xoá và buổi không còn working set', async () => {
+  it('bỏ qua buổi đã xoá, set đã xoá và buổi không còn working set', async () => {
     await seedPastWorkout('2026-11-10T10:00:00.000Z', BENCH.id, [
       { weight: 75, reps: 9 },
       { weight: 75, reps: 6, deleted: true },
