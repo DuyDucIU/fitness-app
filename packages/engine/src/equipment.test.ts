@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { equipmentDefaults } from './equipment';
 
 describe('equipmentDefaults', () => {
-  it('tạ đòn: ghi tổng tạ, bậc 2,5 kg, đòn 20 kg', () => {
-    // Given bài dùng tạ đòn, When lấy mặc định, Then tính cả đòn 20 kg
+  it('Given tạ đòn, When lấy mặc định, Then ghi tổng tạ, bậc 2,5 kg, đòn 20 kg', () => {
     expect(equipmentDefaults('barbell')).toEqual({
       stepKg: 2.5,
       loadInput: 'total',
@@ -11,7 +10,7 @@ describe('equipmentDefaults', () => {
     });
   });
 
-  it('tạ đơn: ghi mỗi quả, không có đòn', () => {
+  it('Given tạ đơn, When lấy mặc định, Then ghi mỗi quả, không có đòn', () => {
     expect(equipmentDefaults('dumbbell')).toEqual({
       stepKg: 2,
       loadInput: 'per_dumbbell',
@@ -19,7 +18,7 @@ describe('equipmentDefaults', () => {
     });
   });
 
-  it('cáp và máy: ghi theo cột tạ, bậc 5 kg', () => {
+  it('Given cáp hoặc máy, When lấy mặc định, Then ghi theo cột tạ, bậc 5 kg', () => {
     for (const code of ['cable', 'machine']) {
       expect(equipmentDefaults(code)).toEqual({
         stepKg: 5,
@@ -29,14 +28,14 @@ describe('equipmentDefaults', () => {
     }
   });
 
-  it('chỉ thân người: ghi tạ đeo thêm', () => {
+  it('Given chỉ thân người, When lấy mặc định, Then ghi tạ đeo thêm', () => {
     expect(equipmentDefaults('body only')).toMatchObject({
       loadInput: 'added_weight',
       barWeightKg: null,
     });
   });
 
-  it('dụng cụ lạ hoặc không có: ghi tổng tạ, bậc 2,5 kg, không có đòn', () => {
+  it('Given dụng cụ lạ hoặc không có, When lấy mặc định, Then ghi tổng tạ, bậc 2,5 kg, không có đòn', () => {
     const fallback = { stepKg: 2.5, loadInput: 'total', barWeightKg: null };
     expect(equipmentDefaults(null)).toEqual(fallback);
     expect(equipmentDefaults('sled')).toEqual(fallback);

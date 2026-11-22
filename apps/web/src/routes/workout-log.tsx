@@ -45,10 +45,10 @@ import {
  * hay mở lại app vẫn tiếp tục được; không có buổi nào đang mở thì về Today.
  */
 export function WorkoutLogPage() {
-  const open = useOpenSession();
-  if (open === undefined) return null;
-  if (open === null) return <Navigate to="/" replace />;
-  return <WorkoutLog open={open} />;
+  const workout = useOpenSession();
+  if (workout === undefined) return null;
+  if (workout === null) return <Navigate to="/" replace />;
+  return <WorkoutLog workout={workout} />;
 }
 
 function loadLabel(loadInput: LoadInput): string {
@@ -95,7 +95,7 @@ function draftFrom(set: SetLog | undefined): Draft {
   return { weight: set?.weightValue ?? null, reps: set?.reps ?? null };
 }
 
-function WorkoutLog({ open }: { open: OpenSession }) {
+function WorkoutLog({ workout }: { workout: OpenSession }) {
   const navigate = useNavigate();
   const toast = useToast();
   const now = useNow();
@@ -104,7 +104,7 @@ function WorkoutLog({ open }: { open: OpenSession }) {
   const [chosenId, setChosenId] = React.useState<string>();
   const [editingId, setEditingId] = React.useState<string | null>(null);
 
-  const { session, exercises } = open;
+  const { session, exercises } = workout;
   const current =
     exercises.find((e) => e.row.id === chosenId) ?? exercises.at(-1);
   const editing = current?.sets.find((s) => s.id === editingId);
@@ -168,7 +168,7 @@ function WorkoutLog({ open }: { open: OpenSession }) {
     dock = (
       <>
         <Button
-          variant="line"
+          variant="danger"
           size="icon"
           className="h-16 w-16 flex-none"
           aria-label={m.log_delete_set({ n: editingNo })}
@@ -318,7 +318,7 @@ function WorkoutLog({ open }: { open: OpenSession }) {
             <SheetTitle>{m.log_finish_title()}</SheetTitle>
           </SheetHeader>
           <SheetBody>
-            <p>{m.log_finish_sets({ count: open.setCount })}</p>
+            <p>{m.log_finish_sets({ count: workout.setCount })}</p>
           </SheetBody>
           <SheetFooter>
             <Button
