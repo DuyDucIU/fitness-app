@@ -1,6 +1,9 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
+  type SyncPullResponse,
+  SyncPullQuerySchema,
+  SyncPullResponseSchema,
   type SyncPushResponse,
   SyncPushRequestSchema,
   SyncPushResponseSchema,
@@ -11,6 +14,8 @@ import { SyncService } from './sync.service';
 
 class SyncPushRequestDto extends createZodDto(SyncPushRequestSchema) {}
 class SyncPushResponseDto extends createZodDto(SyncPushResponseSchema) {}
+class SyncPullQueryDto extends createZodDto(SyncPullQuerySchema) {}
+class SyncPullResponseDto extends createZodDto(SyncPullResponseSchema) {}
 
 @ApiTags('sync')
 @ApiBearerAuth()
@@ -30,5 +35,18 @@ export class SyncController {
     @Body() body: SyncPushRequestDto,
   ): Promise<SyncPushResponse> {
     return this.sync.push(auth, body.events);
+  }
+
+  /**
+   * Thay đổi sau cursor `since` của mọi bảng đi qua outbox, kể cả tombstone (SDD 3.2).
+   * `hasMore` thì kéo tiếp ngay với `cursor` trả về. Cursor sai: 400.
+   */
+  @Get('pull')
+  @ZodResponse({ type: SyncPullResponseDto })
+  pull(
+    @CurrentAuth() auth: AuthContext,
+    @Query() query: SyncPullQueryDto,
+  ): Promise<SyncPullResponse> {
+    return this.sync.pull(auth, query);
   }
 }

@@ -54,3 +54,34 @@ export const SyncPushResponseSchema = z.object({
   applied: z.int().nonnegative(),
 });
 export type SyncPushResponse = z.infer<typeof SyncPushResponseSchema>;
+
+/**
+ * Kéo thay đổi về (SDD 3.2): mọi bảng đi qua outbox, theo thứ tự `updated_at` server đặt,
+ * kể cả tombstone. Mỗi thay đổi có cùng hình dạng sự kiện outbox (bản ghi đầy đủ), nên
+ * thêm bảng mới vào `SyncEventSchema` là pull trả được bảng đó.
+ */
+
+/** Số thay đổi tối đa trong một trang pull. */
+export const SYNC_PULL_MAX_CHANGES = 500;
+
+/**
+ * GET /sync/pull?since=<cursor>&limit=<n>. `since` là cursor mờ của trang trước (không gửi
+ * = kéo từ đầu); `limit` mặc định `SYNC_PULL_MAX_CHANGES`.
+ */
+export const SyncPullQuerySchema = z.object({
+  since: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(SYNC_PULL_MAX_CHANGES).optional(),
+});
+export type SyncPullQuery = z.infer<typeof SyncPullQuerySchema>;
+
+export const SyncPullResponseSchema = z.object({
+  changes: z.array(SyncEventSchema),
+  /**
+   * Gửi lại ở `since` lần sau. Không có thay đổi mới thì là `since` đã gửi; `null` khi
+   * server chưa có gì của user.
+   */
+  cursor: z.string().nullable(),
+  /** Còn thay đổi sau trang này: kéo tiếp ngay với `cursor`. */
+  hasMore: z.boolean(),
+});
+export type SyncPullResponse = z.infer<typeof SyncPullResponseSchema>;

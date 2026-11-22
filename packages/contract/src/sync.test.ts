@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { SYNC_PUSH_MAX_EVENTS, SyncPushRequestSchema } from './index';
+import {
+  SYNC_PULL_MAX_CHANGES,
+  SYNC_PUSH_MAX_EVENTS,
+  SyncPullQuerySchema,
+  SyncPullResponseSchema,
+  SyncPushRequestSchema,
+} from './index';
 
 const session = {
   id: '7a1c3e9e-2f4b-4c8d-9a6e-1b2c3d4e5f60',
@@ -46,5 +52,50 @@ describe('POST /sync/push', () => {
     expect(
       SyncPushRequestSchema.safeParse({ events: events.slice(1) }).success,
     ).toBe(true);
+  });
+});
+
+describe('GET /sync/pull', () => {
+  it('query: since là cursor mờ, limit (chuỗi trong URL) trong khoảng cho phép', () => {
+    expect(SyncPullQuerySchema.parse({})).toEqual({});
+    expect(SyncPullQuerySchema.parse({ since: 'abc', limit: '2' })).toEqual({
+      since: 'abc',
+      limit: 2,
+    });
+    expect(SyncPullQuerySchema.safeParse({ limit: '0' }).success).toBe(false);
+    expect(
+      SyncPullQuerySchema.safeParse({
+        limit: String(SYNC_PULL_MAX_CHANGES + 1),
+      }).success,
+    ).toBe(false);
+    expect(SyncPullQuerySchema.safeParse({ since: '' }).success).toBe(false);
+  });
+
+  it('response: thay đổi cùng hình dạng sự kiện outbox, kèm tombstone, cursor và hasMore', () => {
+    const tombstone = {
+      ...sessionEvent,
+      payload: { ...session, deletedAt: '2026-11-22T11:00:00.000Z' },
+    };
+    expect(
+      SyncPullResponseSchema.safeParse({
+        changes: [sessionEvent, tombstone],
+        cursor: 'abc',
+        hasMore: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      SyncPullResponseSchema.safeParse({
+        changes: [],
+        cursor: null,
+        hasMore: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      SyncPullResponseSchema.safeParse({
+        changes: [{ ...sessionEvent, entity: 'users' }],
+        cursor: 'abc',
+        hasMore: false,
+      }).success,
+    ).toBe(false);
   });
 });

@@ -1,14 +1,19 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
+import { SYNC_PULL_MAX_CHANGES } from '@fitness/contract';
 import type {
   SessionExercise,
   SetLog,
   SyncEvent,
+  SyncPullQuery,
+  SyncPullResponse,
   SyncPushResponse,
   WorkoutSession,
 } from '@fitness/contract';
 import type { AuthContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
+import { Prisma } from '../generated/prisma/client';
+import { decodeCursor, encodeCursor, readChanges } from './pull-sources';
 
 type Tx = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 type Written = Promise<{ id: string }[]>;
@@ -47,6 +52,39 @@ export class SyncService {
       }
     });
     return { applied: events.length };
+  }
+
+  /**
+   * Thay đổi của user sau cursor `since` (SDD 3.2), kể cả tombstone, theo thứ tự
+   * (`updated_at`, bảng, id). Đọc mọi bảng trong một snapshot (REPEATABLE READ) để một lần
+   * push commit giữa chừng không làm cursor vượt qua bản ghi chưa đọc.
+   *
+   * TODO(sync): transaction push bắt đầu trước nhưng commit sau một lần pull có thể mang
+   * `updated_at` nhỏ hơn cursor đã trả và bị bỏ qua. Chỉ xảy ra khi hai nơi cùng ghi cho
+   * một user (nhiều tab/máy); chấp nhận theo giả định một user một máy.
+   */
+  async pull(
+    auth: AuthContext,
+    query: SyncPullQuery,
+  ): Promise<SyncPullResponse> {
+    const since = query.since ? decodeCursor(query.since) : null;
+    const limit = query.limit ?? SYNC_PULL_MAX_CHANGES;
+    const user = await this.prisma.user.findUnique({
+      where: { authSubject: auth.sub },
+      select: { id: true },
+    });
+    if (!user)
+      return { changes: [], cursor: query.since ?? null, hasMore: false };
+    const { rows, hasMore } = await this.prisma.$transaction(
+      (tx) => readChanges(tx, user.id, since, limit),
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+    const last = rows.at(-1);
+    return {
+      changes: rows.map((row) => row.change),
+      cursor: last ? encodeCursor(last.key) : (query.since ?? null),
+      hasMore,
+    };
   }
 }
 
