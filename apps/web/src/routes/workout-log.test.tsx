@@ -95,10 +95,9 @@ describe('tập tự do ghi trên máy', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('8');
     await user.click(screen.getByRole('button', { name: 'Log set 2' }));
-    await user.click(
-      await screen.findByRole('button', { name: 'One rep fewer' }),
-    );
-    await user.click(screen.getByRole('button', { name: 'Log set 3' }));
+    const logSet3 = await screen.findByRole('button', { name: 'Log set 3' });
+    await user.click(screen.getByRole('button', { name: 'One rep fewer' }));
+    await user.click(logSet3);
     // Hết set dự định: tấm số áo báo xong, nút đáy mời kết thúc buổi.
     expect(
       await screen.findByText(

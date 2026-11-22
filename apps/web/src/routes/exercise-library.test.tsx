@@ -157,6 +157,8 @@ describe('thư viện bài tập', () => {
     await auth.signOut();
     deliver(CATALOG);
     await auth.signIn(BINH.email, PASSWORD);
+    // Màn đăng nhập tự chuyển về Today; chờ xong rồi mới mở thư viện.
+    await screen.findByRole('heading', { name: 'Today' });
     await router.navigate('/plans/exercises');
 
     expect(

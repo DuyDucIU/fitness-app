@@ -17,6 +17,7 @@ import { applyDocumentLocale } from '@/lib/i18n';
 import { requestPersistentStorage } from '@/lib/storage';
 import { getSupabase } from '@/lib/supabase';
 import { createRoutes } from '@/router';
+import { createOutboxPush } from '@/sync/outbox-push';
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,8 @@ const auth = createAuth({
 });
 // Cache catalog bài tập trên máy: tự làm mới khi có phiên và khi có mạng lại.
 createCatalogSync({ db, auth, fetchCatalog: api.catalog });
+// Đẩy outbox lên server sau mỗi lần ghi, khi có mạng lại và khi quay lại app.
+createOutboxPush({ db, auth, pushEvents: api.syncPush });
 const router = createBrowserRouter(createRoutes(auth));
 
 applyDocumentLocale();

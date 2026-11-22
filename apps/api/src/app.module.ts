@@ -7,20 +7,21 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { validateEnv } from './config/env';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
-import { UsersController } from './users/users.controller';
-import { UsersService } from './users/users.service';
 import { CatalogModule } from './catalog/catalog.module';
+import { SyncModule } from './sync/sync.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     PrismaModule,
     AuthModule,
+    UsersModule,
     CatalogModule,
+    SyncModule,
   ],
-  controllers: [HealthController, UsersController],
+  controllers: [HealthController],
   providers: [
-    UsersService,
     { provide: APP_PIPE, useClass: ZodValidationPipe },
     { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

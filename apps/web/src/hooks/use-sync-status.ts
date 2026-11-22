@@ -16,6 +16,8 @@ export interface SyncStatus {
   online: boolean;
   /** Số sự kiện outbox chưa đẩy lên server (SDD 3.2). */
   pending: number;
+  /** Số thay đổi server từ chối hẳn, đang giữ riêng trên máy (`syncRejects`). */
+  failed: number;
 }
 
 /** Trạng thái mạng và số thay đổi chưa đồng bộ, cho chip đồng bộ trên mọi màn. */
@@ -26,5 +28,6 @@ export function useSyncStatus(): SyncStatus {
     () => true,
   );
   const pending = useLiveQuery(() => db.outbox.count(), [], 0);
-  return { online, pending };
+  const failed = useLiveQuery(() => db.syncRejects.count(), [], 0);
+  return { online, pending, failed };
 }

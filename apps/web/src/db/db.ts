@@ -2,6 +2,7 @@ import type {
   CatalogExercise,
   SessionExercise,
   SetLog,
+  SyncEntity,
   WorkoutSession,
 } from '@fitness/contract';
 import { Dexie, type EntityTable } from 'dexie';
@@ -14,14 +15,27 @@ export interface OutboxEvent {
   /** Khoá tự tăng = thứ tự đẩy lên server. */
   seq: number;
   /** Bảng gốc của sự kiện, vd "set_logs". */
-  entity: string;
+  entity: SyncEntity;
   /** UUID sinh ở client của bản ghi. */
   entityId: string;
-  op: 'upsert' | 'delete';
+  /** Xoá là tombstone `deletedAt`, nên mọi sự kiện đều là upsert. */
+  op: 'upsert';
   /** Bản ghi tại thời điểm thay đổi. */
   payload: unknown;
   createdAt: number;
   attempts: number;
+}
+
+/**
+ * Sự kiện outbox server từ chối hẳn (vd 400, 403): bỏ khỏi outbox để không chặn các thay
+ * đổi sau, nhưng giữ lại trên máy (cùng bản ghi gốc) thay vì xoá.
+ */
+export interface SyncReject {
+  id: number;
+  event: OutboxEvent;
+  /** Mã lỗi API (SDD 8.1), vd "forbidden". */
+  code: string;
+  rejectedAt: number;
 }
 
 /** Trạng thái đồng bộ dạng key-value, vd cursor của GET /sync/pull?since=<cursor>. */
@@ -42,6 +56,7 @@ export interface MetaEntry {
  */
 export const db = new Dexie('fitness') as Dexie & {
   outbox: EntityTable<OutboxEvent, 'seq'>;
+  syncRejects: EntityTable<SyncReject, 'id'>;
   syncState: EntityTable<SyncStateEntry, 'key'>;
   meta: EntityTable<MetaEntry, 'key'>;
   /**
@@ -72,4 +87,7 @@ db.version(4).stores({
   workoutSessions: 'id, startedAt',
   sessionExercises: 'id, sessionId',
   setLogs: 'id, sessionExerciseId',
+});
+db.version(5).stores({
+  syncRejects: '++id',
 });

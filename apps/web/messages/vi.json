@@ -28,6 +28,16 @@
       }
     }
   ],
+  "sync_failed": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} không đồng bộ được"
+      }
+    }
+  ],
+  "sync_failed_hint": "Server không nhận một số thay đổi. Chúng vẫn được giữ trên máy này.",
   "sync_offline": "Ngoại tuyến",
   "sync_offline_pending": [
     {
