@@ -3,6 +3,8 @@ import {
   equipmentDefaults,
   type LastTime,
   prefillFromLast,
+  type RestLeft,
+  restSecondsFor,
 } from '@fitness/engine';
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router';
@@ -21,7 +23,14 @@ import {
 import { Chip, ChipRow } from '@/components/chip';
 import { EmptyState } from '@/components/empty-state';
 import { NumberInput } from '@/components/field';
-import { CheckIcon, MinusIcon, PlusIcon, TrashIcon } from '@/components/icons';
+import {
+  AddRestIcon,
+  CheckIcon,
+  MinusIcon,
+  PlusIcon,
+  SkipIcon,
+  TrashIcon,
+} from '@/components/icons';
 import { SyncPill } from '@/components/sync-pill';
 import { useToast } from '@/components/toast-context';
 import { Button } from '@/components/ui/button';
@@ -57,6 +66,9 @@ import {
   pastSetTexts,
   setText,
 } from '@/workout/display';
+import { unlockRestAlarm } from '@/workout/rest-alarm';
+import { useRestTimer } from '@/workout/rest-timer';
+import { useWakeLock } from '@/workout/wake-lock';
 
 /**
  * Màn ghi buổi tập (prototypes/workout-log), phần cốt lõi của tập tự do: thêm bài từ
@@ -99,6 +111,9 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const navigate = useNavigate();
   const toast = useToast();
   const now = useNow();
+  const rest = useRestTimer(now);
+  // Giữ màn hình sáng suốt buổi (UC08); nhả khi rời màn, tức khi kết thúc buổi.
+  useWakeLock();
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [finishOpen, setFinishOpen] = React.useState(false);
   const [chosenId, setChosenId] = React.useState<string>();
@@ -176,7 +191,16 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
       await updateSet(editing.id, values);
       setEditingId(null);
     } else {
+      // Mở khoá âm báo ngay trong cú bấm, trước mọi `await` (iOS cần cử chỉ của user).
+      unlockRestAlarm();
+      // Còn set chờ tập sau set này thì nghỉ; set cuối của cả buổi thì không (prototype).
+      const restAfter = exercises.some(
+        (e) => remainingOf(e) - (e === current ? 1 : 0) > 0,
+      );
       await logSet(current.row.id, values);
+      // Chưa có routine nên mọi bài đều là ad hoc: không có `rest_seconds` của routine.
+      if (restAfter) rest.start(restSecondsFor(null));
+      else rest.skip();
       // Set kế tiếp (thứ tự nextNo tính từ 0) theo lần trước; không có thì giữ số vừa ghi.
       const next = prefillAt(current, nextNo);
       if (next) setNextDraft(next);
@@ -236,6 +260,20 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
     );
   }
 
+  // Điều khiển nghỉ ở vùng ngón cái, ngay trên nút chính (prototype › .restctl).
+  const restControls = rest.left && !editing && (
+    <>
+      <Button variant="rest" className="h-12 flex-1" onClick={rest.add}>
+        <AddRestIcon aria-hidden />
+        {m.log_rest_add()}
+      </Button>
+      <Button variant="rest" className="h-12 flex-1" onClick={rest.skip}>
+        <SkipIcon aria-hidden />
+        {m.log_rest_skip()}
+      </Button>
+    </>
+  );
+
   let mode: BibMode;
   if (editing) mode = { type: 'edit', n: editingNo };
   else if (allDone) mode = { type: 'done', total: planned };
@@ -265,7 +303,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
           }
         />
       }
-      foot={<Foot dock={dock} />}
+      foot={<Foot controls={restControls} dock={dock} />}
     >
       {current ? (
         <>
@@ -293,6 +331,9 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
             kind={kind}
             mode={mode}
             draft={draft}
+            rest={rest.left}
+            restOver={rest.flashing}
+            onRestOverEnd={rest.endFlash}
             onDraftChange={setDraft}
             onDelete={remove}
             onAddSet={addPlannedSet}
@@ -487,6 +528,9 @@ function SetBib({
   kind,
   mode,
   draft,
+  rest,
+  restOver,
+  onRestOverEnd,
   onDraftChange,
   onDelete,
   onAddSet,
@@ -495,6 +539,11 @@ function SetBib({
   kind: LogKind;
   mode: BibMode;
   draft: Draft;
+  /** Lượt nghỉ đang chạy: dải số áo thành đồng hồ nghỉ. */
+  rest: RestLeft | null;
+  /** Vừa hết giờ nghỉ: dải loé cam ba lần. */
+  restOver: boolean;
+  onRestOverEnd: () => void;
   onDraftChange: (draft: Draft) => void;
   onDelete: () => void;
   onAddSet: () => void;
@@ -607,8 +656,54 @@ function SetBib({
   );
 
   const name = exerciseName(item);
+  const flash = restOver && 'animate-rest-over';
+  const onAnimationEnd = restOver ? onRestOverEnd : undefined;
   let band: React.ReactNode;
-  if (mode.type === 'edit') {
+  if (rest && mode.type !== 'edit') {
+    // Dải chính là đồng hồ nghỉ: lớp lam phủ lên rồi rút dần về bên trái (DESIGN.md › Nghỉ).
+    const layer = (hidden: boolean) => (
+      <div className="flex min-h-14 items-center gap-2 py-1.5 pr-4 pl-4">
+        <span className="line-clamp-2 min-w-0 flex-1 label-caps">
+          {mode.type === 'done' ? m.log_done_name({ name }) : name}
+        </span>
+        {mode.type === 'log' && (
+          <b className="border-r-2 border-current pr-2 text-num leading-none whitespace-nowrap numeral">
+            {!hidden && (
+              <span className="sr-only">
+                {m.log_set_progress({ n: mode.n, total: mode.total })}
+              </span>
+            )}
+            <span aria-hidden>
+              {mode.n}/{mode.total}
+            </span>
+          </b>
+        )}
+        <b className="text-num leading-none whitespace-nowrap numeral">
+          <small aria-hidden className="mr-1.5 align-[0.4em] label-caps">
+            {m.log_rest()}
+          </small>
+          <span
+            role={hidden ? undefined : 'timer'}
+            aria-label={hidden ? undefined : m.log_rest()}
+          >
+            {formatElapsed(rest.seconds * 1000)}
+          </span>
+        </b>
+      </div>
+    );
+    band = (
+      <div className="relative bg-tyvek text-ink shadow-[inset_0_0_0_2px_var(--color-blue)]">
+        {layer(false)}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-blue text-on-signal [transition:clip-path_0.25s_linear]"
+          style={{ clipPath: `inset(0 ${(1 - rest.fraction) * 100}% 0 0)` }}
+        >
+          {layer(true)}
+        </div>
+      </div>
+    );
+  } else if (mode.type === 'edit') {
     band = (
       <div className="flex min-h-14 items-center px-4 py-1.5 shadow-[inset_0_0_0_2px_var(--color-ink),inset_0_0_0_5px_var(--color-tyvek),inset_0_0_0_6px_var(--color-ink)]">
         <span className="line-clamp-2 min-w-0 flex-1 label-caps">
@@ -618,7 +713,13 @@ function SetBib({
     );
   } else if (mode.type === 'done' || kind === 'unsupported') {
     band = (
-      <div className="flex min-h-14 items-center px-4 py-1.5 shadow-[inset_0_0_0_2px_var(--color-ink)]">
+      <div
+        className={cn(
+          'flex min-h-14 items-center px-4 py-1.5 shadow-[inset_0_0_0_2px_var(--color-ink)]',
+          flash,
+        )}
+        onAnimationEnd={onAnimationEnd}
+      >
         <span className="line-clamp-2 min-w-0 flex-1 label-caps">
           {mode.type === 'done' && kind !== 'unsupported'
             ? m.log_done_name({ name })
@@ -628,7 +729,13 @@ function SetBib({
     );
   } else {
     band = (
-      <div className="flex min-h-14 items-center gap-2.5 bg-orange py-1.5 pr-4 pl-4 text-ink">
+      <div
+        className={cn(
+          'flex min-h-14 items-center gap-2.5 bg-orange py-1.5 pr-4 pl-4 text-ink',
+          flash,
+        )}
+        onAnimationEnd={onAnimationEnd}
+      >
         <span className="line-clamp-2 min-w-0 flex-1 label-caps">{name}</span>
         <b className="text-num leading-none whitespace-nowrap uppercase numeral">
           {m.log_set_progress({ n: mode.n, total: mode.total })}

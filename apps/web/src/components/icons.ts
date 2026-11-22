@@ -46,4 +46,6 @@ export {
   Target as TargetIcon, // target
   ArrowDownToLine as DownloadIcon, // download
   User as MeIcon, // user
+  Clock as AddRestIcon, // plus30
+  SkipForward as SkipIcon, // skip
 } from 'lucide-react';

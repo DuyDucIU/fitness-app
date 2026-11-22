@@ -101,9 +101,12 @@ export function SectionHeading({ children }: { children: React.ReactNode }) {
  * màn đi sâu và màn trong buổi tập không có tab.
  */
 export function Foot({
+  controls,
   dock,
   tabs,
 }: {
+  /** Hàng điều khiển phụ ngay trên nút chính, vd điều khiển nghỉ (prototype › .restctl). */
+  controls?: React.ReactNode;
   dock?: React.ReactNode;
   tabs?: boolean;
 }) {
@@ -116,6 +119,7 @@ export function Foot({
           : 'pb-[calc(var(--safe-bottom)+12px)]',
       )}
     >
+      {controls && <div className="mb-2 flex gap-2">{controls}</div>}
       {dock && <div className={cn('flex gap-2', tabs && 'mb-1.5')}>{dock}</div>}
       {tabs && <TabBar />}
     </footer>
