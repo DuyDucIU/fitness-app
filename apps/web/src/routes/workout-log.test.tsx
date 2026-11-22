@@ -6,7 +6,15 @@ import type {
 } from '@fitness/contract';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest';
 
 import { AN, clearDb } from '@/auth/testing';
 import { BENCH, CATALOG, PUSH_UP } from '@/catalog/testing';
@@ -563,5 +571,242 @@ describe('số liệu lần trước', () => {
     await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
 
     expect(lastTime()).toBeUndefined();
+  });
+});
+
+describe('đồng hồ nghỉ', () => {
+  const T0 = Date.parse('2026-11-22T10:00:00.000Z');
+
+  beforeEach(() => {
+    // Chỉ làm giả đồng hồ ngày giờ; Dexie và userEvent vẫn chạy timer thật.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(T0);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Giả lập user đưa app xuống nền rồi mở lại sau `ms`. */
+  function comeBackAfter(ms: number) {
+    vi.setSystemTime(Date.now() + ms);
+    document.dispatchEvent(new Event('visibilitychange'));
+  }
+
+  function restClock() {
+    return screen.queryByRole('timer', { name: 'Rest' })?.textContent;
+  }
+
+  /** Mở buổi tự do có bench press, ghi set 1 là 80 × 8. */
+  async function logFirstSet(user: User) {
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+    await type(user, 'Weight (total)', '80');
+    await type(user, 'Reps', '8');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+  }
+
+  it('ghi set xong tự nghỉ 2:00; xuống nền rồi mở lại vẫn đúng giờ còn lại; ghi set tiếp được khi đang nghỉ', async () => {
+    const user = userEvent.setup();
+    await logFirstSet(user);
+
+    // Bài ad hoc không có rest_seconds của routine: nghỉ mặc định 2 phút.
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    comeBackAfter(45_000);
+    await waitFor(() => expect(restClock()).toBe('1:15'));
+
+    // Timer không chặn việc ghi set tiếp theo.
+    const logSet2 = screen.getByRole('button', { name: 'Log set 2' });
+    expect(logSet2).toBeEnabled();
+    await user.click(logSet2);
+    await screen.findByRole('button', { name: 'Log set 3' });
+    // Ghi set mới thì bắt đầu lượt nghỉ mới.
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+  });
+
+  it('cộng thêm 30 giây rồi bỏ qua nghỉ bất cứ lúc nào', async () => {
+    const user = userEvent.setup();
+    await logFirstSet(user);
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    comeBackAfter(20_000);
+    await user.click(screen.getByRole('button', { name: '+30 sec' }));
+    await waitFor(() => expect(restClock()).toBe('2:10'));
+
+    await user.click(screen.getByRole('button', { name: 'Skip' }));
+    await waitFor(() => expect(restClock()).toBeUndefined());
+    expect(
+      screen.queryByRole('button', { name: 'Skip' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Set 2/3')).toBeInTheDocument();
+  });
+
+  it('hết giờ khi app đang mở: báo hết giờ, rung trên máy có Vibration API, dải về set kế tiếp', async () => {
+    const vibrate = vi.fn(() => true);
+    Object.defineProperty(navigator, 'vibrate', {
+      value: vibrate,
+      configurable: true,
+    });
+    onTestFinished(() => {
+      Reflect.deleteProperty(navigator, 'vibrate');
+    });
+    const user = userEvent.setup();
+    await logFirstSet(user);
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    comeBackAfter(120_000);
+    expect(await screen.findByText('Rest is over.')).toBeInTheDocument();
+    expect(restClock()).toBeUndefined();
+    expect(vibrate).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Set 2/3')).toBeInTheDocument();
+  });
+
+  it('máy không có Vibration API (iOS): vẫn báo hết giờ', async () => {
+    expect('vibrate' in navigator).toBe(false);
+    const user = userEvent.setup();
+    await logFirstSet(user);
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    comeBackAfter(121_000);
+    expect(await screen.findByText('Rest is over.')).toBeInTheDocument();
+    expect(restClock()).toBeUndefined();
+  });
+
+  it('set cuối của cả buổi không nghỉ; lưu set đang sửa không bắt đầu nghỉ', async () => {
+    const user = userEvent.setup();
+    await logFirstSet(user);
+    await user.click(await screen.findByRole('button', { name: 'Log set 2' }));
+    await user.click(await screen.findByRole('button', { name: 'Log set 3' }));
+
+    await screen.findByRole('button', { name: 'Finish workout' });
+    await waitFor(() => expect(restClock()).toBeUndefined());
+
+    await user.click(screen.getByRole('button', { name: /^Set 1/ }));
+    await user.click(await screen.findByRole('button', { name: 'Save set 1' }));
+    await screen.findByRole('button', { name: 'Finish workout' });
+    expect(restClock()).toBeUndefined();
+  });
+
+  it('tạm dừng: đồng hồ đứng yên kể cả khi đóng app; chạy tiếp thì đếm tiếp; ghi set mới thì bỏ tạm dừng', async () => {
+    const user = userEvent.setup();
+    await logFirstSet(user);
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    comeBackAfter(30_000);
+    await user.click(screen.getByRole('button', { name: 'Pause' }));
+    await waitFor(() => expect(restClock()).toBe('1:30'));
+
+    // Đang dừng: 10 phút sau vẫn còn 1:30, cộng thêm vẫn được.
+    comeBackAfter(10 * 60_000);
+    await user.click(screen.getByRole('button', { name: '+30 sec' }));
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    // Hệ điều hành đóng app khi đang dừng: mở lại vẫn dừng ở 2:00.
+    cleanup();
+    vi.setSystemTime(Date.now() + 60_000);
+    await openApp('/', signedInAn);
+    await user.click(
+      await screen.findByRole('link', { name: /Workout in progress/ }),
+    );
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    await user.click(screen.getByRole('button', { name: 'Resume' }));
+    comeBackAfter(15_000);
+    await waitFor(() => expect(restClock()).toBe('1:45'));
+
+    await user.click(screen.getByRole('button', { name: 'Pause' }));
+    await user.click(screen.getByRole('button', { name: 'Log set 2' }));
+    await screen.findByRole('button', { name: 'Log set 3' });
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+  });
+
+  it('app bị đóng giữa lúc nghỉ: mở lại buổi vẫn đúng giờ nghỉ còn lại', async () => {
+    const user = userEvent.setup();
+    await logFirstSet(user);
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    // Hệ điều hành đóng app khi đang ở nền; 50 giây sau user mở lại.
+    cleanup();
+    vi.setSystemTime(Date.now() + 50_000);
+    await openApp('/', signedInAn);
+    await user.click(
+      await screen.findByRole('link', { name: /Workout in progress/ }),
+    );
+    await waitFor(() => expect(restClock()).toBe('1:10'));
+  });
+
+  it('quay lại app lâu sau khi hết giờ: không báo muộn, dải về set kế tiếp', async () => {
+    const vibrate = vi.fn(() => true);
+    Object.defineProperty(navigator, 'vibrate', {
+      value: vibrate,
+      configurable: true,
+    });
+    onTestFinished(() => {
+      Reflect.deleteProperty(navigator, 'vibrate');
+    });
+    const user = userEvent.setup();
+    await logFirstSet(user);
+    await waitFor(() => expect(restClock()).toBe('2:00'));
+
+    comeBackAfter(10 * 60_000);
+    await waitFor(() => expect(restClock()).toBeUndefined());
+    expect(screen.getByText('Set 2/3')).toBeInTheDocument();
+    expect(vibrate).not.toHaveBeenCalled();
+    expect(screen.queryByText('Rest is over.')).not.toBeInTheDocument();
+  });
+});
+
+describe('giữ màn hình sáng', () => {
+  it('xin Screen Wake Lock khi vào buổi tập, xin lại khi quay lại app, nhả khi kết thúc buổi', async () => {
+    const locks: { released: boolean; release: () => Promise<void> }[] = [];
+    const request = vi.fn(() => {
+      const lock = {
+        released: false,
+        release: vi.fn(() => {
+          lock.released = true;
+          return Promise.resolve();
+        }),
+      };
+      locks.push(lock);
+      return Promise.resolve(lock);
+    });
+    Object.defineProperty(navigator, 'wakeLock', {
+      value: { request },
+      configurable: true,
+    });
+    onTestFinished(() => {
+      Reflect.deleteProperty(navigator, 'wakeLock');
+    });
+    const visibility = vi
+      .spyOn(document, 'visibilityState', 'get')
+      .mockReturnValue('visible');
+
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    expect(request).not.toHaveBeenCalled();
+    await startFreestyle(user);
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    expect(request).toHaveBeenCalledWith('screen');
+
+    // Xuống nền: trình duyệt tự nhả khoá. Quay lại app: xin lại.
+    visibility.mockReturnValue('hidden');
+    locks[0].released = true;
+    document.dispatchEvent(new Event('visibilitychange'));
+    visibility.mockReturnValue('visible');
+    document.dispatchEvent(new Event('visibilitychange'));
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+
+    await user.click(screen.getByRole('button', { name: 'Finish' }));
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Finish workout?',
+    });
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Finish workout' }),
+    );
+    await screen.findByRole('button', { name: 'Start freestyle' });
+    expect(locks[1].release).toHaveBeenCalledTimes(1);
   });
 });

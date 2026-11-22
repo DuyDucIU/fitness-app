@@ -46,4 +46,6 @@ export {
   Target as TargetIcon, // target
   ArrowDownToLine as DownloadIcon, // download
   User as MeIcon, // user
+  Clock as AddRestIcon, // plus30 (bộ I trong prototypes/workout-log)
+  SkipForward as SkipIcon, // skip (bộ I trong prototypes/workout-log)
 } from 'lucide-react';

@@ -12,3 +12,14 @@ export {
   searchExercises,
 } from './search';
 export { type LastTime, type PastSet, prefillFromLast } from './last-time';
+export {
+  addRest,
+  DEFAULT_REST_SECONDS,
+  pauseRest,
+  type RestLeft,
+  restLeft,
+  restSecondsFor,
+  type RestTimer,
+  resumeRest,
+  startRest,
+} from './rest';

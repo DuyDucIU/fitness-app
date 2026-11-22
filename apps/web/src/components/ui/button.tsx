@@ -8,6 +8,7 @@ import { Slot } from 'radix-ui';
  * - `ink` (mặc định): nền mực, chữ Trắng Tyvek — Lưu, Kết thúc, Thêm bài.
  * - `line`: viền mực 1.5px.
  * - `orange`: nền cam — hành động "đang diễn ra / bấm được".
+ * - `rest`: viền 2px lam, chữ lam, nhấn đảo nền lam — chỉ cho điều khiển nghỉ (.restctl).
  * - `danger`, `text`, `ghost`.
  * - Cỡ `go` (64px, chữ số áo viết hoa) cho nút chính ở vùng đáy; kết hợp với `orange` / `ink` / `line`.
  * - `busy`: đang chạy, hiện vòng quay sau nhãn và chặn bấm lại (.btn.busy).
@@ -20,6 +21,7 @@ const buttonVariants = cva(
         ink: 'bg-ink text-tyvek',
         line: 'shadow-[inset_0_0_0_1.5px_var(--color-ink)]',
         orange: 'bg-orange text-ink',
+        rest: 'bg-tyvek text-blue shadow-[inset_0_0_0_2px_var(--color-blue)] active:bg-blue active:text-on-signal',
         danger: 'bg-danger text-on-signal',
         text: 'underline underline-offset-[3px]',
         ghost: 'active:bg-rule-soft',
