@@ -423,3 +423,24 @@ describe('lối vào của ticket sau', () => {
     expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
   });
 });
+
+describe('dải tuần', () => {
+  it('đếm buổi trong tuần này (bỏ buổi tuần trước); bấm mở mục tiêu (#36) báo Coming soon', async () => {
+    const now = new Date();
+    await seedSession(now.toISOString(), PUSH);
+    // Tám ngày trước chắc chắn thuộc tuần trước.
+    await seedSession(
+      new Date(now.getTime() - 8 * 86_400_000).toISOString(),
+      LEGS,
+    );
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'This week: 1 session. Open goals',
+      }),
+    );
+    expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
+  });
+});

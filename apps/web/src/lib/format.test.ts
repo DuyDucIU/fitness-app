@@ -5,6 +5,8 @@ import {
   formatNumber,
   formatShortDate,
   formatTime,
+  formatWeekdayLetter,
+  formatWeekdayLong,
   formatWeekdayShort,
   parseDecimal,
 } from './format';
@@ -54,6 +56,17 @@ describe('ngày giờ', () => {
   it('thứ viết tắt', () => {
     expect(formatWeekdayShort(date, 'en')).toBe('Thu');
     expect(formatWeekdayShort(date, 'vi')).toBe('T5');
+  });
+
+  it('thứ một chữ trên dải tuần: en một chữ cái, vi giữ T2…CN', () => {
+    expect(formatWeekdayLetter(date, 'en')).toBe('T');
+    expect(formatWeekdayLetter(date, 'vi')).toBe('T5');
+    expect(formatWeekdayLetter(new Date(2026, 10, 22), 'vi')).toBe('CN');
+  });
+
+  it('thứ đầy đủ', () => {
+    expect(formatWeekdayLong(date, 'en')).toBe('Thursday');
+    expect(formatWeekdayLong(date, 'vi')).toBe('Thứ Năm');
   });
 
   it('ngày dài có thứ', () => {

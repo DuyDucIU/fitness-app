@@ -457,5 +457,6 @@
   "plans_next_hint": "Các ngày chạy theo thứ tự này; muốn tập ngày nào lúc nào cũng được.",
   "log_note_rep_range": "{min}–{max} rep",
   "plans_browse_programs": "Xem chương trình mẫu",
-  "home_plan_deload": "Thấy đuối sức? Lên một tuần tập nhẹ"
+  "home_plan_deload": "Thấy đuối sức? Lên một tuần tập nhẹ",
+  "home_week_label": "Tuần này: {count} buổi. Mở mục tiêu"
 }

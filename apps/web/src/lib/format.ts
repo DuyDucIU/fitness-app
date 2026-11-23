@@ -77,14 +77,34 @@ export function formatShortDate(
   return dateFormat(locale, { month: 'short', day: 'numeric' }).format(date);
 }
 
+/** Thứ đầy đủ: "Thursday" (en) / "Thứ Năm" (vi), viết hoa chữ đầu. */
+export function formatWeekdayLong(
+  date: Date,
+  locale: Locale = getLocale(),
+): string {
+  const weekday = dateFormat(locale, { weekday: 'long' }).format(date);
+  return `${weekday.charAt(0).toLocaleUpperCase(INTL_LOCALE[locale])}${weekday.slice(1)}`;
+}
+
+/**
+ * Thứ trên ô dải tuần: một chữ cái "T" (en), còn tiếng Việt giữ "T5" / "CN" vì một chữ
+ * "T" không phân biệt được thứ Ba với thứ Bảy.
+ */
+export function formatWeekdayLetter(
+  date: Date,
+  locale: Locale = getLocale(),
+): string {
+  if (locale === 'vi') return formatWeekdayShort(date, locale);
+  return dateFormat(locale, { weekday: 'narrow' }).format(date);
+}
+
 /** Ngày dài: "Thursday, Nov 19" (en) / "Thứ Năm, 19/11" (vi). */
 export function formatLongDate(
   date: Date,
   locale: Locale = getLocale(),
 ): string {
   if (locale === 'vi') {
-    const weekday = dateFormat('vi', { weekday: 'long' }).format(date);
-    return `${weekday.charAt(0).toLocaleUpperCase('vi-VN')}${weekday.slice(1)}, ${viDayMonth(date)}`;
+    return `${formatWeekdayLong(date, 'vi')}, ${viDayMonth(date)}`;
   }
   return dateFormat(locale, {
     weekday: 'long',

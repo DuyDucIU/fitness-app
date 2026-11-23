@@ -8,9 +8,15 @@ import { UpdateBanner } from '@/components/app-update';
 import { Bib, BibBand, BibPerf, BibStub } from '@/components/bib';
 import { EmptyState } from '@/components/empty-state';
 import { EditIcon, MoonIcon } from '@/components/icons';
-import { useComingSoon } from '@/hooks/use-coming-soon';
+import { OrderNo } from '@/components/text';
 import { Button } from '@/components/ui/button';
-import { formatLongDate, formatNumber, formatShortDate } from '@/lib/format';
+import { useComingSoon } from '@/hooks/use-coming-soon';
+import {
+  formatLongDate,
+  formatNumber,
+  formatShortDate,
+  formatWeekdayLetter,
+} from '@/lib/format';
 import { getLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
@@ -24,13 +30,15 @@ import {
 } from '@/routines/rotation';
 import { useOpenSession } from '@/workout/session';
 import { useStartWorkout } from '@/workout/use-start-workout';
+import { useThisWeek } from '@/workout/week';
 import { WORKOUT_PATH } from '@/workout/workout-resume-bar';
 
 /**
  * Today (prototypes/home, UC06): các ngày tập của routine đang dùng là các tấm số áo trên
  * một dải vuốt, ngày kế tiếp đứng đầu, tấm tập tự do đứng cuối; nút chính bắt đầu ngày
- * đang chọn. Có buổi đang dở thì nút chính thành tiếp tục buổi đó. Dải tuần và streak
- * (#37) và gợi ý trước buổi (#25) thuộc ticket riêng; lối vào deload (#30) báo "Coming soon".
+ * đang chọn. Có buổi đang dở thì nút chính thành tiếp tục buổi đó. Dải tuần đánh dấu ngày
+ * đã tập; mục tiêu và streak (#36, #37), gợi ý trước buổi (#25) thuộc ticket riêng; lối
+ * vào deload (#30) báo "Coming soon".
  */
 export function TodayPage() {
   const open = useOpenSession();
@@ -145,8 +153,47 @@ export function TodayPage() {
       banner={<UpdateBanner workoutInProgress={!!open} />}
       dock={dock}
     >
+      {routine && <WeekStrip />}
       {body}
     </RootScreen>
+  );
+}
+
+/**
+ * Dải tuần (prototype › .week): bảy ô thứ Hai → Chủ nhật, ô đã tập tô mực, hôm nay viền
+ * cam. Bấm mở mục tiêu (#36); số buổi trên mục tiêu và streak bên phải thuộc #37.
+ */
+function WeekStrip() {
+  const today = new Date();
+  const week = useThisWeek(today);
+  const comingSoon = useComingSoon();
+  if (!week) return null;
+  return (
+    // #36: màn mục tiêu chưa có.
+    <button
+      type="button"
+      aria-label={m.home_week_label({ count: week.count })}
+      onClick={comingSoon}
+      className="flex w-full items-center gap-3 px-1 pt-1 pb-3"
+    >
+      <span aria-hidden className="flex gap-1.25">
+        {week.days.map((day) => (
+          <b
+            key={day.date.toISOString()}
+            className={cn(
+              'grid h-9.5 w-8 place-items-center rounded-sm border-[1.5px] border-rule text-label font-bold',
+              day.trained && 'border-ink bg-ink text-tyvek',
+              day.today &&
+                (day.trained
+                  ? 'border-orange shadow-[inset_0_0_0_2px_var(--color-orange)]'
+                  : 'border-orange shadow-[inset_0_0_0_1.5px_var(--color-orange)]'),
+            )}
+          >
+            {formatWeekdayLetter(day.date)}
+          </b>
+        ))}
+      </span>
+    </button>
   );
 }
 
@@ -333,9 +380,7 @@ function DayBib({
               key={row.id}
               className="flex min-h-10 items-baseline gap-3 border-t border-rule-soft px-4 pt-2 pb-1.5 first:border-t-0"
             >
-              <b className="w-4.5 flex-none text-center text-num leading-none numeral">
-                {i + 1}
-              </b>
+              <OrderNo n={i + 1} className="w-4.5" />
               <span className="min-w-0 flex-1 leading-[1.3] font-semibold">
                 {exercise ? exerciseNames(exercise, locale).name : '…'}
               </span>

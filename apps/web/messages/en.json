@@ -476,5 +476,15 @@
   "plans_next_hint": "Days run in this order; start any of them whenever you like.",
   "log_note_rep_range": "{min}–{max} reps",
   "plans_browse_programs": "Browse programs",
-  "home_plan_deload": "Feeling run down? Plan a lighter week"
+  "home_plan_deload": "Feeling run down? Plan a lighter week",
+  "home_week_label": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "This week: {count} session. Open goals",
+        "countPlural=other": "This week: {count} sessions. Open goals"
+      }
+    }
+  ]
 }
