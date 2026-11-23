@@ -391,7 +391,7 @@ function DayBib({
           );
         })}
       </ul>
-      <div className="flex flex-wrap gap-x-4 px-4 pb-3 text-label font-semibold">
+      <div className="flex flex-wrap items-baseline gap-x-4 px-4 pb-3 text-label font-semibold">
         <span>
           <b className="font-numeral text-read font-extrabold">{sets}</b>{' '}
           {m.home_working_sets_unit({ count: sets })}
