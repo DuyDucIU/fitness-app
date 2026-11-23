@@ -33,7 +33,7 @@ import {
 import { useSortable } from '@/components/sortable';
 import { SyncPill } from '@/components/sync-pill';
 import { useComingSoon } from '@/hooks/use-coming-soon';
-import { Note } from '@/components/text';
+import { Note, OrderNo } from '@/components/text';
 import { useToast } from '@/components/toast-context';
 import { Button } from '@/components/ui/button';
 import {
@@ -96,14 +96,6 @@ function useExerciseLookup() {
   }, [catalog]);
 }
 
-/** Số thứ tự 28px đầu hàng ngày tập / bài (.dayrow .n). */
-function OrderNo({ n }: { n: number }) {
-  return (
-    <b className="w-6 flex-none text-center text-num leading-none numeral">
-      {n}
-    </b>
-  );
-}
 
 /** Dòng gợi ý dưới danh sách kéo thả, kèm biểu tượng tay nắm (.reorder-hint). */
 function ReorderHint({ id, children }: { id: string; children: string }) {
