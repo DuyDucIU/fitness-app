@@ -4,7 +4,7 @@ import type {
   SetLog,
   WorkoutSession,
 } from '@fitness/contract';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -373,19 +373,31 @@ describe('Plans khi đang có buổi dở', () => {
     });
     await openApp('/plans', signedInAn);
 
-    const active = await screen.findByRole('region', {
-      name: 'Active routine',
-    });
-    await waitFor(() =>
-      expect(
-        within(active).getByRole('button', { name: 'Start Legs' }),
-      ).toBeDisabled(),
-    );
     expect(
-      within(active).getByRole('button', { name: 'Start Push' }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('link', { name: /^Workout in progress: Push,/ }),
+      await screen.findByRole('link', { name: /^Workout in progress: Push,/ }),
     ).toBeInTheDocument();
+    const active = screen.getByRole('region', { name: 'Active routine' });
+    for (const name of ['Start Push', 'Start Legs']) {
+      expect(within(active).getByRole('button', { name })).toBeDisabled();
+    }
+  });
+
+  it('Today: nút chính đổi thành tiếp tục buổi dở, mang tên ngày tập', async () => {
+    await db.workoutSessions.put({
+      id: crypto.randomUUID(),
+      routineDayId: LEGS,
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      notes: null,
+      deletedAt: null,
+    });
+    await openApp('/', signedInAn);
+
+    expect(
+      await screen.findByRole('link', { name: 'Resume Legs' }),
+    ).toHaveAttribute('href', '/workout');
+    expect(
+      screen.queryByRole('button', { name: /^Start / }),
+    ).not.toBeInTheDocument();
   });
 });

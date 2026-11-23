@@ -45,7 +45,11 @@ export function TodayPage() {
   if (open) {
     dock = (
       <Button asChild variant="orange" size="go">
-        <Link to={WORKOUT_PATH}>{m.home_resume_workout()}</Link>
+        <Link to={WORKOUT_PATH}>
+          {m.home_resume_workout({
+            name: open.day?.name ?? m.log_freestyle(),
+          })}
+        </Link>
       </Button>
     );
   } else if (open === null && routine) {

@@ -153,11 +153,11 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
 
   const { session, exercises } = workout;
   const title = workout.day?.name ?? m.log_freestyle();
-  // Chưa chọn bài: bài đầu còn set chờ tập (buổi theo ngày tập bắt đầu từ bài 1), xong
-  // hết thì bài cuối.
+  // Chưa chọn bài: buổi theo ngày tập mở ở bài đầu còn set chờ tập (prototype bắt đầu từ
+  // bài 1); tập tự do mở ở bài vừa thêm.
   const current =
     exercises.find((e) => e.row.id === chosenId) ??
-    exercises.find((e) => remainingOf(e) > 0) ??
+    (workout.day ? exercises.find((e) => remainingOf(e) > 0) : undefined) ??
     exercises.at(-1);
   const logged = current?.sets ?? [];
   const planned = current ? plannedOf(current) : 0;

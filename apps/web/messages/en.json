@@ -188,7 +188,7 @@
   "home_no_routine": "No routine yet",
   "home_no_routine_body": "Add the routine you already follow, or just start logging.",
   "home_start_freestyle": "Start freestyle",
-  "home_resume_workout": "Resume workout",
+  "home_resume_workout": "Resume {name}",
   "log_freestyle": "Freestyle",
   "log_elapsed_label": "Workout time",
   "log_finish": "Finish",

@@ -181,7 +181,7 @@
   "home_no_routine": "Chưa có lịch tập",
   "home_no_routine_body": "Nhập lịch tập bạn đang theo, hoặc cứ bắt đầu ghi.",
   "home_start_freestyle": "Tập tự do",
-  "home_resume_workout": "Tiếp tục buổi tập",
+  "home_resume_workout": "Tiếp tục {name}",
   "log_freestyle": "Tập tự do",
   "log_elapsed_label": "Thời gian tập",
   "log_finish": "Kết thúc",

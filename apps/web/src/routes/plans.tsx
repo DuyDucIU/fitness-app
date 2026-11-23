@@ -142,7 +142,7 @@ export function PlansPage() {
   const rotation = useActiveRoutine()?.active;
   const { start, starting } = useStartWorkout();
   // Đang có buổi dở thì không bắt đầu ngày khác; tiếp tục bằng thanh Resume.
-  const workoutOpen = useOpenSession() !== null;
+  const workoutOpen = !!useOpenSession();
   const exercises = useExerciseLookup();
   // Đếm như danh sách trong thư viện: không tính bài đã lưu trữ.
   const count = useCatalog()?.filter((e) => !e.isArchived).length;
