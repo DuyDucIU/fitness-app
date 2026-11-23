@@ -15,6 +15,7 @@ import { ExercisePicker } from '@/catalog/exercise-search';
 import { useCatalog } from '@/catalog/use-catalog';
 import { AppShell, Foot, SectionHeading, TopBar } from '@/components/app-shell';
 import { Banner } from '@/components/banner';
+import { Bib, BibBand } from '@/components/bib';
 import { Block, Row, RowEnd, RowTitle } from '@/components/block';
 import { Segmented, SwitchRow } from '@/components/controls';
 import { EmptyState } from '@/components/empty-state';
@@ -91,22 +92,6 @@ function useExerciseLookup() {
   }, [catalog]);
 }
 
-/** Dải đầu viền mực của tấm số áo (prototypes/shared/base.css › .band.open). */
-function OpenBand({
-  children,
-  action,
-}: {
-  children: React.ReactNode;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-h-14 items-center gap-2.5 py-1.5 pr-1 pl-4 shadow-[inset_0_0_0_2px_var(--color-ink)] rounded-t-md">
-      <span className="line-clamp-2 min-w-0 flex-1 label-caps">{children}</span>
-      {action}
-    </div>
-  );
-}
-
 /** Số thứ tự 28px đầu hàng ngày tập / bài (.dayrow .n). */
 function OrderNo({ n }: { n: number }) {
   return (
@@ -159,8 +144,8 @@ export function PlansPage() {
   if (routines.length === 0) {
     return (
       <RootScreen title={m.nav_plans()}>
-        <section className="overflow-hidden rounded-md bg-tyvek">
-          <OpenBand>{m.plans_no_routine()}</OpenBand>
+        <Bib>
+          <BibBand open>{m.plans_no_routine()}</BibBand>
           <EmptyState
             stat={0}
             action={
@@ -174,7 +159,7 @@ export function PlansPage() {
           >
             {m.plans_no_routine_body()}
           </EmptyState>
-        </section>
+        </Bib>
         {libraryRow(count)}
       </RootScreen>
     );
@@ -185,11 +170,9 @@ export function PlansPage() {
   return (
     <RootScreen title={m.nav_plans()}>
       {active && (
-        <section
-          aria-label={m.plans_active_routine()}
-          className="overflow-hidden rounded-md bg-tyvek"
-        >
-          <OpenBand
+        <Bib aria-label={m.plans_active_routine()}>
+          <BibBand
+            open
             action={
               <Button asChild variant="ghost" size="icon" className="w-10">
                 <Link
@@ -202,7 +185,7 @@ export function PlansPage() {
             }
           >
             {m.plans_active_band({ name: active.name })}
-          </OpenBand>
+          </BibBand>
           <div>
             {active.days.map((day, i) => {
               const names = day.exercises.map((e) =>
@@ -228,7 +211,7 @@ export function PlansPage() {
               );
             })}
           </div>
-        </section>
+        </Bib>
       )}
       {others.length > 0 && (
         <>

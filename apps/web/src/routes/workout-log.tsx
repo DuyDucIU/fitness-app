@@ -11,6 +11,7 @@ import { Navigate, useNavigate } from 'react-router';
 import { equipmentLabel } from '@/catalog/display';
 import { ExercisePicker } from '@/catalog/exercise-search';
 import { AppShell, Foot, TopBar } from '@/components/app-shell';
+import { Bib, BibBand } from '@/components/bib';
 import {
   Block,
   Row,
@@ -430,12 +431,10 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
           )}
         </>
       ) : (
-        <Block>
-          <div className="flex min-h-14 items-center rounded-t-md px-4 label-caps shadow-[inset_0_0_0_2px_var(--color-ink)]">
-            {m.log_freestyle()}
-          </div>
+        <Bib>
+          <BibBand open>{m.log_freestyle()}</BibBand>
           <EmptyState stat={0}>{m.log_empty()}</EmptyState>
-        </Block>
+        </Bib>
       )}
 
       <ExercisePicker

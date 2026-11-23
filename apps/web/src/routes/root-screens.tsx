@@ -6,6 +6,7 @@ import { useAuth } from '@/auth/auth-context';
 import { ReauthBanner } from '@/auth/reauth-banner';
 import { AppShell, Foot, SectionHeading, TopBar } from '@/components/app-shell';
 import { UpdateBanner } from '@/components/app-update';
+import { Bib, BibBand } from '@/components/bib';
 import { Block, Row, RowEnd, RowTitle } from '@/components/block';
 import { EmptyState } from '@/components/empty-state';
 import { MeIcon } from '@/components/icons';
@@ -89,12 +90,10 @@ export function TodayPage() {
       banner={<UpdateBanner workoutInProgress={!!open} />}
       dock={dock}
     >
-      <Block>
-        <div className="flex min-h-14 items-center bg-tyvek px-4 label-caps shadow-[inset_0_0_0_2px_var(--color-ink)] rounded-t-md">
-          {m.home_no_routine()}
-        </div>
+      <Bib>
+        <BibBand open>{m.home_no_routine()}</BibBand>
         <EmptyState stat={0}>{m.home_no_routine_body()}</EmptyState>
-      </Block>
+      </Bib>
     </RootScreen>
   );
 }
