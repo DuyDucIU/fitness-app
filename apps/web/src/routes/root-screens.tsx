@@ -4,12 +4,12 @@ import { Link, useNavigate } from 'react-router';
 import { ownerOf } from '@/auth/auth';
 import { useAuth } from '@/auth/auth-context';
 import { ReauthBanner } from '@/auth/reauth-banner';
-import { useCatalog } from '@/catalog/use-catalog';
 import { AppShell, Foot, SectionHeading, TopBar } from '@/components/app-shell';
 import { UpdateBanner } from '@/components/app-update';
+import { Bib, BibBand } from '@/components/bib';
 import { Block, Row, RowEnd, RowTitle } from '@/components/block';
 import { EmptyState } from '@/components/empty-state';
-import { MeIcon, SearchIcon } from '@/components/icons';
+import { MeIcon } from '@/components/icons';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { SyncPill } from '@/components/sync-pill';
 import { Button } from '@/components/ui/button';
@@ -90,35 +90,10 @@ export function TodayPage() {
       banner={<UpdateBanner workoutInProgress={!!open} />}
       dock={dock}
     >
-      <Block>
-        <div className="flex min-h-14 items-center bg-tyvek px-4 label-caps shadow-[inset_0_0_0_2px_var(--color-ink)] rounded-t-md">
-          {m.home_no_routine()}
-        </div>
+      <Bib>
+        <BibBand open>{m.home_no_routine()}</BibBand>
         <EmptyState stat={0}>{m.home_no_routine_body()}</EmptyState>
-      </Block>
-    </RootScreen>
-  );
-}
-
-export function PlansPage() {
-  // Đếm như danh sách trong thư viện: không tính bài đã lưu trữ.
-  const count = useCatalog()?.filter((e) => !e.isArchived).length;
-  return (
-    <RootScreen title={m.nav_plans()}>
-      <SectionHeading>{m.plans_exercises_heading()}</SectionHeading>
-      <Block>
-        <Row asChild>
-          <Link to="/plans/exercises">
-            <SearchIcon className="size-5 flex-none" aria-hidden />
-            <RowTitle
-              sub={count ? m.plans_library_count({ count }) : undefined}
-            >
-              {m.plans_library_title()}
-            </RowTitle>
-            <RowEnd chevron />
-          </Link>
-        </Row>
-      </Block>
+      </Bib>
     </RootScreen>
   );
 }

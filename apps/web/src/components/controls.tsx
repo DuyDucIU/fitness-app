@@ -84,6 +84,7 @@ export function Stepper({
   min = 0,
   max = Number.POSITIVE_INFINITY,
   maxFractionDigits = 2,
+  format,
   decreaseLabel,
   increaseLabel,
   'aria-label': ariaLabel,
@@ -94,6 +95,8 @@ export function Stepper({
   min?: number;
   max?: number;
   maxFractionDigits?: number;
+  /** Cách hiện giá trị, vd thời gian nghỉ "1:30"; mặc định là số theo ngôn ngữ. */
+  format?: (value: number) => string;
   /** Nhãn theo ngữ cảnh như prototype, vd "One set fewer" / "15 seconds less". */
   decreaseLabel: string;
   increaseLabel: string;
@@ -124,7 +127,7 @@ export function Stepper({
         aria-live="polite"
         className="min-w-16 text-center text-num leading-none numeral"
       >
-        {formatNumber(value, { maxFractionDigits })}
+        {format ? format(value) : formatNumber(value, { maxFractionDigits })}
       </output>
       <button
         type="button"

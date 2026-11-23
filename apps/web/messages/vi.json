@@ -275,5 +275,159 @@
     }
   ],
   "history_not_synced": "chưa đồng bộ",
-  "history_options": "Tuỳ chọn buổi tập"
+  "history_options": "Tuỳ chọn buổi tập",
+  "plans_no_routine": "Chưa có lịch tập",
+  "plans_no_routine_body": "Nhập lịch tập bạn đang theo, hoặc bắt đầu từ một chương trình mẫu.",
+  "plans_write_routine": "Tự nhập lịch tập",
+  "plans_active_routine": "Lịch tập đang dùng",
+  "plans_active_band": "{name} · đang dùng",
+  "plans_edit_routine": "Sửa {name}",
+  "plans_other_routines": "Lịch tập khác",
+  "plans_routines": "Lịch tập",
+  "plans_new_routine": "Lịch tập mới",
+  "plans_more_exercises": "+{count}",
+  "routine_sub": "Lịch tập",
+  "routine_name": "Tên lịch tập",
+  "routine_active": "Lịch tập đang dùng",
+  "routine_active_hint": "Today đi theo các ngày của lịch tập đang dùng, đúng thứ tự.",
+  "routine_now_active": "{name} là lịch tập đang dùng.",
+  "routine_session_title": "Đang có buổi tập dở",
+  "routine_session_body": "Thay đổi áp dụng từ buổi sau. Buổi đã ghi giữ nguyên số liệu.",
+  "routine_days_heading": "Ngày tập",
+  "routine_add_day": "Thêm ngày tập",
+  "routine_reorder_days_hint": "Kéo tay nắm để đổi thứ tự. Today đi theo thứ tự này.",
+  "routine_delete": "Xoá lịch tập",
+  "routine_delete_hint": "Các buổi đã tập vẫn ở trong lịch sử.",
+  "routine_delete_title": "Xoá lịch tập này?",
+  "routine_delete_body": "Các ngày tập và cài đặt bài trong lịch sẽ mất. Buổi đã ghi vẫn ở Lịch sử.",
+  "routine_delete_keep": "Giữ lại",
+  "routine_deleted": "Đã xoá {name}.",
+  "routine_needs_network": "Sửa lịch tập cần có mạng. Khi offline bạn vẫn xem được.",
+  "routine_day_default_name": "Ngày {n}",
+  "routine_spec_range": "{sets} × {min}–{max}",
+  "routine_spec_rest": "nghỉ {time}",
+  "routine_spec_warmup": "khởi động",
+  "routine_spec_start_weight": "bắt đầu {weight} kg",
+  "routine_spec_start_last": "bắt đầu từ lần trước",
+  "routine_spec_first_by_feel": "set đầu tự chọn",
+  "routine_spec_bodyweight": "bắt đầu bằng thân người",
+  "routine_new_title": "Lịch tập mới",
+  "routine_new_name_placeholder": "vd Upper / lower",
+  "routine_new_days": "Lịch có mấy ngày tập?",
+  "routine_new_days_hint": "Tạm đặt tên Ngày 1, Ngày 2… Đổi tên khi bạn thêm bài.",
+  "routine_new_active": "Đặt làm lịch tập đang dùng",
+  "routine_new_active_hint": "Today sẽ đưa ra các ngày của lịch này theo thứ tự.",
+  "routine_new_note": "Lịch nằm trong ảnh chụp hay ghi chú? Tạm gõ vào đây; nhập từ ảnh sẽ có sau.",
+  "routine_new_create": "Tạo và thêm bài",
+  "routine_new_created": "Đã tạo {name}. Thêm bài cho ngày đầu tiên.",
+  "routine_new_default_name": "Lịch tập của tôi",
+  "day_name_label": "Tên ngày tập",
+  "day_new_sub": "Ngày mới · chưa lưu",
+  "day_exercises_heading": "Bài tập, theo thứ tự",
+  "day_empty": "Chưa có bài nào. Thêm bài đầu tiên bạn tập trong ngày này.",
+  "day_add_exercise": "Thêm bài",
+  "day_reorder_hint": "Kéo tay nắm để đổi thứ tự. Chạm vào bài để chỉnh set, rep và thời gian nghỉ.",
+  "day_start_weight_note": "Tạ khởi điểm chỉ là số bạn nhập ở đây. App không đoán tạ cho bài bạn chưa từng ghi.",
+  "day_draft_note": "Chưa lưu: ngày này được thêm vào {routine} khi bạn chạm Xong. Quay lại thì bỏ.",
+  "day_remove": "Bỏ ngày này khỏi lịch tập",
+  "day_remove_last_hint": "Lịch tập cần ít nhất một ngày. Hãy xoá cả lịch tập.",
+  "day_done": "Xong",
+  "day_removed": "Đã bỏ {name} khỏi lịch tập.",
+  "day_restored": "Đã khôi phục {name}.",
+  "day_added": "Đã thêm {name}.",
+  "day_draft_lost": "Chưa thêm {name}.",
+  "day_keep_editing": "Sửa tiếp",
+  "day_exercise_added": "Đã thêm {name}. Chạm vào để chỉnh rep và thời gian nghỉ.",
+  "day_exercise_changed": "Đã đổi sang {name}.",
+  "day_exercise_removed": "Đã bỏ {name}.",
+  "ex_working_sets": "Số set chính",
+  "ex_set_fewer": "Bớt một set",
+  "ex_set_more": "Thêm một set",
+  "ex_rep_range": "Khoảng rep",
+  "ex_reps_min": "Số rep ít nhất",
+  "ex_reps_max": "Số rep nhiều nhất",
+  "ex_rep_help_weight": "Đạt mức trên ở mọi set thì app gợi ý tăng tạ. Hụt dưới mức dưới thì app gợi ý giảm.",
+  "ex_rep_help_added": "Đạt mức trên ở mọi set thì app gợi ý thêm rep hoặc đeo thêm tạ.",
+  "ex_rep_help_reps": "Đạt mức trên ở mọi set thì app gợi ý thêm rep hoặc cầm thêm tạ.",
+  "ex_time_range": "Thời gian mỗi set",
+  "ex_time_min": "Giữ ngắn nhất, phút và giây",
+  "ex_time_max": "Giữ lâu nhất, phút và giây",
+  "ex_time_help": "Gõ 45 là 0:45, 130 là 1:30. Đạt mức trên ở mọi set thì app gợi ý giữ lâu hơn.",
+  "ex_start_weight": "Tạ khởi điểm · không bắt buộc",
+  "ex_start_weight_unit": "kg {load}",
+  "ex_start_last": "Lần trước: {weight} kg ngày {date}. Buổi sau bắt đầu từ số đó, nên có thể để trống.",
+  "ex_start_none": "Bài này chưa có lịch sử. Để trống thì set đầu tự chọn; app không gợi ý con số.",
+  "ex_warmup": "Set khởi động",
+  "ex_warmup_hint": "Gợi ý 50% × 8, 70% × 5, 85% × 2 trước set chính đầu tiên.",
+  "ex_rest": "Nghỉ giữa các set",
+  "ex_rest_less": "Bớt 15 giây",
+  "ex_rest_more": "Thêm 15 giây",
+  "ex_change": "Đổi bài",
+  "ex_change_hint": "Giữ số set, rep và thời gian nghỉ.",
+  "ex_remove": "Bỏ khỏi {day}",
+  "sort_reorder": "Đổi thứ tự {name}",
+  "sort_picked": "Đã nhấc {name}, vị trí {n}/{total}. Phím mũi tên để di chuyển, Space để thả.",
+  "sort_position": "Vị trí {n}/{total}.",
+  "sort_dropped": "Đã thả ở vị trí {n}.",
+  "sort_cancelled": "Đã huỷ di chuyển.",
+  "sort_moved": "Đã chuyển {name} tới vị trí {n}/{total}.",
+  "error_conflict": "Thay đổi này vướng một thay đổi đã lưu. Thử lại.",
+  "error_bad_request": "Có chỗ chưa đúng. Kiểm tra rồi thử lại.",
+  "plans_routine_days": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} ngày"
+      }
+    }
+  ],
+  "routine_exercise_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} bài"
+      }
+    }
+  ],
+  "routine_working_set_count": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} set chính"
+      }
+    }
+  ],
+  "routine_spec_sets": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} set"
+      }
+    }
+  ],
+  "day_remove_hint": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "{count} bài trong ngày cũng bị bỏ. Buổi đã tập vẫn ở Lịch sử."
+      }
+    }
+  ],
+  "day_added_with": [
+    {
+      "declarations": ["input name", "input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=other": "Đã thêm {name} với {count} bài."
+      }
+    }
+  ],
+  "routine_metric_reps": "Chỉ reps",
+  "routine_metric_duration": "Thời gian",
+  "routine_metric_distance": "Quãng đường"
 }

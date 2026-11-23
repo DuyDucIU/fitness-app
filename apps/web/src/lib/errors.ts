@@ -30,6 +30,10 @@ export function errorMessage(error: unknown): string {
         return m.error_unauthorized();
       case 'not_found':
         return m.error_not_found();
+      case 'bad_request':
+        return m.error_bad_request();
+      case 'conflict':
+        return m.error_conflict();
       case 'internal_server_error':
         return m.error_internal_server_error();
       case 'network':

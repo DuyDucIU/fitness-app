@@ -4,3 +4,4 @@ export * from './me';
 export * from './catalog';
 export * from './workout';
 export * from './sync';
+export * from './routine';
