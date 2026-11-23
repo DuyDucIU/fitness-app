@@ -133,13 +133,16 @@ const libraryRow = (count: number | undefined) => (
 
 /**
  * Tab Plans (prototypes/plans › Plans root): routine đang dùng nổi bật trên tấm số áo kèm
- * các ngày tập (mỗi ngày bắt đầu được ngay, UC06) và cuống "Next up" theo buổi gần nhất,
- * các routine khác, nút tạo routine, rồi thư viện bài tập. "Browse programs" thuộc #16.
+ * các ngày tập (mỗi ngày bắt đầu được ngay khi không có buổi dở, UC06) và cuống "Next up"
+ * theo buổi gần nhất, các routine khác, nút tạo routine, rồi thư viện bài tập. "Browse
+ * programs" thuộc #16.
  */
 export function PlansPage() {
   const routines = useRoutines();
   const rotation = useActiveRoutine()?.active;
   const { start, starting } = useStartWorkout();
+  // Đang có buổi dở thì không bắt đầu ngày khác; tiếp tục bằng thanh Resume.
+  const workoutOpen = useOpenSession() !== null;
   const exercises = useExerciseLookup();
   // Đếm như danh sách trong thư viện: không tính bài đã lưu trữ.
   const count = useCatalog()?.filter((e) => !e.isArchived).length;
@@ -216,7 +219,7 @@ export function PlansPage() {
                     variant="line"
                     className="min-h-10 flex-none px-3"
                     aria-label={m.home_start_day({ name: day.name })}
-                    disabled={starting}
+                    disabled={starting || workoutOpen}
                     onClick={() => start(day.id)}
                   >
                     <PlayIcon aria-hidden />

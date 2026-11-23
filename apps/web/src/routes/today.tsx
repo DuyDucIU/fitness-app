@@ -9,7 +9,7 @@ import { Bib, BibBand, BibPerf, BibStub } from '@/components/bib';
 import { EmptyState } from '@/components/empty-state';
 import { EditIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
-import { formatLongDate, formatShortDate } from '@/lib/format';
+import { formatLongDate, formatNumber, formatShortDate } from '@/lib/format';
 import { getLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
@@ -337,7 +337,7 @@ function DayBib({
               <b className="font-numeral text-read font-extrabold">
                 {formatShortDate(new Date(last.startedAt))}
               </b>{' '}
-              · {m.home_minutes({ minutes: last.minutes })}
+              · {m.home_minutes({ minutes: formatNumber(last.minutes) })}
             </>
           ) : (
             m.home_not_done()

@@ -3,6 +3,7 @@ import { lastDayIndex, nextDayIndex } from '@fitness/engine';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 import { db } from '@/db/db';
+import { sessionMinutes } from '@/workout/history';
 
 /** Buổi gần nhất đã kết thúc theo một ngày tập. */
 export interface DayLast {
@@ -50,12 +51,7 @@ export function useActiveRoutine():
       if (known && known.startedAt >= s.startedAt) continue;
       lastByDay.set(s.routineDayId, {
         startedAt: s.startedAt,
-        minutes: Math.max(
-          0,
-          Math.round(
-            (Date.parse(s.endedAt) - Date.parse(s.startedAt)) / 60_000,
-          ),
-        ),
+        minutes: sessionMinutes(s),
       });
     }
     return {

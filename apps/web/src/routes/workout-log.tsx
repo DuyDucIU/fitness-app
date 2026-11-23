@@ -189,6 +189,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const setDraft = editing ? setEditDraft : setNextDraft;
 
   const kind = current ? logKind(current) : 'unsupported';
+  const range = current?.target ? repRangeText(current.target) : null;
   const values: SetValues | null =
     draft.reps !== null &&
     Number.isInteger(draft.reps) &&
@@ -382,9 +383,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                 </h2>
                 <span className="text-label font-semibold">
                   {logged.length}/{planned}
-                  {current.target && repRangeText(current.target) && (
-                    <> · {repRangeText(current.target)}</>
-                  )}
+                  {range && <> · {range}</>}
                 </span>
               </div>
               <ul

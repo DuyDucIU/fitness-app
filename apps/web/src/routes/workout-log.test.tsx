@@ -618,7 +618,7 @@ describe('đồng hồ nghỉ', () => {
     await waitFor(() => expect(restClock()).toBe('1:15'));
 
     // Timer không chặn việc ghi set tiếp theo.
-    const logSet2 = screen.getByRole('button', { name: 'Log set 2' });
+    const logSet2 = await screen.findByRole('button', { name: 'Log set 2' });
     expect(logSet2).toBeEnabled();
     await user.click(logSet2);
     await screen.findByRole('button', { name: 'Log set 3' });
@@ -640,7 +640,7 @@ describe('đồng hồ nghỉ', () => {
     expect(
       screen.queryByRole('button', { name: 'Skip' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Set 2/3')).toBeInTheDocument();
+    expect(await screen.findByText('Set 2/3')).toBeInTheDocument();
   });
 
   it('hết giờ khi app đang mở: báo hết giờ, rung trên máy có Vibration API, dải về set kế tiếp', async () => {
@@ -660,7 +660,7 @@ describe('đồng hồ nghỉ', () => {
     expect(await screen.findByText('Rest is over.')).toBeInTheDocument();
     expect(restClock()).toBeUndefined();
     expect(vibrate).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Set 2/3')).toBeInTheDocument();
+    expect(await screen.findByText('Set 2/3')).toBeInTheDocument();
   });
 
   it('máy không có Vibration API (iOS): vẫn báo hết giờ', async () => {
@@ -717,7 +717,7 @@ describe('đồng hồ nghỉ', () => {
     await waitFor(() => expect(restClock()).toBe('1:45'));
 
     await user.click(screen.getByRole('button', { name: 'Pause' }));
-    await user.click(screen.getByRole('button', { name: 'Log set 2' }));
+    await user.click(await screen.findByRole('button', { name: 'Log set 2' }));
     await screen.findByRole('button', { name: 'Log set 3' });
     await waitFor(() => expect(restClock()).toBe('2:00'));
     expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
@@ -753,7 +753,7 @@ describe('đồng hồ nghỉ', () => {
 
     comeBackAfter(10 * 60_000);
     await waitFor(() => expect(restClock()).toBeUndefined());
-    expect(screen.getByText('Set 2/3')).toBeInTheDocument();
+    expect(await screen.findByText('Set 2/3')).toBeInTheDocument();
     expect(vibrate).not.toHaveBeenCalled();
     expect(screen.queryByText('Rest is over.')).not.toBeInTheDocument();
   });

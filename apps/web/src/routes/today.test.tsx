@@ -4,7 +4,7 @@ import type {
   SetLog,
   WorkoutSession,
 } from '@fitness/contract';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -358,5 +358,34 @@ describe('bắt đầu từ tab Plans', () => {
     const next = await screen.findByRole('note', { name: 'Next up' });
     expect(next).not.toHaveTextContent('comes after');
     expect(within(next).getByText('Push')).toBeVisible();
+  });
+});
+
+describe('Plans khi đang có buổi dở', () => {
+  it('các nút Start bị tắt; tiếp tục buổi bằng thanh Resume', async () => {
+    await db.workoutSessions.put({
+      id: crypto.randomUUID(),
+      routineDayId: PUSH,
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      notes: null,
+      deletedAt: null,
+    });
+    await openApp('/plans', signedInAn);
+
+    const active = await screen.findByRole('region', {
+      name: 'Active routine',
+    });
+    await waitFor(() =>
+      expect(
+        within(active).getByRole('button', { name: 'Start Legs' }),
+      ).toBeDisabled(),
+    );
+    expect(
+      within(active).getByRole('button', { name: 'Start Push' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('link', { name: /^Workout in progress: Push,/ }),
+    ).toBeInTheDocument();
   });
 });
