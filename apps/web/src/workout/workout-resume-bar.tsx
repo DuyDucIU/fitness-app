@@ -15,7 +15,7 @@ export function WorkoutResumeBar() {
   return (
     <ResumeBar
       to={WORKOUT_PATH}
-      name={m.log_freestyle()}
+      name={open.day?.name ?? m.log_freestyle()}
       elapsed={formatElapsed(now - Date.parse(open.session.startedAt))}
       setsLogged={open.setCount}
     />

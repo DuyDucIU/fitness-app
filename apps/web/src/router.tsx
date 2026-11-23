@@ -12,7 +12,8 @@ import {
   PlansPage,
   RoutinePage,
 } from '@/routes/plans';
-import { MePage, ProgressPage, TodayPage } from '@/routes/root-screens';
+import { MePage, ProgressPage } from '@/routes/root-screens';
+import { TodayPage } from '@/routes/today';
 import { NotFoundPage, RouteError } from '@/routes/route-error';
 import { WorkoutLogPage } from '@/routes/workout-log';
 import { WORKOUT_PATH } from '@/workout/workout-resume-bar';

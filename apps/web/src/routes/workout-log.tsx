@@ -1,4 +1,4 @@
-import type { LoadInput, SetLog } from '@fitness/contract';
+import type { LoadInput, RoutineExercise, SetLog } from '@fitness/contract';
 import {
   equipmentDefaults,
   type LastTime,
@@ -11,7 +11,7 @@ import { Navigate, useNavigate } from 'react-router';
 import { equipmentLabel } from '@/catalog/display';
 import { ExercisePicker } from '@/catalog/exercise-search';
 import { AppShell, Foot, TopBar } from '@/components/app-shell';
-import { Bib, BibBand } from '@/components/bib';
+import { Bib, BibBand, BibPerf } from '@/components/bib';
 import {
   Block,
   Row,
@@ -73,9 +73,10 @@ import { unlockRestAlarm } from '@/workout/rest-alarm';
 import { type RestTimerState, useRestTimer } from '@/workout/rest-timer';
 
 /**
- * Màn ghi buổi tập (prototypes/workout-log), phần cốt lõi của tập tự do: thêm bài từ
- * catalog, ghi / sửa / xoá set, kết thúc buổi. Đọc buổi đang mở từ IndexedDB nên reload
- * hay mở lại app vẫn tiếp tục được; không có buổi nào đang mở thì về Today.
+ * Màn ghi buổi tập (prototypes/workout-log): buổi theo ngày tập có sẵn các bài với số set,
+ * rep range và thời gian nghỉ theo target (UC06); tập tự do thì thêm bài từ catalog. Ghi /
+ * sửa / xoá set, kết thúc buổi. Đọc buổi đang mở từ IndexedDB nên reload hay mở lại app
+ * vẫn tiếp tục được; không có buổi nào đang mở thì về Today.
  */
 export function WorkoutLogPage() {
   const workout = useOpenSession();
@@ -84,7 +85,10 @@ export function WorkoutLogPage() {
   return <WorkoutLog workout={workout} />;
 }
 
-/** Bài ad hoc có sẵn 3 set chờ tập, như prototype (`makeEx(key, {sets:3})`). */
+/**
+ * Bài ad hoc có sẵn 3 set chờ tập, như prototype (`makeEx(key, {sets:3})`); bài của ngày
+ * tập thì theo số set của target.
+ */
 const DEFAULT_PLANNED_SETS = 3;
 
 interface Draft {
@@ -97,10 +101,20 @@ function draftFrom(set: SetLog | undefined): Draft {
 }
 
 /**
- * Số điền sẵn cho working set thứ `index` (từ 0) theo lần trước (UC07 bước 3);
- * `null` khi bài chưa có lịch sử hoặc lần trước ghi tạ theo quy ước khác.
+ * Số điền sẵn cho working set thứ `index` (từ 0) theo lần trước (UC07 bước 3). Bài chưa
+ * có lịch sử thì set đầu lấy tạ khởi điểm tĩnh của ngày tập nếu có, reps để user nhập
+ * (R8). `null` khi không có gì để điền, hoặc lần trước ghi tạ theo quy ước khác.
  */
 function prefillAt(item: OpenExercise, index: number): Draft | null {
+  const initial = item.target?.initialWeightKg ?? null;
+  if (
+    item.lastTime === null &&
+    index === 0 &&
+    initial !== null &&
+    logKind(item) === 'weight_reps'
+  ) {
+    return { weight: initial, reps: null };
+  }
   const past = prefillFromLast(item.lastTime, index, item.row.loadInput);
   if (!past) return null;
   return {
@@ -129,15 +143,22 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   );
   const plannedOf = (item: OpenExercise) =>
     Math.max(
-      plannedById[item.row.id] ?? DEFAULT_PLANNED_SETS,
+      plannedById[item.row.id] ??
+        item.target?.targetSets ??
+        DEFAULT_PLANNED_SETS,
       item.sets.length,
     );
   const remainingOf = (item: OpenExercise) =>
     logKind(item) === 'unsupported' ? 0 : plannedOf(item) - item.sets.length;
 
   const { session, exercises } = workout;
+  const title = workout.day?.name ?? m.log_freestyle();
+  // Chưa chọn bài: bài đầu còn set chờ tập (buổi theo ngày tập bắt đầu từ bài 1), xong
+  // hết thì bài cuối.
   const current =
-    exercises.find((e) => e.row.id === chosenId) ?? exercises.at(-1);
+    exercises.find((e) => e.row.id === chosenId) ??
+    exercises.find((e) => remainingOf(e) > 0) ??
+    exercises.at(-1);
   const logged = current?.sets ?? [];
   const planned = current ? plannedOf(current) : 0;
   const editing = logged.find((s) => s.id === editingId);
@@ -200,8 +221,9 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
         (e) => remainingOf(e) - (e === current ? 1 : 0) > 0,
       );
       await logSet(current.row.id, values);
-      // Chưa có routine nên mọi bài đều là ad hoc: không có `rest_seconds` của routine.
-      if (restAfter) rest.start(restSecondsFor(null));
+      // Nghỉ theo `rest_seconds` của bài trong ngày tập; bài ad hoc thì mặc định (UC08).
+      if (restAfter)
+        rest.start(restSecondsFor(current.target?.restSeconds ?? null));
       else rest.skip();
       // Set kế tiếp (thứ tự nextNo tính từ 0) theo lần trước; không có thì giữ số vừa ghi.
       const next = prefillAt(current, nextNo);
@@ -299,7 +321,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
     <AppShell
       top={
         <TopBar
-          title={m.log_freestyle()}
+          title={title}
           sub={
             // Đồng hồ cỡ số phụ 28px như prototype (.top .clock), không phải dòng phụ 12px.
             <time
@@ -360,6 +382,9 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                 </h2>
                 <span className="text-label font-semibold">
                   {logged.length}/{planned}
+                  {current.target && repRangeText(current.target) && (
+                    <> · {repRangeText(current.target)}</>
+                  )}
                 </span>
               </div>
               <ul
@@ -432,7 +457,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
         </>
       ) : (
         <Bib>
-          <BibBand open>{m.log_freestyle()}</BibBand>
+          <BibBand open>{title}</BibBand>
           <EmptyState stat={0}>{m.log_empty()}</EmptyState>
         </Bib>
       )}
@@ -471,6 +496,18 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
       </Sheet>
     </AppShell>
   );
+}
+
+/** "6–8 reps" theo rep range của bài trong ngày tập; `null` khi target không có rep range. */
+function repRangeText({
+  repMin,
+  repMax,
+}: Pick<RoutineExercise, 'repMin' | 'repMax'>): string | null {
+  if (repMin === null || repMax === null) return null;
+  return m.log_note_rep_range({
+    min: formatNumber(repMin),
+    max: formatNumber(repMax),
+  });
 }
 
 /** Chip bài trong dải bài (prototype › chipHTML): số thứ tự, tên, chấm tiến độ hoặc ✓. */
@@ -568,6 +605,7 @@ function SetBib({
         ? m.log_note_bar({ bar: formatNumber(barWeightKg) })
         : loadLabel(loadInput),
     kind === 'weight_reps' && m.log_note_step({ step }),
+    item.target && repRangeText(item.target),
   ]
     .filter(Boolean)
     .join(' · ');
@@ -837,7 +875,6 @@ function LastTimeStub({
   loadInput: LoadInput;
 }) {
   const id = React.useId();
-  const notch = 'absolute top-0 size-4.5 rounded-full bg-ground';
   let label: string = m.log_last_time({
     date: formatShortDate(new Date(lastTime.startedAt)),
   });
@@ -846,11 +883,7 @@ function LastTimeStub({
   }
   return (
     <div role="note" aria-labelledby={id}>
-      <div aria-hidden className="relative h-4.5">
-        <i className="absolute inset-x-3.5 top-2 border-t-2 border-dashed border-rule" />
-        <i className={cn(notch, '-left-2.25')} />
-        <i className={cn(notch, '-right-2.25')} />
-      </div>
+      <BibPerf />
       {/* Nhãn trên, số dưới như prototype, dù số ngắn hay dài. */}
       <div className="flex flex-col items-start gap-1 px-4 pt-1 pb-4">
         <span id={id} className="label-caps">

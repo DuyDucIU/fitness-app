@@ -186,7 +186,7 @@
   "equipment_foam_roll": "Foam roller",
   "equipment_other": "Other",
   "home_no_routine": "No routine yet",
-  "home_no_routine_body": "Just start logging and add exercises as you go.",
+  "home_no_routine_body": "Add the routine you already follow, or just start logging.",
   "home_start_freestyle": "Start freestyle",
   "home_resume_workout": "Resume workout",
   "log_freestyle": "Freestyle",
@@ -443,5 +443,36 @@
   ],
   "routine_metric_reps": "Reps only",
   "routine_metric_duration": "Time",
-  "routine_metric_distance": "Distance"
+  "routine_metric_distance": "Distance",
+  "home_next_up_band": "{name} · next up",
+  "home_next_up_label": "{name}, next up",
+  "home_day_no": "Day",
+  "home_working_sets_unit": [
+    {
+      "declarations": ["input count", "local countPlural = count: plural"],
+      "selectors": ["countPlural"],
+      "match": {
+        "countPlural=one": "working set",
+        "countPlural=other": "working sets"
+      }
+    }
+  ],
+  "home_last": "Last:",
+  "home_minutes": "{minutes} min",
+  "home_not_done": "Not done yet",
+  "home_before_start": "Before you start",
+  "home_before_start_repeat": "Nothing to change. Numbers start from last time.",
+  "home_before_start_first": "First time on this day. Log each first set by feel.",
+  "home_freestyle_body": "An empty session. Add exercises as you go.",
+  "home_start_day": "Start {name}",
+  "home_choose_day": "Choose a day",
+  "home_days_label": "Routine days. Swipe to choose another day",
+  "home_no_active": "No active routine",
+  "home_no_active_body": "Pick an active routine in Plans to start its days here.",
+  "home_open_plans": "Open Plans",
+  "plans_start_day": "Start",
+  "plans_next_up": "Next up",
+  "plans_next_after": "{next} comes after {last}.",
+  "plans_next_hint": "Days run in this order; start any of them whenever you like.",
+  "log_note_rep_range": "{min}–{max} reps"
 }

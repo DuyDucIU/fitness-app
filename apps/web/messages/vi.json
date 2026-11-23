@@ -179,7 +179,7 @@
   "equipment_foam_roll": "Con lăn",
   "equipment_other": "Khác",
   "home_no_routine": "Chưa có lịch tập",
-  "home_no_routine_body": "Cứ bắt đầu ghi, thêm bài trong lúc tập.",
+  "home_no_routine_body": "Nhập lịch tập bạn đang theo, hoặc cứ bắt đầu ghi.",
   "home_start_freestyle": "Tập tự do",
   "home_resume_workout": "Tiếp tục buổi tập",
   "log_freestyle": "Tập tự do",
@@ -420,7 +420,11 @@
   ],
   "day_added_with": [
     {
-      "declarations": ["input name", "input count", "local countPlural = count: plural"],
+      "declarations": [
+        "input name",
+        "input count",
+        "local countPlural = count: plural"
+      ],
       "selectors": ["countPlural"],
       "match": {
         "countPlural=other": "Đã thêm {name} với {count} bài."
@@ -429,5 +433,27 @@
   ],
   "routine_metric_reps": "Chỉ reps",
   "routine_metric_duration": "Thời gian",
-  "routine_metric_distance": "Quãng đường"
+  "routine_metric_distance": "Quãng đường",
+  "home_next_up_band": "{name} · kế tiếp",
+  "home_next_up_label": "{name}, kế tiếp",
+  "home_day_no": "Ngày",
+  "home_working_sets_unit": "set chính",
+  "home_last": "Lần trước:",
+  "home_minutes": "{minutes} phút",
+  "home_not_done": "Chưa tập lần nào",
+  "home_before_start": "Trước khi tập",
+  "home_before_start_repeat": "Không cần đổi gì. Số liệu bắt đầu từ lần trước.",
+  "home_before_start_first": "Lần đầu tập ngày này. Set đầu của mỗi bài cứ ghi theo cảm nhận.",
+  "home_freestyle_body": "Buổi trống. Thêm bài trong lúc tập.",
+  "home_start_day": "Tập {name}",
+  "home_choose_day": "Chọn ngày tập",
+  "home_days_label": "Các ngày tập. Vuốt để chọn ngày khác",
+  "home_no_active": "Chưa có lịch tập đang dùng",
+  "home_no_active_body": "Chọn lịch tập đang dùng ở Plans để bắt đầu các ngày tập ngay tại đây.",
+  "home_open_plans": "Mở Plans",
+  "plans_start_day": "Tập",
+  "plans_next_up": "Kế tiếp",
+  "plans_next_after": "{next} đến sau {last}.",
+  "plans_next_hint": "Các ngày chạy theo thứ tự này; muốn tập ngày nào lúc nào cũng được.",
+  "log_note_rep_range": "{min}–{max} rep"
 }
