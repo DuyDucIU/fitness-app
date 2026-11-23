@@ -401,3 +401,25 @@ describe('Plans khi đang có buổi dở', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('lối vào của ticket sau', () => {
+  it('Today: "Plan a lighter week" (#30) báo Coming soon', async () => {
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await user.click(
+      await screen.findByRole('button', {
+        name: 'Feeling run down? Plan a lighter week',
+      }),
+    );
+    expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
+  });
+
+  it('chưa có routine: Today có "Browse programs" (#16), báo Coming soon', async () => {
+    await db.routines.clear();
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    expect(await screen.findByText('No routine yet')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Browse programs' }));
+    expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
+  });
+});

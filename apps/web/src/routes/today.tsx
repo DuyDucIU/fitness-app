@@ -7,7 +7,8 @@ import { useCatalog } from '@/catalog/use-catalog';
 import { UpdateBanner } from '@/components/app-update';
 import { Bib, BibBand, BibPerf, BibStub } from '@/components/bib';
 import { EmptyState } from '@/components/empty-state';
-import { EditIcon } from '@/components/icons';
+import { EditIcon, MoonIcon } from '@/components/icons';
+import { useComingSoon } from '@/hooks/use-coming-soon';
 import { Button } from '@/components/ui/button';
 import { formatLongDate, formatNumber, formatShortDate } from '@/lib/format';
 import { getLocale } from '@/lib/i18n';
@@ -29,13 +30,14 @@ import { WORKOUT_PATH } from '@/workout/workout-resume-bar';
  * Today (prototypes/home, UC06): các ngày tập của routine đang dùng là các tấm số áo trên
  * một dải vuốt, ngày kế tiếp đứng đầu, tấm tập tự do đứng cuối; nút chính bắt đầu ngày
  * đang chọn. Có buổi đang dở thì nút chính thành tiếp tục buổi đó. Dải tuần và streak
- * (#37), gợi ý trước buổi (#25) và deload (#30) thuộc ticket riêng.
+ * (#37) và gợi ý trước buổi (#25) thuộc ticket riêng; lối vào deload (#30) báo "Coming soon".
  */
 export function TodayPage() {
   const open = useOpenSession();
   const routine = useActiveRoutine();
   const { start, starting } = useStartWorkout();
   const [current, setCurrent] = React.useState(0);
+  const comingSoon = useComingSoon();
 
   const active = routine?.active ?? null;
   const days = active ? rotatedDays(active) : [];
@@ -77,12 +79,21 @@ export function TodayPage() {
   let body: React.ReactNode = null;
   if (active && days.length > 0) {
     body = (
-      <DayWallet
-        active={active}
-        days={days}
-        current={current}
-        onCurrentChange={setCurrent}
-      />
+      <>
+        <DayWallet
+          active={active}
+          days={days}
+          current={current}
+          onCurrentChange={setCurrent}
+        />
+        {/* Deload thủ công: #30 (prototype › .side). */}
+        <div className="px-1 pt-1 pb-4">
+          <Button variant="text" className="min-h-11 px-0" onClick={comingSoon}>
+            <MoonIcon aria-hidden />
+            {m.home_plan_deload()}
+          </Button>
+        </div>
+      </>
     );
   } else if (routine?.hasRoutines) {
     body = (
@@ -107,12 +118,18 @@ export function TodayPage() {
         <EmptyState
           stat={0}
           action={
-            <Button asChild>
-              <Link to="/plans/new">
-                <EditIcon aria-hidden />
-                {m.plans_write_routine()}
-              </Link>
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button asChild>
+                <Link to="/plans/new">
+                  <EditIcon aria-hidden />
+                  {m.plans_write_routine()}
+                </Link>
+              </Button>
+              {/* #16 */}
+              <Button variant="line" onClick={comingSoon}>
+                {m.plans_browse_programs()}
+              </Button>
+            </div>
           }
         >
           {m.home_no_routine_body()}

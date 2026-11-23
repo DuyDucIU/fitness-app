@@ -179,7 +179,7 @@
   "equipment_foam_roll": "Con lăn",
   "equipment_other": "Khác",
   "home_no_routine": "Chưa có lịch tập",
-  "home_no_routine_body": "Nhập lịch tập bạn đang theo, hoặc cứ bắt đầu ghi.",
+  "home_no_routine_body": "Nhập lịch tập bạn đang theo, hoặc chọn một chương trình mẫu. Cũng có thể cứ bắt đầu ghi.",
   "home_start_freestyle": "Tập tự do",
   "home_resume_workout": "Tiếp tục {name}",
   "log_freestyle": "Tập tự do",
@@ -455,5 +455,7 @@
   "plans_next_up": "Kế tiếp",
   "plans_next_after": "{next} đến sau {last}.",
   "plans_next_hint": "Các ngày chạy theo thứ tự này; muốn tập ngày nào lúc nào cũng được.",
-  "log_note_rep_range": "{min}–{max} rep"
+  "log_note_rep_range": "{min}–{max} rep",
+  "plans_browse_programs": "Xem chương trình mẫu",
+  "home_plan_deload": "Thấy đuối sức? Lên một tuần tập nhẹ"
 }

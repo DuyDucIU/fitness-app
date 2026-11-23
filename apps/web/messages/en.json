@@ -186,7 +186,7 @@
   "equipment_foam_roll": "Foam roller",
   "equipment_other": "Other",
   "home_no_routine": "No routine yet",
-  "home_no_routine_body": "Add the routine you already follow, or just start logging.",
+  "home_no_routine_body": "Add the routine you already follow, or pick a program. You can also just start logging.",
   "home_start_freestyle": "Start freestyle",
   "home_resume_workout": "Resume {name}",
   "log_freestyle": "Freestyle",
@@ -474,5 +474,7 @@
   "plans_next_up": "Next up",
   "plans_next_after": "{next} comes after {last}.",
   "plans_next_hint": "Days run in this order; start any of them whenever you like.",
-  "log_note_rep_range": "{min}–{max} reps"
+  "log_note_rep_range": "{min}–{max} reps",
+  "plans_browse_programs": "Browse programs",
+  "home_plan_deload": "Feeling run down? Plan a lighter week"
 }

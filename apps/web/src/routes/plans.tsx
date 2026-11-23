@@ -32,6 +32,7 @@ import {
 } from '@/components/icons';
 import { useSortable } from '@/components/sortable';
 import { SyncPill } from '@/components/sync-pill';
+import { useComingSoon } from '@/hooks/use-coming-soon';
 import { Note } from '@/components/text';
 import { useToast } from '@/components/toast-context';
 import { Button } from '@/components/ui/button';
@@ -135,7 +136,7 @@ const libraryRow = (count: number | undefined) => (
  * Tab Plans (prototypes/plans › Plans root): routine đang dùng nổi bật trên tấm số áo kèm
  * các ngày tập (mỗi ngày bắt đầu được ngay khi không có buổi dở, UC06) và cuống "Next up"
  * theo buổi gần nhất, các routine khác, nút tạo routine, rồi thư viện bài tập. "Browse
- * programs" thuộc #16.
+ * programs" thuộc #16, tới lúc đó báo "Coming soon".
  */
 export function PlansPage() {
   const routines = useRoutines();
@@ -143,6 +144,7 @@ export function PlansPage() {
   const { start, starting } = useStartWorkout();
   // Đang có buổi dở thì không bắt đầu ngày khác; tiếp tục bằng thanh Resume.
   const workoutOpen = !!useOpenSession();
+  const comingSoon = useComingSoon();
   const exercises = useExerciseLookup();
   // Đếm như danh sách trong thư viện: không tính bài đã lưu trữ.
   const count = useCatalog()?.filter((e) => !e.isArchived).length;
@@ -157,12 +159,18 @@ export function PlansPage() {
           <EmptyState
             stat={0}
             action={
-              <Button asChild>
-                <Link to="/plans/new">
-                  <EditIcon aria-hidden />
-                  {m.plans_write_routine()}
-                </Link>
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild>
+                  <Link to="/plans/new">
+                    <EditIcon aria-hidden />
+                    {m.plans_write_routine()}
+                  </Link>
+                </Button>
+                {/* #16 */}
+                <Button variant="line" onClick={comingSoon}>
+                  {m.plans_browse_programs()}
+                </Button>
+              </div>
             }
           >
             {m.plans_no_routine_body()}
@@ -264,6 +272,10 @@ export function PlansPage() {
             <PlusIcon aria-hidden />
             {m.plans_new_routine()}
           </Link>
+        </Button>
+        {/* #16 */}
+        <Button variant="line" onClick={comingSoon}>
+          {m.plans_browse_programs()}
         </Button>
       </div>
       {libraryRow(count)}
