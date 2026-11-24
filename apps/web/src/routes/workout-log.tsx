@@ -11,7 +11,7 @@ import { Navigate, useNavigate } from 'react-router';
 import { equipmentLabel } from '@/catalog/display';
 import { ExercisePicker } from '@/catalog/exercise-search';
 import { AppShell, Foot, TopBar } from '@/components/app-shell';
-import { Bib, BibBand, BibPerf } from '@/components/bib';
+import { Bib, BibBand, BibPerf, BibTip } from '@/components/bib';
 import {
   Block,
   Row,
@@ -51,6 +51,7 @@ import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
 import {
   addExercise,
+  answerSuggestion,
   deleteSet,
   finishSession,
   logSet,
@@ -70,6 +71,7 @@ import {
   setText,
 } from '@/workout/display';
 import { unlockRestAlarm } from '@/workout/rest-alarm';
+import { hintText, tipText } from '@/workout/suggestion-text';
 import { type RestTimerState, useRestTimer } from '@/workout/rest-timer';
 
 /**
@@ -848,14 +850,52 @@ function SetBib({
           )}
         </>
       )}
-      {item.lastTime && kind !== 'unsupported' && mode.type !== 'edit' && (
-        <LastTimeStub
-          kind={kind}
-          lastTime={item.lastTime}
-          loadInput={item.row.loadInput}
-        />
+      {item.tip && kind !== 'unsupported' && mode.type === 'log' ? (
+        <TipStub item={item} />
+      ) : (
+        item.lastTime &&
+        kind !== 'unsupported' &&
+        mode.type !== 'edit' && (
+          <LastTimeStub
+            kind={kind}
+            lastTime={item.lastTime}
+            loadInput={item.row.loadInput}
+            hint={
+              item.advice.hint && hintText(item.advice.hint, kind === 'reps')
+            }
+          />
+        )
       )}
     </section>
+  );
+}
+
+/**
+ * Gợi ý trước buổi chưa trả lời (UC12) thay cuống lần trước (prototypes/workout-log ›
+ * .stub.tip) cho tới khi user bấm "Got it" hoặc ghi set đầu của bài. Gợi ý tăng chỉ nêu
+ * hướng nên không đổi ô nhập (R1); số lần trước vẫn thấy ở các hàng set chờ.
+ */
+function TipStub({ item }: { item: OpenExercise }) {
+  const tip = item.tip;
+  if (!tip) return null;
+  const metric = item.exercise?.metricType ?? 'weight_reps';
+  const { text } = tipText(tip.suggestion, metric, item.row.loadInput, false);
+  return (
+    <>
+      <BibPerf />
+      <BibTip
+        actions={
+          <Button
+            variant="line"
+            onClick={() => void answerSuggestion(tip, 'accepted')}
+          >
+            {m.sug_got_it()}
+          </Button>
+        }
+      >
+        {text}
+      </BibTip>
+    </>
   );
 }
 
@@ -863,15 +903,19 @@ function SetBib({
  * Cuống vé dưới tấm số áo (prototypes/workout-log › .stub), tách khỏi mặt số bằng đường
  * răng cưa (DESIGN.md): ngày và các working set của lần tập gần nhất cùng bài (UC07 bước
  * 2). Lần trước ghi tạ theo quy ước khác thì nêu quy ước đó, để không so nhầm con số.
+ * Câu nhắc ngắn (`hint`) nằm bên phải số, rộng tối đa nửa cuống; cuống hẹp thì xuống dưới
+ * hàng số, không cắt chữ, không ẩn số.
  */
 function LastTimeStub({
   kind,
   lastTime,
   loadInput,
+  hint,
 }: {
   kind: LogKind;
   lastTime: LastTime;
   loadInput: LoadInput;
+  hint: string | null;
 }) {
   const id = React.useId();
   let label: string = m.log_last_time({
@@ -883,20 +927,25 @@ function LastTimeStub({
   return (
     <div role="note" aria-labelledby={id}>
       <BibPerf />
-      {/* Nhãn trên, số dưới như prototype, dù số ngắn hay dài. */}
-      <div className="flex flex-col items-start gap-1 px-4 pt-1 pb-4">
-        <span id={id} className="label-caps">
-          {label}
-        </span>{' '}
-        <b className="text-num leading-none numeral">
-          {pastSetTexts(kind, lastTime.sets).map((text, i) => (
-            <React.Fragment key={i}>
-              {/* Dấu · giãn rộng hơn dấu × để không đọc nhầm số của hai set. */}
-              {i > 0 && <span className="mx-0.5"> · </span>}
-              <span className="whitespace-nowrap">{text}</span>
-            </React.Fragment>
-          ))}
-        </b>
+      <div className="@container px-4 pt-1 pb-4">
+        <div className="grid grid-cols-1 items-center gap-x-4 gap-y-2 @[18rem]:grid-cols-[minmax(0,1fr)_minmax(0,50%)]">
+          {/* Nhãn trên, số dưới như prototype, dù số ngắn hay dài. */}
+          <div className="flex min-w-0 flex-col items-start gap-1">
+            <span id={id} className="label-caps">
+              {label}
+            </span>{' '}
+            <b className="text-num leading-none numeral">
+              {pastSetTexts(kind, lastTime.sets).map((text, i) => (
+                <React.Fragment key={i}>
+                  {/* Dấu · giãn rộng hơn dấu × để không đọc nhầm số của hai set. */}
+                  {i > 0 && <span className="mx-0.5"> · </span>}
+                  <span className="whitespace-nowrap">{text}</span>
+                </React.Fragment>
+              ))}
+            </b>
+          </div>
+          {hint && <p className="leading-[1.4]"> {hint}</p>}
+        </div>
       </div>
     </div>
   );

@@ -64,6 +64,38 @@ export function BibPerf() {
 }
 
 /**
+ * Gợi ý thay cuống vé (prototypes/shared/base.css › .tip, workout-log › .stub.tip): khối
+ * nền cam nhạt thụt vào trong tấm số áo, lời gợi ý, lý do chữ nhỏ bên dưới (`why`) và các
+ * nút trả lời. Nhiều gợi ý liền nhau thì sát lại.
+ */
+export function BibTip({
+  why,
+  actions,
+  children,
+}: {
+  why?: React.ReactNode;
+  actions: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const id = React.useId();
+  return (
+    <div
+      role="note"
+      aria-labelledby={id}
+      className="mx-2 mb-2 rounded-sm bg-orange-tint p-3 [&+&]:-mt-0.5"
+    >
+      <p id={id} className="leading-[1.4] [&_b]:font-bold">
+        {children}
+        {why && (
+          <span className="mt-1 block text-label font-semibold">{why}</span>
+        )}
+      </p>
+      <div className="mt-2.5 flex flex-wrap gap-2">{actions}</div>
+    </div>
+  );
+}
+
+/**
  * Cuống vé dưới răng cưa (.stub): nhãn chữ hoa và số lớn bên trái, lời giải thích bên phải
  * trải hai hàng. Không có số thì nhãn nằm trên lời giải thích.
  */
