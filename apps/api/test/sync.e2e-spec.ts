@@ -6,6 +6,7 @@ import type { App } from 'supertest/types';
 import {
   type SessionExercise,
   type SetLog,
+  type Suggestion,
   type SyncEvent,
   type SyncPullResponse,
   SyncPullResponseSchema,
@@ -95,7 +96,28 @@ describe('/v1/sync (e2e)', () => {
       op: 'upsert',
       payload,
     }),
+    suggestion: (payload: Suggestion): SyncEvent => ({
+      entity: 'suggestions',
+      op: 'upsert',
+      payload,
+    }),
   };
+  const suggestion = (over: Partial<Suggestion> = {}): Suggestion => ({
+    id: randomUUID(),
+    exerciseId: benchId,
+    routineExerciseId: null,
+    sessionExerciseId: null,
+    basedOnSessionExerciseId: randomUUID(),
+    kind: 'increase',
+    strength: 'soft',
+    reason: 'all_sets_top',
+    payload: { sets: 3, min: 6, top: 10 },
+    status: 'pending',
+    createdAt: '2026-11-24T08:00:00.000Z',
+    respondedAt: null,
+    deletedAt: null,
+    ...over,
+  });
 
   const pull = (sub: string, query: { since?: string; limit?: number } = {}) =>
     request(app.getHttpServer() as App)
@@ -354,6 +376,55 @@ describe('/v1/sync (e2e)', () => {
     expect(
       await prisma.exercise.findUnique({ where: { id: custom.id } }),
     ).toBeNull();
+  });
+
+  describe('gợi ý', () => {
+    it('lưu gợi ý và lần trả lời; gửi lại không tạo bản ghi trùng; kéo về đúng bản mới nhất', async () => {
+      const sub = `${run}-sug`;
+      const pending = suggestion();
+      await push(sub, [events.suggestion(pending)]).expect(200);
+      const accepted = {
+        ...pending,
+        status: 'accepted' as const,
+        respondedAt: '2026-11-24T08:01:00.000Z',
+      };
+      await push(sub, [events.suggestion(accepted)]).expect(200);
+      await push(sub, [events.suggestion(accepted)]).expect(200);
+
+      expect(await prisma.suggestion.count({ where: { id: pending.id } })).toBe(
+        1,
+      );
+      const { changes } = await pullAll(sub);
+      expect(changes).toEqual([events.suggestion(accepted)]);
+    });
+
+    it('ghi đè gợi ý của A: 403, gợi ý của A giữ nguyên', async () => {
+      const mine = suggestion();
+      await push(subA, [events.suggestion(mine)]).expect(200);
+      await push(subB, [
+        events.suggestion({ ...mine, status: 'dismissed' }),
+      ]).expect(403);
+      const stored = await prisma.suggestion.findUniqueOrThrow({
+        where: { id: mine.id },
+        include: { user: true },
+      });
+      expect(stored.user.authSubject).toBe(subA);
+      expect(stored.status).toBe('pending');
+    });
+
+    it('gợi ý cho bài tuỳ chỉnh của A: 403', async () => {
+      await push(subB, [
+        events.suggestion(suggestion({ exerciseId: sledId })),
+      ]).expect(403);
+    });
+
+    it('xoá user thì gợi ý của user xoá theo', async () => {
+      const sub = `${run}-sug-gone`;
+      const mine = suggestion();
+      await push(sub, [events.suggestion(mine)]).expect(200);
+      await prisma.user.delete({ where: { authSubject: sub } });
+      expect(await prisma.suggestion.count({ where: { id: mine.id } })).toBe(0);
+    });
   });
 
   describe('GET /v1/sync/pull', () => {
