@@ -1,5 +1,7 @@
 import type {
   CatalogExercise,
+  RoutineDay,
+  RoutineExercise,
   SessionExercise,
   SetLog,
   SyncEntity,
@@ -75,6 +77,72 @@ export function startFreestyle(): Promise<string> {
     await put(db.workoutSessions, 'workout_sessions', session);
     return session.id;
   });
+}
+
+/**
+ * Ngày tập theo id trong cache routine (mọi routine trên máy). `undefined` khi tra không ra
+ * (ngày đã xoá, routine đã xoá): buổi theo ngày đó coi như tập tự do (SDD 7.2).
+ */
+async function findRoutineDay(dayId: string): Promise<RoutineDay | undefined> {
+  for (const routine of await db.routines.toArray()) {
+    const day = routine.days.find((d) => d.id === dayId);
+    if (day) return day;
+  }
+  return undefined;
+}
+
+/**
+ * Bắt đầu buổi theo một ngày tập (UC06 bước 2–3), đọc từ cache routine nên chạy được khi
+ * offline: buổi mang `routineDayId`, các bài theo thứ tự trong ngày, mỗi bài gắn
+ * `routineExerciseId` và chụp lại quy ước ghi tạ mặc định theo dụng cụ. Đã có buổi đang mở
+ * thì trả về buổi đó, như tập tự do.
+ */
+export function startRoutineDay(dayId: string): Promise<string> {
+  return db.transaction(
+    'rw',
+    [
+      db.workoutSessions,
+      db.sessionExercises,
+      db.outbox,
+      db.routines,
+      db.exercises,
+    ],
+    async () => {
+      const open = await findOpenSession();
+      if (open) return open.id;
+      const day = await findRoutineDay(dayId);
+      if (!day) throw new Error(`Không có ngày tập ${dayId} trên máy`);
+      const session: WorkoutSession = {
+        id: crypto.randomUUID(),
+        routineDayId: day.id,
+        startedAt: now(),
+        endedAt: null,
+        notes: null,
+        deletedAt: null,
+      };
+      await put(db.workoutSessions, 'workout_sessions', session);
+      const planned = [...day.exercises].sort(
+        (a, b) => a.position - b.position,
+      );
+      const catalog = await db.exercises.bulkGet(
+        planned.map((e) => e.exerciseId),
+      );
+      for (const [position, target] of planned.entries()) {
+        await put(db.sessionExercises, 'session_exercises', {
+          id: crypto.randomUUID(),
+          sessionId: session.id,
+          exerciseId: target.exerciseId,
+          routineExerciseId: target.id,
+          loadInput: equipmentDefaults(catalog[position]?.equipment ?? null)
+            .loadInput,
+          position,
+          supersetGroup: target.supersetGroup,
+          deletedAt: null,
+        });
+      }
+      return session.id;
+    },
+  );
 }
 
 /**
@@ -197,12 +265,19 @@ export interface WorkoutExercise {
   row: SessionExercise;
   /** `undefined` nếu bài không còn trong cache catalog. */
   exercise: CatalogExercise | undefined;
+  /**
+   * Target của bài trong ngày tập (số set, rep range, nghỉ, tạ khởi điểm); `null` với bài
+   * ad hoc, hoặc khi bài đã bị xoá khỏi ngày tập (coi như ad hoc, SDD 7.2).
+   */
+  target: RoutineExercise | null;
   sets: SetLog[];
 }
 
 /** Một buổi kèm các bài chưa xoá (theo vị trí) và set của chúng. */
 export interface Workout {
   session: WorkoutSession;
+  /** Ngày tập của buổi; `null` khi tập tự do hoặc ngày đã xoá (coi như tự do). */
+  day: RoutineDay | null;
   exercises: WorkoutExercise[];
   /** Tổng số set đã ghi (chưa xoá, trong bài chưa xoá). */
   setCount: number;
@@ -254,12 +329,19 @@ export async function readWorkout(session: WorkoutSession): Promise<Workout> {
   const live = sets
     .filter((s) => s.deletedAt === null)
     .sort((a, b) => a.setIndex - b.setIndex);
+  const day = session.routineDayId
+    ? ((await findRoutineDay(session.routineDayId)) ?? null)
+    : null;
+  const targets = new Map(day?.exercises.map((e) => [e.id, e]));
   const exercises = rows.map((row, i) => ({
     row,
     exercise: catalog[i],
+    target: row.routineExerciseId
+      ? (targets.get(row.routineExerciseId) ?? null)
+      : null,
     sets: live.filter((s) => s.sessionExerciseId === row.id),
   }));
-  return { session, exercises, setCount: live.length };
+  return { session, day, exercises, setCount: live.length };
 }
 
 /**

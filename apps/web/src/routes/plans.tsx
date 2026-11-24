@@ -15,7 +15,7 @@ import { ExercisePicker } from '@/catalog/exercise-search';
 import { useCatalog } from '@/catalog/use-catalog';
 import { AppShell, Foot, SectionHeading, TopBar } from '@/components/app-shell';
 import { Banner } from '@/components/banner';
-import { Bib, BibBand } from '@/components/bib';
+import { Bib, BibBand, BibPerf, BibStub } from '@/components/bib';
 import { Block, Row, RowEnd, RowTitle } from '@/components/block';
 import { Segmented, SwitchRow } from '@/components/controls';
 import { EmptyState } from '@/components/empty-state';
@@ -25,13 +25,15 @@ import {
   ChevronIcon,
   EditIcon,
   GripIcon,
+  PlayIcon,
   PlusIcon,
   SearchIcon,
   TrashIcon,
 } from '@/components/icons';
 import { useSortable } from '@/components/sortable';
 import { SyncPill } from '@/components/sync-pill';
-import { Note } from '@/components/text';
+import { useComingSoon } from '@/hooks/use-coming-soon';
+import { Note, OrderNo } from '@/components/text';
 import { useToast } from '@/components/toast-context';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,6 +63,7 @@ import {
   useDraftDay,
 } from '@/routines/draft-day';
 import { ExerciseSheet } from '@/routines/exercise-sheet';
+import { useActiveRoutine } from '@/routines/rotation';
 import {
   useRoutine,
   useRoutines,
@@ -69,6 +72,7 @@ import {
 import { loadLabel } from '@/workout/display';
 import { findLastTime } from '@/workout/last-time';
 import { useOpenSession } from '@/workout/session';
+import { useStartWorkout } from '@/workout/use-start-workout';
 import { WorkoutResumeBar } from '@/workout/workout-resume-bar';
 import { useLiveQuery } from 'dexie-react-hooks';
 
@@ -92,14 +96,6 @@ function useExerciseLookup() {
   }, [catalog]);
 }
 
-/** Số thứ tự 28px đầu hàng ngày tập / bài (.dayrow .n). */
-function OrderNo({ n }: { n: number }) {
-  return (
-    <b className="w-6 flex-none text-center text-num leading-none numeral">
-      {n}
-    </b>
-  );
-}
 
 /** Dòng gợi ý dưới danh sách kéo thả, kèm biểu tượng tay nắm (.reorder-hint). */
 function ReorderHint({ id, children }: { id: string; children: string }) {
@@ -130,11 +126,17 @@ const libraryRow = (count: number | undefined) => (
 
 /**
  * Tab Plans (prototypes/plans › Plans root): routine đang dùng nổi bật trên tấm số áo kèm
- * các ngày tập, các routine khác, nút tạo routine, rồi thư viện bài tập. Nút Start từng
- * ngày và cuống "Next up" thuộc #15; "Browse programs" thuộc #16.
+ * các ngày tập (mỗi ngày bắt đầu được ngay khi không có buổi dở, UC06) và cuống "Next up"
+ * theo buổi gần nhất, các routine khác, nút tạo routine, rồi thư viện bài tập. "Browse
+ * programs" thuộc #16, tới lúc đó báo "Coming soon".
  */
 export function PlansPage() {
   const routines = useRoutines();
+  const rotation = useActiveRoutine()?.active;
+  const { start, starting } = useStartWorkout();
+  // Đang có buổi dở thì không bắt đầu ngày khác; tiếp tục bằng thanh Resume.
+  const workoutOpen = !!useOpenSession();
+  const comingSoon = useComingSoon();
   const exercises = useExerciseLookup();
   // Đếm như danh sách trong thư viện: không tính bài đã lưu trữ.
   const count = useCatalog()?.filter((e) => !e.isArchived).length;
@@ -149,12 +151,18 @@ export function PlansPage() {
           <EmptyState
             stat={0}
             action={
-              <Button asChild>
-                <Link to="/plans/new">
-                  <EditIcon aria-hidden />
-                  {m.plans_write_routine()}
-                </Link>
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild>
+                  <Link to="/plans/new">
+                    <EditIcon aria-hidden />
+                    {m.plans_write_routine()}
+                  </Link>
+                </Button>
+                {/* #16 */}
+                <Button variant="line" onClick={comingSoon}>
+                  {m.plans_browse_programs()}
+                </Button>
+              </div>
             }
           >
             {m.plans_no_routine_body()}
@@ -207,10 +215,28 @@ export function PlansPage() {
                   >
                     <RowTitle sub={sub || undefined}>{day.name}</RowTitle>
                   </Link>
+                  <Button
+                    variant="line"
+                    className="min-h-10 flex-none px-3"
+                    aria-label={m.home_start_day({ name: day.name })}
+                    disabled={starting || workoutOpen}
+                    onClick={() => start(day.id)}
+                  >
+                    <PlayIcon aria-hidden />
+                    {m.plans_start_day()}
+                  </Button>
                 </Row>
               );
             })}
           </div>
+          {rotation?.routine.id === active.id && rotation.next >= 0 && (
+            <NextUp
+              next={active.days[rotation.next].name}
+              last={
+                rotation.last === null ? null : active.days[rotation.last].name
+              }
+            />
+          )}
         </Bib>
       )}
       {others.length > 0 && (
@@ -239,9 +265,32 @@ export function PlansPage() {
             {m.plans_new_routine()}
           </Link>
         </Button>
+        {/* #16 */}
+        <Button variant="line" onClick={comingSoon}>
+          {m.plans_browse_programs()}
+        </Button>
       </div>
       {libraryRow(count)}
     </RootScreen>
+  );
+}
+
+/**
+ * Cuống "Next up" của routine đang dùng (prototypes/plans › .stub): ngày kế tiếp theo buổi
+ * gần nhất, và nhắc rằng ngày nào cũng bắt đầu được.
+ */
+function NextUp({ next, last }: { next: string; last: string | null }) {
+  return (
+    <>
+      <BibPerf />
+      <BibStub
+        label={m.plans_next_up()}
+        value={<span className="uppercase">{next}</span>}
+      >
+        {last && `${m.plans_next_after({ next, last })} `}
+        {m.plans_next_hint()}
+      </BibStub>
+    </>
   );
 }
 

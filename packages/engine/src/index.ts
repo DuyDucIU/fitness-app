@@ -23,3 +23,4 @@ export {
   resumeRest,
   startRest,
 } from './rest';
+export { lastDayIndex, nextDayIndex, type RotationSession } from './rotation';

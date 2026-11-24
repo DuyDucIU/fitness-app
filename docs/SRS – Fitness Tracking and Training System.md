@@ -292,7 +292,7 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Actor:** Người tập
 - **Tiền điều kiện:** Đã đăng nhập.
 - **Luồng chính:**
-  1. User chọn một `ROUTINE_DAYS` từ routine đang dùng (đọc từ cache trên máy, chạy được khi offline), hoặc chọn "Tập tự do".
+  1. User chọn một `ROUTINE_DAYS` từ routine đang dùng (đọc từ cache trên máy, chạy được khi offline), hoặc chọn "Tập tự do". App đề xuất sẵn **ngày kế tiếp**: ngày đứng sau ngày của buổi gần nhất (chưa xoá) theo routine đang dùng, quay vòng về ngày đầu; buổi tập tự do, buổi của routine khác hay của ngày đã xoá được bỏ qua (tập A, tập tự do, rồi tới B). Chưa có buổi nào theo routine thì là ngày đầu. User có routine nhưng không đặt cái nào đang dùng thì app dẫn sang tab Plans để chọn, vẫn tập tự do được. Đang có buổi dở thì không bắt đầu được buổi khác: Today đổi nút chính thành tiếp tục buổi đó, nút bắt đầu từng ngày ở tab Plans bị tắt.
   2. App tạo `WORKOUT_SESSIONS` mới trong bộ nhớ cục bộ IndexedDB (UUID sinh ở client); `routine_day_id` = ngày đã chọn hoặc `null` nếu tự do.
   3. App liệt kê các bài theo thứ tự trong `ROUTINE_DAYS` (hoặc rỗng nếu tự do, user tự thêm bài).
   4. Chuyển sang UC07 để bắt đầu ghi set.

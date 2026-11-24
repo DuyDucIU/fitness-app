@@ -22,6 +22,17 @@ export interface HistoryWorkout extends Workout {
   unsynced: boolean;
 }
 
+/** Số phút từ lúc bắt đầu tới lúc kết thúc buổi (buổi còn mở: 0). */
+export function sessionMinutes(
+  session: Pick<WorkoutSession, 'startedAt' | 'endedAt'>,
+): number {
+  const end = Date.parse(session.endedAt ?? session.startedAt);
+  return Math.max(
+    0,
+    Math.round((end - Date.parse(session.startedAt)) / 60_000),
+  );
+}
+
 /** Một tuần (thứ Hai – Chủ nhật, giờ trên máy) có buổi tập, buổi mới nhất trước. */
 export interface HistoryWeek {
   /** 0 giờ thứ Hai đầu tuần. */
@@ -81,14 +92,7 @@ function toHistoryWorkout(
   return {
     ...workout,
     workingSets: sets.filter((s) => s.setType === 'working').length,
-    minutes: Math.max(
-      0,
-      Math.round(
-        (Date.parse(session.endedAt ?? session.startedAt) -
-          Date.parse(session.startedAt)) /
-          60_000,
-      ),
-    ),
+    minutes: sessionMinutes(session),
     unsynced: ids.some((id) => unsynced.has(id)),
   };
 }
