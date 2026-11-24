@@ -88,7 +88,7 @@ afterEach(async () => {
  */
 async function seedPush(
   startedAt: string,
-  routineExerciseId: string,
+  routineExerciseId: string | null,
   exerciseId: string,
   sets: [number | null, number][],
 ): Promise<string> {
@@ -365,6 +365,51 @@ describe('màn ghi set: gợi ý trước buổi', () => {
     await startPush();
     const last = await screen.findByRole('note', { name: /^Last time/ });
     expect(text(last)).toContain('Stay at 80 kg and build to 8 reps a set.');
+  });
+
+  it('bài ad hoc: rep range lấy từ lần gần nhất có rep range, dù cách nhiều buổi ad hoc', async () => {
+    await seedPush(
+      '2026-11-10T10:00:00.000Z',
+      BENCH_ROW,
+      BENCH.id,
+      benchAt(80, [7, 7, 7]),
+    );
+    await seedPush(
+      '2026-11-14T10:00:00.000Z',
+      null,
+      BENCH.id,
+      benchAt(80, [6, 6, 6]),
+    );
+    await seedPush(
+      '2026-11-17T10:00:00.000Z',
+      null,
+      BENCH.id,
+      benchAt(80, [7, 6, 6]),
+    );
+    await seedPush(
+      '2026-11-20T10:00:00.000Z',
+      null,
+      BENCH.id,
+      benchAt(80, [8, 8, 8]),
+    );
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await user.click(await screen.findByRole('tab', { name: 'Freestyle' }));
+    await user.click(screen.getByRole('button', { name: 'Start freestyle' }));
+    await screen.findByRole('heading', { name: 'Freestyle' });
+    await user.click(screen.getByRole('button', { name: 'Add exercise' }));
+    await user.keyboard('bench');
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Barbell Bench Press - Medium Grip/,
+      }),
+    );
+    expect(
+      await screen.findByRole('note', { name: /All three sets hit 8 reps/ }),
+    ).toBeInTheDocument();
+    expect(await suggestionsInOutbox()).toEqual([
+      expect.objectContaining({ routineExerciseId: null, status: 'pending' }),
+    ]);
   });
 
   it('gợi ý pending còn đó sau khi đóng rồi mở lại app', async () => {

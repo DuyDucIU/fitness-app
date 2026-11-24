@@ -78,15 +78,18 @@ export function hintText(hint: PreSessionHint, reps: boolean): string {
     case 'transition':
       return m.hint_transition();
     case 'one_short': {
-      const args = { count: m.sug_count({ n: hint.sets }), top: hint.top };
+      const args = {
+        count: m.sug_count({ n: hint.sets }),
+        top: formatNumber(hint.top),
+      };
       return reps ? m.hint_one_short_reps(args) : m.hint_one_short_weight(args);
     }
     case 'build_to_top':
       return reps || hint.weight === null
-        ? m.hint_build_reps({ top: hint.top })
+        ? m.hint_build_reps({ top: formatNumber(hint.top) })
         : m.hint_build_weight({
             weight: formatNumber(hint.weight),
-            top: hint.top,
+            top: formatNumber(hint.top),
           });
   }
 }

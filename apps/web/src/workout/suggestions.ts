@@ -21,7 +21,10 @@ import { findHistory } from '@/workout/last-time';
  * gợi ý và câu trả lời đi qua `workout/session` (outbox).
  */
 
-/** R2 cần hai lần tập gần nhất. */
+/**
+ * R1/R2 chỉ xét hai lần tập gần nhất; bài ad hoc thì đọc hết lịch sử để tìm lần gần nhất có
+ * rep range (SRS Phụ lục A).
+ */
 const HISTORY_FOR_ADVICE = 2;
 
 /** Gợi ý của engine cho một bài, kèm lần tập làm căn cứ. */
@@ -43,7 +46,10 @@ export async function adviseFor(
   exerciseId: string,
   target: RoutineExercise | null,
 ): Promise<Advice> {
-  const history = await findHistory(exerciseId, HISTORY_FOR_ADVICE);
+  const history = await findHistory(
+    exerciseId,
+    target ? HISTORY_FOR_ADVICE : undefined,
+  );
   const advice = beforeSession({
     today: today(),
     metric: exercise?.metricType ?? 'weight_reps',

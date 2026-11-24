@@ -11,7 +11,7 @@ import { db } from '@/db/db';
  */
 export async function findHistory(
   exerciseId: string,
-  limit: number,
+  limit = Infinity,
 ): Promise<PastSession[]> {
   const rows = (
     await db.sessionExercises.where('exerciseId').equals(exerciseId).toArray()
@@ -32,15 +32,19 @@ export async function findHistory(
         Date.parse(b.session.startedAt) - Date.parse(a.session.startedAt),
     );
   const history: PastSession[] = [];
+  const seen = new Set<string>();
   let targets: Map<string, RoutineExercise> | undefined;
   for (const { row, session } of candidates) {
     if (history.length >= limit) break;
+    // Một buổi có cùng bài hai lần vẫn chỉ là một lần tập (R2 so hai buổi khác nhau).
+    if (seen.has(session.id)) continue;
     const sets = (
       await db.setLogs.where('sessionExerciseId').equals(row.id).toArray()
     )
       .filter((s) => s.setType === 'working' && s.deletedAt === null)
       .sort((a, b) => a.setIndex - b.setIndex);
     if (sets.length === 0) continue;
+    seen.add(session.id);
     targets ??= await routineTargets();
     history.push({
       sessionExerciseId: row.id,
