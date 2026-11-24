@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { SuggestionSchema } from './suggestion';
 import {
   SessionExerciseSchema,
   SetLogSchema,
@@ -36,6 +37,11 @@ export const SyncEventSchema = z.discriminatedUnion('entity', [
     entity: z.literal('set_logs'),
     op: z.literal('upsert'),
     payload: SetLogSchema,
+  }),
+  z.object({
+    entity: z.literal('suggestions'),
+    op: z.literal('upsert'),
+    payload: SuggestionSchema,
   }),
 ]);
 export type SyncEvent = z.infer<typeof SyncEventSchema>;

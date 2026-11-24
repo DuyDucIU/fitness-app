@@ -1,9 +1,13 @@
 import type { LoadInput } from './equipment';
 
-/** Một working set đã ghi: `weight = null` với bài chỉ reps. */
+/**
+ * Một working set đã ghi: `weight = null` với bài chỉ reps; `durationS` chỉ có với bài
+ * đo thời gian.
+ */
 export interface PastSet {
   weight: number | null;
   reps: number | null;
+  durationS: number | null;
 }
 
 /**
@@ -11,6 +15,8 @@ export interface PastSet {
  * ít nhất một working set của bài đó. Dữ liệu thuần để các luật gợi ý dùng lại.
  */
 export interface LastTime {
+  /** Bài trong buổi đó: căn cứ của gợi ý dựa trên lần này. */
+  sessionExerciseId: string;
   /** Giờ bắt đầu buổi đó (ISO). */
   startedAt: string;
   /** Quy ước ghi tạ của bài trong buổi đó. */
