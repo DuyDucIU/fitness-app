@@ -50,11 +50,18 @@ describe('equipmentDefaults', () => {
     });
   });
 
+  it('Given thanh EZ, When lấy mặc định, Then ghi tổng tạ, bậc 5 kg, không có đòn mặc định (thanh cố định hay thanh rời 5–10 kg tuỳ phòng tập)', () => {
+    expect(equipmentDefaults('e-z curl bar')).toEqual({
+      stepKg: 5,
+      loadInput: 'total',
+      barWeightKg: null,
+    });
+  });
+
   it('Given dụng cụ lạ hoặc không có, When lấy mặc định, Then ghi tổng tạ, bậc 2,5 kg, không có đòn', () => {
     const fallback = { stepKg: 2.5, loadInput: 'total', barWeightKg: null };
     expect(equipmentDefaults(null)).toEqual(fallback);
     expect(equipmentDefaults('sled')).toEqual(fallback);
-    expect(equipmentDefaults('e-z curl bar')).toEqual(fallback);
     expect(equipmentDefaults('constructor')).toEqual(fallback);
   });
 });

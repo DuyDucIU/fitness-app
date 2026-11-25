@@ -35,6 +35,9 @@ const FALLBACK: EquipmentDefaults = {
  */
 const BY_EQUIPMENT = new Map<string, EquipmentDefaults>([
   ['barbell', { stepKg: 5, loadInput: 'total', barWeightKg: 20 }],
+  // Thanh EZ: thanh cố định (số trên thanh là tổng) hay thanh rời nặng 5–10 kg tuỳ phòng tập,
+  // nên không đặt đòn mặc định; user đặt riêng từng bài ở UC14.
+  ['e-z curl bar', { stepKg: 5, loadInput: 'total', barWeightKg: null }],
   ['dumbbell', { stepKg: 2.5, loadInput: 'per_dumbbell', barWeightKg: null }],
   ['kettlebells', { stepKg: 4, loadInput: 'per_dumbbell', barWeightKg: null }],
   ['cable', { stepKg: 5, loadInput: 'stack', barWeightKg: null }],

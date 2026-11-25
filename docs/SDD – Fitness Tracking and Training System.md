@@ -523,6 +523,7 @@ erDiagram
   | Dụng cụ | Bậc tạ | Quy ước ghi tạ | Đòn |
   | --- | --- | --- | --- |
   | `barbell` | 5 kg (bánh nhỏ nhất 2,5 kg gắn hai bên) | `total` | 20 kg |
+  | `e-z curl bar` | 5 kg | `total` | — (thanh cố định ghi tổng; thanh rời 5–10 kg tuỳ loại, user tự đặt) |
   | `dumbbell` | 2,5 kg | `per_dumbbell` | — |
   | `kettlebells` | 4 kg | `per_dumbbell` | — |
   | `cable` | 5 kg | `stack` | — |
