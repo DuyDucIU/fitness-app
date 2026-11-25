@@ -852,10 +852,10 @@ describe('PR tạm trong buổi', () => {
     await user.click(screen.getByRole('button', { name: /^Set 1/ }));
     expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
     expect(loggedSets()).toEqual(['Set 1 85 × 8']);
-    // Chạm lần nữa thì sửa set như thường.
+    // Chạm lần nữa thì sửa set như thường (dải PR còn đè dải "Edit set" tới hết 2,4 giây).
     await user.click(screen.getByRole('button', { name: /^Set 1/ }));
     expect(
-      await screen.findByText('Edit set 1 · Barbell Bench Press - Medium Grip'),
+      await screen.findByRole('button', { name: 'Save set 1' }),
     ).toBeInTheDocument();
   });
 

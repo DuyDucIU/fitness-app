@@ -432,7 +432,8 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
             mode={mode}
             draft={draft}
             rest={rest}
-            pr={prFlash && now < prFlash.until && !editing ? prFlash : null}
+            // Dải PR đè mọi trạng thái của dải, kể cả đang sửa (prototype › flashPR).
+            pr={prFlash && now < prFlash.until ? prFlash : null}
             onDraftChange={setDraft}
             onDelete={remove}
             onAddSet={addPlannedSet}
