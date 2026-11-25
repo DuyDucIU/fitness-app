@@ -79,7 +79,7 @@ export const db = new Dexie('fitness') as Dexie & {
   sessionExercises: EntityTable<SessionExercise, 'id'>;
   setLogs: EntityTable<SetLog, 'id'>;
   /**
-   * Gợi ý của engine và trạng thái trả lời (UC12), local-first qua outbox như dữ liệu buổi
+   * Gợi ý của engine và trạng thái trả lời (UC12, UC13), local-first qua outbox như dữ liệu buổi
    * tập: chỉ ghi qua `workout/session`.
    */
   suggestions: EntityTable<Suggestion, 'id'>;
@@ -114,4 +114,9 @@ db.version(7).stores({
 // Gợi ý (UC12): một gợi ý trước buổi ứng với một bài và một lần tập làm căn cứ.
 db.version(8).stores({
   suggestions: 'id, [exerciseId+basedOnSessionExerciseId], status',
+});
+// Back-off (UC13): gợi ý đưa ra giữa chừng của một bài trong buổi.
+db.version(9).stores({
+  suggestions:
+    'id, [exerciseId+basedOnSessionExerciseId], status, sessionExerciseId',
 });

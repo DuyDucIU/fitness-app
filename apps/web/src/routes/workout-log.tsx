@@ -1,4 +1,9 @@
-import type { LoadInput, RoutineExercise, SetLog } from '@fitness/contract';
+import type {
+  LoadInput,
+  RoutineExercise,
+  SetLog,
+  Suggestion,
+} from '@fitness/contract';
 import {
   equipmentDefaults,
   type LastTime,
@@ -51,7 +56,9 @@ import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
 import {
   addExercise,
+  answerBackOff,
   answerSuggestion,
+  type ActiveBackOff,
   deleteSet,
   finishSession,
   logSet,
@@ -71,7 +78,8 @@ import {
   setText,
 } from '@/workout/display';
 import { unlockRestAlarm } from '@/workout/rest-alarm';
-import { hintText, tipText } from '@/workout/suggestion-text';
+import { backOffText, hintText, tipText } from '@/workout/suggestion-text';
+import { backOffParams } from '@/workout/suggestions';
 import { type RestTimerState, useRestTimer } from '@/workout/rest-timer';
 
 /**
@@ -123,6 +131,14 @@ function prefillAt(item: OpenExercise, index: number): Draft | null {
     weight: logKind(item) === 'reps' ? null : past.weight,
     reps: past.reps,
   };
+}
+
+/**
+ * Back-off đang áp (UC13) thay mức tạ của set chờ tập bằng mức gợi ý, giữ reps (UC07 bước 3:
+ * gợi ý có kèm số điền sẵn ô nhập).
+ */
+function withBackOff(draft: Draft, backOff: ActiveBackOff | null): Draft {
+  return backOff ? { ...draft, weight: backOff.weight } : draft;
 }
 
 function WorkoutLog({ workout }: { workout: OpenSession }) {
@@ -179,7 +195,12 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const [nextFor, setNextFor] = React.useState<string>();
   if (current && nextFor !== current.row.id) {
     setNextFor(current.row.id);
-    setNextDraft(prefillAt(current, logged.length) ?? draftFrom(logged.at(-1)));
+    setNextDraft(
+      withBackOff(
+        prefillAt(current, logged.length) ?? draftFrom(logged.at(-1)),
+        current.backOff,
+      ),
+    );
   }
   const [editDraft, setEditDraft] = React.useState<Draft>(emptyDraft);
   const [editFor, setEditFor] = React.useState<string>();
@@ -223,14 +244,18 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
       const restAfter = exercises.some(
         (e) => remainingOf(e) - (e === current ? 1 : 0) > 0,
       );
-      await logSet(current.row.id, values);
+      const backOff = await logSet(
+        current.row.id,
+        values,
+        remainingOf(current) - 1,
+      );
       // Nghỉ theo `rest_seconds` của bài trong ngày tập; bài ad hoc thì mặc định (UC08).
       if (restAfter)
         rest.start(restSecondsFor(current.target?.restSeconds ?? null));
       else rest.skip();
-      // Set kế tiếp (thứ tự nextNo tính từ 0) theo lần trước; không có thì giữ số vừa ghi.
-      const next = prefillAt(current, nextNo);
-      if (next) setNextDraft(next);
+      // Set kế tiếp (thứ tự nextNo tính từ 0) theo lần trước, không có thì giữ số vừa ghi;
+      // có back-off thì lấy mức tạ của back-off.
+      setNextDraft(withBackOff(prefillAt(current, nextNo) ?? values, backOff));
       toast.announce(m.log_set_saved({ n: nextNo }));
     }
   }
@@ -404,8 +429,13 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                   else if (isNext)
                     value = setText(kind, nextDraft.weight, nextDraft.reps);
                   else {
-                    // Set chờ tập sau đó: số dự kiến theo lần trước, chưa có thì "–".
-                    const past = prefillAt(current, i);
+                    // Set chờ tập sau đó: số dự kiến theo lần trước, mức tạ theo back-off
+                    // nếu có; không có gì thì "–".
+                    const prefill = prefillAt(current, i);
+                    const past =
+                      prefill || current.backOff
+                        ? withBackOff(prefill ?? emptyDraft, current.backOff)
+                        : null;
                     value = setText(
                       kind,
                       past?.weight ?? null,
@@ -852,6 +882,12 @@ function SetBib({
       )}
       {item.tip && kind !== 'unsupported' && mode.type === 'log' ? (
         <TipStub item={item} />
+      ) : item.backOff?.suggestion.status === 'pending' &&
+        mode.type === 'log' ? (
+        <BackOffStub
+          backOff={item.backOff.suggestion}
+          onWeight={(weight) => onDraftChange({ ...draft, weight })}
+        />
       ) : (
         item.lastTime &&
         kind !== 'unsupported' &&
@@ -894,6 +930,56 @@ function TipStub({ item }: { item: OpenExercise }) {
         }
       >
         {text}
+      </BibTip>
+    </>
+  );
+}
+
+/**
+ * Gợi ý back-off chưa trả lời (UC13, R3) thay cuống lần trước (prototypes/workout-log ›
+ * .stub.tip): ô tạ đã điền sẵn mức back-off; "OK" nhận, "Keep" trả ô tạ về mức cũ. Ghi set
+ * mà chưa trả lời thì mức tạ thực ghi là câu trả lời.
+ */
+function BackOffStub({
+  backOff,
+  onWeight,
+}: {
+  backOff: Suggestion;
+  onWeight: (weight: number) => void;
+}) {
+  const text = backOffText(backOff);
+  const params = backOffParams(backOff);
+  if (!text || !params) return null;
+  const { from, to } = text;
+  return (
+    <>
+      <BibPerf />
+      <BibTip
+        actions={
+          <>
+            <Button
+              variant="ink"
+              onClick={() => {
+                onWeight(params.to);
+                void answerBackOff(backOff.id, 'accepted');
+              }}
+            >
+              {m.backoff_ok({ weight: to })}
+            </Button>
+            <Button
+              variant="line"
+              onClick={() => {
+                onWeight(params.from);
+                void answerBackOff(backOff.id, 'dismissed');
+              }}
+            >
+              {m.backoff_keep({ weight: from })}
+            </Button>
+          </>
+        }
+      >
+        {text.lead} {text.dropBefore} <b>{m.backoff_kg({ weight: to })}</b>{' '}
+        {text.dropAfter}
       </BibTip>
     </>
   );

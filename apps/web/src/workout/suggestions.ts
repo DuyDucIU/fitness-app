@@ -5,6 +5,7 @@ import type {
   Suggestion,
 } from '@fitness/contract';
 import {
+  type BackOff,
   type BeforeSession,
   beforeSession,
   type PastSession,
@@ -126,4 +127,19 @@ export function useDayTips(day: RoutineDay): DayTip[] | undefined {
     );
     return tips.filter((t) => t !== undefined);
   }, [day]);
+}
+
+/**
+ * Tham số của một gợi ý back-off (UC13) đọc từ `payload`; `null` nếu bản ghi thiếu tham số
+ * (vd bản ghi hỏng từ client khác).
+ */
+export function backOffParams(s: Suggestion): BackOff['params'] | null {
+  const { reps, min, from, to, sets } = s.payload;
+  return typeof reps === 'number' &&
+    typeof min === 'number' &&
+    typeof from === 'number' &&
+    typeof to === 'number' &&
+    typeof sets === 'number'
+    ? { reps, min, from, to, sets }
+    : null;
 }
