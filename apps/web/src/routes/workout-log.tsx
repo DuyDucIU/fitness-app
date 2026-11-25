@@ -283,7 +283,6 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
         const name = exerciseName(current);
         const value = recordValueText(kind, record, values.weight, values.reps);
         setPrFlash({
-          sessionExerciseId: current.row.id,
           name,
           value,
           until: prFlashUntil(),
@@ -433,14 +432,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
             mode={mode}
             draft={draft}
             rest={rest}
-            pr={
-              prFlash &&
-              prFlash.sessionExerciseId === current.row.id &&
-              now < prFlash.until &&
-              !editing
-                ? prFlash
-                : null
-            }
+            pr={prFlash && now < prFlash.until && !editing ? prFlash : null}
             onDraftChange={setDraft}
             onDelete={remove}
             onAddSet={addPlannedSet}
@@ -485,9 +477,11 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                       past?.reps ?? null,
                     );
                   }
-                  // Hàng PR (nền mực, chữ cam) tới khi user chạm vào (prototype › .prrow).
+                  // Hàng PR (nền mực, chữ cam) tới khi user chạm vào (prototype › .prrow);
+                  // đang sửa set đó thì là hàng hiện tại.
                   const [record] =
                     (set &&
+                      !isCurrent &&
                       !seenRecords.has(set.id) &&
                       current.records.get(set.id)) ||
                     [];
@@ -499,11 +493,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                       <Row
                         asChild
                         tone={
-                          record && !isCurrent
-                            ? 'inverse'
-                            : isCurrent
-                              ? 'current'
-                              : 'default'
+                          record ? 'inverse' : isCurrent ? 'current' : 'default'
                         }
                         className="border-t-0"
                       >
@@ -527,7 +517,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                             </span>
                           </RowKey>{' '}
                           <RowValue>{value}</RowValue>
-                          {set && record && !isCurrent ? (
+                          {record ? (
                             <RowEnd>
                               {' '}
                               {m.log_pr_row({ type: recordTypeText(record) })}
@@ -659,16 +649,17 @@ function ExerciseChip({
   );
 }
 
-/** Trạng thái tấm số áo: đang ghi set n/total, đang sửa set n, hay đã xong mọi set. */
 /** Thời gian dải số áo báo PR mới (DESIGN.md › Tấm số áo). */
 const PR_FLASH_MS = 2400;
 
 /** Mốc thôi hiện dải PR, tính lúc set vừa ghi lập PR. */
 const prFlashUntil = () => Date.now() + PR_FLASH_MS;
 
-/** PR vừa lập, hiện trên dải số áo của bài. */
+/**
+ * PR vừa lập, hiện trên dải số áo hiện tại kèm tên bài lập PR, kể cả khi set đó là set cuối
+ * và màn đã sang bài kế (prototype › flashPR).
+ */
 interface PrFlash {
-  sessionExerciseId: string;
   name: string;
   /** Số mới: set vừa ghi, hay tổng volume của buổi. */
   value: string;
@@ -676,6 +667,7 @@ interface PrFlash {
   until: number;
 }
 
+/** Trạng thái tấm số áo: đang ghi set n/total, đang sửa set n, hay đã xong mọi set. */
 type BibMode =
   | { type: 'log'; n: number; total: number }
   | { type: 'edit'; n: number }

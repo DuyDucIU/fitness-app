@@ -20,7 +20,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 
 import { db, type OutboxEvent } from '@/db/db';
 import { findHistory } from '@/workout/last-time';
-import { findRecordHistory, recordsOfSets } from '@/workout/records';
+import { findSessionRecords } from '@/workout/records';
 import {
   type Advice,
   adviseFor,
@@ -458,11 +458,9 @@ export function logSet(
     await put(db.setLogs, 'set_logs', row);
     if (!exercise) return { backOff: null, records: [] };
     await issueBackOff(exercise, row, setsLeft);
-    const records = recordsOfSets(
+    const records = await findSessionRecords(
       await db.exercises.get(exercise.exerciseId),
       exercise,
-      await findRecordHistory(exercise.exerciseId),
-      [...existing, row],
     );
     return {
       backOff: await activeBackOff(sessionExerciseId),
@@ -628,12 +626,7 @@ async function readOpenSession(): Promise<OpenSession | null> {
           ? await openTip(advice, e.row.exerciseId, e.row.routineExerciseId)
           : undefined;
       const backOff = await activeBackOff(e.row.id);
-      const records = recordsOfSets(
-        e.exercise,
-        e.row,
-        await findRecordHistory(e.row.exerciseId),
-        e.sets,
-      );
+      const records = await findSessionRecords(e.exercise, e.row);
       return { ...e, lastTime: advice.lastTime, advice, tip, backOff, records };
     }),
   );

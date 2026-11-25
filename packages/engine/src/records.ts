@@ -93,8 +93,10 @@ function setRecord(
       ? { type: 'weight_at_reps', value: weight, reps: set.reps }
       : null;
   }
-  const best = Math.max(0, ...past.filter((s) => !s.weight).map((s) => s.reps));
-  return set.reps > best
+  // Chưa có set BW nào thì chưa có gì để vượt (như lần đầu tập bài).
+  const bodyweight = past.filter((s) => !s.weight).map((s) => s.reps);
+  if (bodyweight.length === 0) return null;
+  return set.reps > Math.max(...bodyweight)
     ? { type: 'max_reps', value: set.reps, reps: set.reps }
     : null;
 }

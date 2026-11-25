@@ -753,3 +753,35 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
     expect(await backOffs()).toEqual([]);
   });
 });
+
+describe('màn ghi set: PR tạm ở set cuối của bài', () => {
+  it('set cuối lập PR rồi màn chuyển sang bài kế: dải số áo vẫn báo PR của bài vừa tập', async () => {
+    await seedPush(
+      '2026-11-20T10:00:00.000Z',
+      BENCH_ROW,
+      BENCH.id,
+      benchAt(80, [8, 8, 7]),
+    );
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await user.click(await screen.findByRole('button', { name: 'Start Push' }));
+    await screen.findByRole('heading', { name: 'Push' });
+
+    // Hai set đầu bằng lần trước: không có PR.
+    await user.click(await screen.findByRole('button', { name: 'Log set 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Log set 2' }));
+    await screen.findByRole('button', { name: 'Log set 3' });
+    expect(screen.queryByRole('group', { name: 'New PR' })).toBeNull();
+
+    const weight = screen.getByRole('textbox', { name: 'Weight (total)' });
+    await user.clear(weight);
+    await user.type(weight, '85');
+    await user.click(screen.getByRole('button', { name: 'Log set 3' }));
+
+    // Hết set bench: màn sang Push-up, dải số áo báo PR của bench (85 × 7).
+    await screen.findByRole('region', { name: 'Pushups' });
+    expect(text(screen.getByRole('group', { name: 'New PR' }))).toBe(
+      'New PR · Barbell Bench Press - Medium Grip 85 × 7',
+    );
+  });
+});

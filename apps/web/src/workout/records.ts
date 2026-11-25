@@ -1,8 +1,4 @@
-import type {
-  CatalogExercise,
-  SessionExercise,
-  SetLog,
-} from '@fitness/contract';
+import type { CatalogExercise, SessionExercise } from '@fitness/contract';
 import {
   type NewRecord,
   newRecords,
@@ -60,18 +56,36 @@ export async function findRecordHistory(
 }
 
 /**
- * PR tạm của từng set (theo id) trong một bài của buổi đang mở: mỗi set so với lịch sử
- * và các set ghi trước nó trong buổi. Set không lập PR thì không có mặt.
+ * PR tạm của từng set (theo id) của một bài trong buổi đang mở: mỗi set so với lịch sử và
+ * các set ghi trước nó trong buổi, kể cả set của lần khác cùng bài, cùng quy ước ghi tạ
+ * trong buổi (bài thêm hai lần). Set không lập PR thì không có mặt.
  */
-export function recordsOfSets(
+export async function findSessionRecords(
   exercise: CatalogExercise | undefined,
   row: SessionExercise,
-  history: RecordSession[],
-  sets: SetLog[],
-): Map<string, NewRecord[]> {
+): Promise<Map<string, NewRecord[]>> {
+  const rows = (
+    await db.sessionExercises.where('sessionId').equals(row.sessionId).toArray()
+  ).filter(
+    (r) =>
+      r.deletedAt === null &&
+      r.exerciseId === row.exerciseId &&
+      r.loadInput === row.loadInput,
+  );
+  const [history, sets] = await Promise.all([
+    findRecordHistory(row.exerciseId),
+    db.setLogs
+      .where('sessionExerciseId')
+      .anyOf(rows.map((r) => r.id))
+      .toArray(),
+  ]);
   const working = sets
     .filter((s) => s.setType === 'working' && s.deletedAt === null)
-    .sort((a, b) => a.setIndex - b.setIndex)
+    // Thứ tự ghi trong buổi: `setIndex` chỉ đúng trong một lần của bài.
+    .sort(
+      (a, b) =>
+        a.completedAt.localeCompare(b.completedAt) || a.setIndex - b.setIndex,
+    )
     .map((s) => ({ id: s.id, weight: s.weightValue, reps: s.reps }));
   const records = new Map<string, NewRecord[]>();
   working.forEach((set, i) => {

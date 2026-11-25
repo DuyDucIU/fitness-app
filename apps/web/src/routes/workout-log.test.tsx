@@ -859,6 +859,25 @@ describe('PR tạm trong buổi', () => {
     ).toBeInTheDocument();
   });
 
+  it('bài thêm hai lần trong buổi: lần sau so cả với set của lần trước trong buổi', async () => {
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+    await type(user, 'Weight (total)', '90');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+    await waitFor(() => expect(prBand()).toBeDefined());
+
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+    await type(user, 'Weight (total)', '85');
+    await type(user, 'Reps', '8');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+    await screen.findByRole('button', { name: 'Log set 2' });
+    // 85 × 8 vượt kỷ lục cũ 80 × 8 nhưng không vượt 90 × 8 vừa ghi.
+    await waitFor(() => expect(loggedSets()).toEqual(['Set 1 85 × 8']));
+    expect(prBand()).not.toContain('85 × 8');
+  });
+
   it('set chỉ bằng kỷ lục cũ: không báo PR', async () => {
     const user = userEvent.setup();
     await openApp('/', signedInAn);

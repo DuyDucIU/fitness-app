@@ -232,6 +232,19 @@ describe('newRecords — tạ đeo thêm (weight_at_reps)', () => {
     expect(types(pullups({ set: { weight: 10, reps: 6 } }))).toEqual([]);
   });
 
+  it('Given lịch sử chỉ có set đeo tạ, When set BW đầu tiên, Then chưa có set BW nào để vượt nên không có max_reps', () => {
+    expect(
+      types(
+        pullups({
+          history: [
+            { loadInput: 'added_weight', sets: [{ weight: 10, reps: 8 }] },
+          ],
+          set: { weight: 0, reps: 5 },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
   it('Given set BW (0 kg) nhiều reps hơn mọi set BW trước, Then là max_reps, không so với set có tạ', () => {
     expect(types(pullups({ set: { weight: 0, reps: 13 } }))).toEqual([
       'max_reps',
