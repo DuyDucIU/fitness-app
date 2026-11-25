@@ -84,7 +84,9 @@ describe('afterSet — R3 back-off', () => {
   });
 
   it('Given set đúng sàn rep range với RPE 9, When ghi xong, Then không gợi ý', () => {
-    expect(afterSet(input({ set: { weight: 80, reps: 6, rpe: 9 } }))).toBe(null);
+    expect(afterSet(input({ set: { weight: 80, reps: 6, rpe: 9 } }))).toBe(
+      null,
+    );
   });
 
   it('Given set đúng sàn rep range không ghi RPE, When ghi xong, Then không gợi ý', () => {

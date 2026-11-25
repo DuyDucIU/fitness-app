@@ -3,6 +3,7 @@ import type { PreSessionHint, PreSessionSuggestion } from '@fitness/engine';
 
 import { formatElapsed, formatNumber } from '@/lib/format';
 import { m } from '@/paraglide/messages.js';
+import { backOffParams } from '@/workout/suggestions';
 
 /**
  * Câu chữ của gợi ý (UC12, UC13), dựng ở client từ mã lý do và tham số engine trả về,
@@ -106,30 +107,20 @@ export interface BackOffText {
 
 /**
  * Câu của gợi ý back-off (UC13, R3; prototypes/workout-log › logSet, rpeBackoff) từ mã lý
- * do và tham số. `null` nếu bản ghi thiếu tham số (vd bản ghi từ client khác hỏng).
+ * do và tham số. `null` nếu bản ghi thiếu tham số.
  */
-export function backOffText({
-  reason,
-  payload,
-}: Suggestion): BackOffText | null {
-  const { reps, min, from, to, sets } = payload;
-  if (
-    typeof reps !== 'number' ||
-    typeof min !== 'number' ||
-    typeof from !== 'number' ||
-    typeof to !== 'number' ||
-    typeof sets !== 'number'
-  ) {
-    return null;
-  }
+export function backOffText(s: Suggestion): BackOffText | null {
+  const params = backOffParams(s);
+  if (!params) return null;
+  const { reps, min, from, to, sets } = params;
   const args = { reps: formatNumber(reps), min: formatNumber(min) };
-  const allOut = reason === 'min_all_out';
+  const allOut = s.reason === 'min_all_out';
   return {
-    lead: allOut ? m.bo_min_all_out(args) : m.bo_under_min(args),
-    dropBefore: m.bo_drop_before(),
+    lead: allOut ? m.backoff_min_all_out(args) : m.backoff_under_min(args),
+    dropBefore: m.backoff_drop_before(),
     dropAfter: allOut
-      ? m.bo_drop_after_all_out({ n: sets })
-      : m.bo_drop_after_under_min({ n: sets }),
+      ? m.backoff_drop_after_all_out({ n: sets })
+      : m.backoff_drop_after_under_min({ n: sets }),
     from: formatNumber(from),
     to: formatNumber(to),
   };

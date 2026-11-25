@@ -491,11 +491,11 @@
   "sug_how_time": "Đến lúc giữ lâu thêm một chút.",
   "sug_why_all_top": "Mọi set chính đều chạm trần khoảng {range} của bạn.",
   "sug_why_top_again": "Hai buổi liền chạm trần khoảng {range}.",
-  "bo_under_min": "Set vừa rồi được {reps} rep, dưới mức tối thiểu {min}.",
-  "bo_min_all_out": "{reps} rep và đã cạn sức, đúng mức tối thiểu {min}.",
-  "bo_drop_before": "Giảm xuống",
-  "bo_kg": "{weight} kg",
-  "bo_drop_after_under_min": [
+  "backoff_under_min": "Set vừa rồi được {reps} rep, dưới mức tối thiểu {min}.",
+  "backoff_min_all_out": "{reps} rep và đã cạn sức, đúng mức tối thiểu {min}.",
+  "backoff_drop_before": "Giảm xuống",
+  "backoff_kg": "{weight} kg",
+  "backoff_drop_after_under_min": [
     {
       "declarations": [
         "input n"
@@ -509,7 +509,7 @@
       }
     }
   ],
-  "bo_drop_after_all_out": [
+  "backoff_drop_after_all_out": [
     {
       "declarations": [
         "input n"
@@ -523,8 +523,8 @@
       }
     }
   ],
-  "bo_ok": "Ừ, {weight} kg",
-  "bo_keep": "Giữ {weight} kg",
+  "backoff_ok": "Ừ, {weight} kg",
+  "backoff_keep": "Giữ {weight} kg",
   "hint_topped_out": "Lần trước set nào cũng chạm trần.",
   "hint_transition": "Lần trước mỗi set một mức tạ. Làm lại đúng từng set.",
   "hint_one_short_weight": "Còn một set chưa tới. Đủ {top} ở cả {count} set là lên tạ được.",

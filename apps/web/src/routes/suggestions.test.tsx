@@ -431,14 +431,19 @@ describe('màn ghi set: gợi ý trước buổi', () => {
 });
 
 describe('màn ghi set: back-off trong buổi (R3)', () => {
-  /** Lần trước Bench 80 × 8 · 8 · 7: không có gợi ý trước buổi, ô nhập điền 80 × 8. */
-  async function startPushAfterBench() {
-    await seedPush(
-      '2026-11-20T10:00:00.000Z',
-      BENCH_ROW,
-      BENCH.id,
-      benchAt(80, [8, 8, 7]),
-    );
+  /**
+   * Lần trước Bench `weight` × 8 · 8 · 7: không có gợi ý trước buổi, ô nhập điền
+   * `weight` × 8. `null`: Bench chưa có lịch sử.
+   */
+  async function startPushAfterBench(weight: number | null = 80) {
+    if (weight !== null) {
+      await seedPush(
+        '2026-11-20T10:00:00.000Z',
+        BENCH_ROW,
+        BENCH.id,
+        benchAt(weight, [8, 8, 7]),
+      );
+    }
     const user = userEvent.setup();
     await openApp('/', signedInAn);
     await user.click(await screen.findByRole('button', { name: 'Start Push' }));
@@ -492,7 +497,14 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
         kind: 'back_off',
         strength: 'strong',
         reason: 'under_min',
-        payload: { reps: 4, min: 6, from: 80, to: 77.5, sets: 2 },
+        payload: {
+          reps: 4,
+          min: 6,
+          from: 80,
+          to: 77.5,
+          sets: 2,
+          setLogId: expect.any(String),
+        },
         status: 'pending',
         respondedAt: null,
       }),
@@ -597,6 +609,75 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
     expect(await backOffs()).toEqual([
       expect.objectContaining({ status: 'expired', respondedAt: null }),
     ]);
+  });
+
+  const plannedRow = (n: number) =>
+    text(
+      within(screen.getByRole('list', { name: 'Working sets' })).getAllByRole(
+        'listitem',
+      )[n - 1]!,
+    );
+
+  it('Keep: mọi set còn lại về mức vừa ghi, kể cả khi lần trước nặng hơn', async () => {
+    const user = await startPushAfterBench(82.5);
+    await user.clear(weightBox());
+    await user.type(weightBox(), '80');
+    await logReps(user, 4, 1);
+    const tip = await screen.findByRole('note', {
+      name: /under your 6 minimum/,
+    });
+
+    await user.click(within(tip).getByRole('button', { name: 'Keep 80 kg' }));
+
+    await screen.findByRole('note', { name: /^Last time/ });
+    expect(weightBox()).toHaveValue('80');
+    expect(plannedRow(3)).toContain('80 ×');
+  });
+
+  it('đã OK rồi tự ghi lại mức cũ: set sau không bị điền mức back-off nữa', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 4, 1);
+    const tip = await screen.findByRole('note', {
+      name: /under your 6 minimum/,
+    });
+    await user.click(within(tip).getByRole('button', { name: 'OK, 77.5 kg' }));
+    await screen.findByRole('note', { name: /^Last time/ });
+    await user.clear(weightBox());
+    await user.type(weightBox(), '80');
+
+    await logReps(user, 8, 2);
+
+    expect(weightBox()).toHaveValue('80');
+  });
+
+  it('xoá set gây back-off khi chưa trả lời: gợi ý bỏ đi (tombstone), không tính vào tỉ lệ chấp nhận', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 4, 1);
+    await screen.findByRole('note', { name: /under your 6 minimum/ });
+
+    await user.click(screen.getByRole('button', { name: /^Set 1/ }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Delete set 1' }),
+    );
+
+    await screen.findByRole('button', { name: 'Log set 1' });
+    expect(screen.queryByRole('note', { name: /minimum/ })).toBeNull();
+    expect(await backOffs()).toEqual([
+      expect.objectContaining({
+        status: 'pending',
+        deletedAt: expect.any(String),
+      }),
+    ]);
+  });
+
+  it('bài chưa có lịch sử: các set chờ tập vẫn hiện mức back-off', async () => {
+    const user = await startPushAfterBench(null);
+    await user.type(weightBox(), '80');
+    await logReps(user, 4, 1);
+    await screen.findByRole('note', { name: /under your 6 minimum/ });
+
+    expect(weightBox()).toHaveValue('77.5');
+    expect(plannedRow(3)).toContain('77.5');
   });
 
   it('đóng rồi mở lại app: back-off pending vẫn hiện, ô tạ vẫn ở mức back-off', async () => {

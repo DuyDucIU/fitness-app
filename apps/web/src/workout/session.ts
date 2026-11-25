@@ -18,6 +18,7 @@ import { findHistory } from '@/workout/last-time';
 import {
   type Advice,
   adviseFor,
+  backOffParams,
   findPreSessionRecord,
   openTip,
   type Tip,
@@ -294,29 +295,52 @@ async function targetOf(row: SessionExercise): Promise<RoutineExercise | null> {
   return day?.exercises.find((e) => e.id === row.routineExerciseId) ?? null;
 }
 
-/** Các gợi ý back-off (UC13) chưa xoá của một bài trong buổi, cũ trước. */
-async function backOffsOf(sessionExerciseId: string): Promise<Suggestion[]> {
+/** Các gợi ý back-off (UC13) chưa xoá (`deleted`: đã xoá) của một bài trong buổi, cũ trước. */
+async function backOffsOf(
+  sessionExerciseId: string,
+  deleted = false,
+): Promise<Suggestion[]> {
   return (
     await db.suggestions
       .where('sessionExerciseId')
       .equals(sessionExerciseId)
       .toArray()
   )
-    .filter((s) => s.kind === 'back_off' && !s.deletedAt)
+    .filter((s) => s.kind === 'back_off' && !!s.deletedAt === deleted)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+/** Back-off đang áp cho các set chờ tập của một bài. */
+export interface ActiveBackOff {
+  suggestion: Suggestion;
+  /** Mức tạ điền sẵn: mức back-off, hoặc mức cũ khi user đã bấm "Keep". */
+  weight: number;
+}
+
 /**
- * Back-off đang áp cho các set còn lại của bài: gợi ý mới nhất, nếu user chưa bỏ qua
- * (`pending` hay `accepted`). Các set chờ tập điền sẵn mức tạ của gợi ý này (UC07 bước 3).
+ * Back-off đang áp cho các set còn lại của bài (UC07 bước 3): gợi ý mới nhất của bài, điền
+ * mức back-off khi chưa bỏ qua, mức cũ khi đã bỏ qua. Thôi áp khi một set ghi sau set gây
+ * back-off dùng mức tạ khác (user đã tự chọn mức), hoặc set gây back-off không còn.
  */
 async function activeBackOff(
   sessionExerciseId: string,
-): Promise<Suggestion | null> {
+): Promise<ActiveBackOff | null> {
   const latest = (await backOffsOf(sessionExerciseId)).at(-1);
-  return latest && (latest.status === 'pending' || latest.status === 'accepted')
-    ? latest
-    : null;
+  const params = latest && backOffParams(latest);
+  if (!latest || !params || latest.status === 'expired') return null;
+  const weight = latest.status === 'dismissed' ? params.from : params.to;
+  const sets = (
+    await db.setLogs
+      .where('sessionExerciseId')
+      .equals(sessionExerciseId)
+      .toArray()
+  ).filter((s) => s.deletedAt === null);
+  const cause = sets.find((s) => s.id === latest.payload.setLogId);
+  if (!cause) return null;
+  const changed = sets.some(
+    (s) => s.setIndex > cause.setIndex && s.weightValue !== weight,
+  );
+  return changed ? null : { suggestion: latest, weight };
 }
 
 /**
@@ -325,8 +349,7 @@ async function activeBackOff(
  */
 async function issueBackOff(
   row: SessionExercise,
-  values: SetValues,
-  rpe: number | null,
+  set: SetLog,
   setsLeft: number,
 ) {
   const exercise = await db.exercises.get(row.exerciseId);
@@ -341,7 +364,7 @@ async function issueBackOff(
     metric: exercise?.metricType ?? 'weight_reps',
     target,
     history,
-    set: { weight: values.weight, reps: values.reps, rpe },
+    set: { weight: set.weightValue, reps: set.reps, rpe: set.rpe },
     setsLeft,
     loadInput: row.loadInput,
     stepKg,
@@ -358,7 +381,8 @@ async function issueBackOff(
     // Nêu một mức tạ cụ thể và điền sẵn ô nhập, khác gợi ý tăng chỉ nêu hướng.
     strength: 'strong',
     reason: backOff.reason,
-    payload: { ...backOff.params },
+    // `setLogId`: set gây back-off; xoá set đó khi chưa trả lời thì bỏ gợi ý.
+    payload: { ...backOff.params, setLogId: set.id },
     status: 'pending',
     createdAt: now(),
     respondedAt: null,
@@ -377,7 +401,7 @@ export function logSet(
   sessionExerciseId: string,
   values: SetValues,
   setsLeft: number,
-): Promise<Suggestion | null> {
+): Promise<ActiveBackOff | null> {
   return db.transaction('rw', ADVICE_TABLES, async () => {
     const exercise = await db.sessionExercises.get(sessionExerciseId);
     const existing = await db.setLogs
@@ -396,7 +420,7 @@ export function logSet(
     const at = now();
     for (const s of await backOffsOf(sessionExerciseId)) {
       if (s.status !== 'pending') continue;
-      const took = values.weight === s.payload.to;
+      const took = values.weight === backOffParams(s)?.to;
       await put(db.suggestions, 'suggestions', {
         ...s,
         status: took ? 'accepted' : 'dismissed',
@@ -411,12 +435,13 @@ export function logSet(
       ...setFields(values),
       durationS: null,
       distanceM: null,
+      // Web chưa có ô nhập RPE (#40); có thì nhánh "= rep_min tuỳ RPE" của R3 tự chạy.
       rpe: null,
       completedAt: at,
       deletedAt: null,
     };
     await put(db.setLogs, 'set_logs', row);
-    if (exercise) await issueBackOff(exercise, values, row.rpe, setsLeft);
+    if (exercise) await issueBackOff(exercise, row, setsLeft);
     return activeBackOff(sessionExerciseId);
   });
 }
@@ -456,22 +481,50 @@ export function updateSet(setId: string, values: SetValues): Promise<void> {
   });
 }
 
+/**
+ * Back-off chưa trả lời do set `setId` gây ra (`deleted`: các bản đã bỏ). Xoá set (vd ghi
+ * nhầm) thì gợi ý mất căn cứ, bỏ luôn (tombstone) để không tính vào tỉ lệ chấp nhận; Undo
+ * thì khôi phục cùng set.
+ */
+async function backOffsCausedBy(setId: string, deleted: boolean) {
+  const row = await db.setLogs.get(setId);
+  if (!row) return [];
+  return (await backOffsOf(row.sessionExerciseId, deleted)).filter(
+    (s) => s.status === 'pending' && s.payload.setLogId === setId,
+  );
+}
+
 /** Xoá một set (tombstone, để việc xoá cũng được đồng bộ). */
 export function deleteSet(setId: string): Promise<void> {
-  return db.transaction('rw', db.setLogs, db.outbox, async () => {
-    const row = await db.setLogs.get(setId);
-    if (!row || row.deletedAt) return;
-    await put(db.setLogs, 'set_logs', { ...row, deletedAt: now() });
-  });
+  return db.transaction(
+    'rw',
+    [db.setLogs, db.outbox, db.suggestions],
+    async () => {
+      const row = await db.setLogs.get(setId);
+      if (!row || row.deletedAt) return;
+      const at = now();
+      for (const s of await backOffsCausedBy(setId, false)) {
+        await put(db.suggestions, 'suggestions', { ...s, deletedAt: at });
+      }
+      await put(db.setLogs, 'set_logs', { ...row, deletedAt: at });
+    },
+  );
 }
 
 /** Khôi phục set vừa xoá (Undo): bỏ tombstone, đẩy lại bằng upsert như mọi thay đổi khác. */
 export function restoreSet(setId: string): Promise<void> {
-  return db.transaction('rw', db.setLogs, db.outbox, async () => {
-    const row = await db.setLogs.get(setId);
-    if (!row?.deletedAt) return;
-    await put(db.setLogs, 'set_logs', { ...row, deletedAt: null });
-  });
+  return db.transaction(
+    'rw',
+    [db.setLogs, db.outbox, db.suggestions],
+    async () => {
+      const row = await db.setLogs.get(setId);
+      if (!row?.deletedAt) return;
+      for (const s of await backOffsCausedBy(setId, true)) {
+        await put(db.suggestions, 'suggestions', { ...s, deletedAt: null });
+      }
+      await put(db.setLogs, 'set_logs', { ...row, deletedAt: null });
+    },
+  );
 }
 
 /**
@@ -524,8 +577,8 @@ export interface OpenExercise extends WorkoutExercise {
   advice: Advice;
   /** Gợi ý trước buổi chưa trả lời; ẩn khi đã ghi set đầu của bài. */
   tip: Tip | undefined;
-  /** Back-off đang áp cho các set còn lại (UC13); `null`: không có hoặc user đã bỏ qua. */
-  backOff: Suggestion | null;
+  /** Back-off đang áp cho các set còn lại (UC13); `null`: không có. */
+  backOff: ActiveBackOff | null;
 }
 /** Buổi đang mở. */
 export interface OpenSession extends Workout {

@@ -519,11 +519,11 @@
   "sug_how_time": "Time to go a little longer.",
   "sug_why_all_top": "Every working set reached the top of your {range} range.",
   "sug_why_top_again": "Second session in a row at the top of {range}.",
-  "bo_under_min": "That set was {reps} reps, under your {min} minimum.",
-  "bo_min_all_out": "{reps} reps with nothing left, right at your {min} minimum.",
-  "bo_drop_before": "Drop to",
-  "bo_kg": "{weight} kg",
-  "bo_drop_after_under_min": [
+  "backoff_under_min": "That set was {reps} reps, under your {min} minimum.",
+  "backoff_min_all_out": "{reps} reps with nothing left, right at your {min} minimum.",
+  "backoff_drop_before": "Drop to",
+  "backoff_kg": "{weight} kg",
+  "backoff_drop_after_under_min": [
     {
       "declarations": [
         "input n"
@@ -537,7 +537,7 @@
       }
     }
   ],
-  "bo_drop_after_all_out": [
+  "backoff_drop_after_all_out": [
     {
       "declarations": [
         "input n"
@@ -551,8 +551,8 @@
       }
     }
   ],
-  "bo_ok": "OK, {weight} kg",
-  "bo_keep": "Keep {weight} kg",
+  "backoff_ok": "OK, {weight} kg",
+  "backoff_keep": "Keep {weight} kg",
   "hint_topped_out": "You topped out on every set last time.",
   "hint_transition": "Weights changed across sets last time. Match them set by set.",
   "hint_one_short_weight": "One set came up short. Hit {top} on all {count} and it’s time to go heavier.",

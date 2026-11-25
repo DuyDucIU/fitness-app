@@ -58,6 +58,7 @@ import {
   addExercise,
   answerBackOff,
   answerSuggestion,
+  type ActiveBackOff,
   deleteSet,
   finishSession,
   logSet,
@@ -78,6 +79,7 @@ import {
 } from '@/workout/display';
 import { unlockRestAlarm } from '@/workout/rest-alarm';
 import { backOffText, hintText, tipText } from '@/workout/suggestion-text';
+import { backOffParams } from '@/workout/suggestions';
 import { type RestTimerState, useRestTimer } from '@/workout/rest-timer';
 
 /**
@@ -135,9 +137,8 @@ function prefillAt(item: OpenExercise, index: number): Draft | null {
  * Back-off đang áp (UC13) thay mức tạ của set chờ tập bằng mức gợi ý, giữ reps (UC07 bước 3:
  * gợi ý có kèm số điền sẵn ô nhập).
  */
-function withBackOff(draft: Draft, backOff: Suggestion | null): Draft {
-  const to = backOff?.payload.to;
-  return typeof to === 'number' ? { ...draft, weight: to } : draft;
+function withBackOff(draft: Draft, backOff: ActiveBackOff | null): Draft {
+  return backOff ? { ...draft, weight: backOff.weight } : draft;
 }
 
 function WorkoutLog({ workout }: { workout: OpenSession }) {
@@ -428,11 +429,13 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                   else if (isNext)
                     value = setText(kind, nextDraft.weight, nextDraft.reps);
                   else {
-                    // Set chờ tập sau đó: số dự kiến theo lần trước (mức tạ theo back-off
-                    // nếu có), chưa có thì "–".
+                    // Set chờ tập sau đó: số dự kiến theo lần trước, mức tạ theo back-off
+                    // nếu có; không có gì thì "–".
                     const prefill = prefillAt(current, i);
                     const past =
-                      prefill && withBackOff(prefill, current.backOff);
+                      prefill || current.backOff
+                        ? withBackOff(prefill ?? emptyDraft, current.backOff)
+                        : null;
                     value = setText(
                       kind,
                       past?.weight ?? null,
@@ -879,9 +882,10 @@ function SetBib({
       )}
       {item.tip && kind !== 'unsupported' && mode.type === 'log' ? (
         <TipStub item={item} />
-      ) : item.backOff?.status === 'pending' && mode.type === 'log' ? (
+      ) : item.backOff?.suggestion.status === 'pending' &&
+        mode.type === 'log' ? (
         <BackOffStub
-          backOff={item.backOff}
+          backOff={item.backOff.suggestion}
           onWeight={(weight) => onDraftChange({ ...draft, weight })}
         />
       ) : (
@@ -944,7 +948,8 @@ function BackOffStub({
   onWeight: (weight: number) => void;
 }) {
   const text = backOffText(backOff);
-  if (!text) return null;
+  const params = backOffParams(backOff);
+  if (!text || !params) return null;
   const { from, to } = text;
   return (
     <>
@@ -955,25 +960,25 @@ function BackOffStub({
             <Button
               variant="ink"
               onClick={() => {
-                onWeight(backOff.payload.to as number);
+                onWeight(params.to);
                 void answerBackOff(backOff.id, 'accepted');
               }}
             >
-              {m.bo_ok({ weight: to })}
+              {m.backoff_ok({ weight: to })}
             </Button>
             <Button
               variant="line"
               onClick={() => {
-                onWeight(backOff.payload.from as number);
+                onWeight(params.from);
                 void answerBackOff(backOff.id, 'dismissed');
               }}
             >
-              {m.bo_keep({ weight: from })}
+              {m.backoff_keep({ weight: from })}
             </Button>
           </>
         }
       >
-        {text.lead} {text.dropBefore} <b>{m.bo_kg({ weight: to })}</b>{' '}
+        {text.lead} {text.dropBefore} <b>{m.backoff_kg({ weight: to })}</b>{' '}
         {text.dropAfter}
       </BibTip>
     </>

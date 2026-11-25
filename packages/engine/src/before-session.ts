@@ -79,12 +79,11 @@ export function rangeFor(
 ): { min: number | null; top: number } | null {
   if (target) return bounds(metric, target);
   return (
-    history.map((h) => bounds(metric, h.target)).find((b) => b !== null) ??
-    null
+    history.map((h) => bounds(metric, h.target)).find((b) => b !== null) ?? null
   );
 }
 
-const valueOf =(metric: Metric, set: PastSet) =>
+const valueOf = (metric: Metric, set: PastSet) =>
   metric === 'duration' ? set.durationS : set.reps;
 
 /** STABLE: mọi working set cùng một mức tạ (GLOSSARY SRS 1.3). Bài không tạ luôn STABLE. */
