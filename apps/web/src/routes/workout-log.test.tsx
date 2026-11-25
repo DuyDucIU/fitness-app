@@ -248,7 +248,7 @@ describe('tập tự do ghi trên máy', () => {
     await user.click(await screen.findByRole('button', { name: 'Log set 2' }));
     await screen.findByRole('button', { name: 'Log set 3' });
 
-    // Sửa set 1: 100 × 5 → 102,5 × 5 bằng nút +. Chỉ có một nút lưu ở đáy.
+    // Sửa set 1: 100 × 5 → 105 × 5 bằng nút + (bậc tạ đòn 5 kg). Chỉ có một nút lưu ở đáy.
     await user.click(screen.getByRole('button', { name: /^Set 1/ }));
     expect(
       await screen.findByText('Edit set 1 · Barbell Squat'),
@@ -256,12 +256,10 @@ describe('tập tự do ghi trên máy', () => {
     expect(
       screen.queryByRole('button', { name: 'Cancel' }),
     ).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: 'Increase by 2.5 kg' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Increase by 5 kg' }));
     await user.click(screen.getByRole('button', { name: 'Save set 1' }));
     await waitFor(() =>
-      expect(loggedSets()).toEqual(['Set 1 102.5 × 5', 'Set 2 100 × 5']),
+      expect(loggedSets()).toEqual(['Set 1 105 × 5', 'Set 2 100 × 5']),
     );
 
     // Chạm hàng chờ thì thoát sửa mà không lưu.
@@ -271,13 +269,13 @@ describe('tập tự do ghi trên máy', () => {
     expect(
       await screen.findByRole('button', { name: 'Log set 3' }),
     ).toBeInTheDocument();
-    expect(loggedSets()).toEqual(['Set 1 102.5 × 5', 'Set 2 100 × 5']);
+    expect(loggedSets()).toEqual(['Set 1 105 × 5', 'Set 2 100 × 5']);
 
     // Xoá set 2.
     await user.click(screen.getByRole('button', { name: /^Set 2/ }));
     await user.click(screen.getByRole('button', { name: 'Delete set 2' }));
     await screen.findByRole('button', { name: 'Log set 2' });
-    await waitFor(() => expect(loggedSets()).toEqual(['Set 1 102.5 × 5']));
+    await waitFor(() => expect(loggedSets()).toEqual(['Set 1 105 × 5']));
 
     const events = await db.outbox.orderBy('seq').toArray();
     expect(events.map((e) => e.entity)).toEqual([
@@ -290,7 +288,7 @@ describe('tập tự do ghi trên máy', () => {
     ]);
     const [, , first, second, edited, deleted] = events;
     expect(edited.entityId).toBe(first.entityId);
-    expect(edited.payload).toMatchObject({ weightValue: 102.5, reps: 5 });
+    expect(edited.payload).toMatchObject({ weightValue: 105, reps: 5 });
     expect(deleted.entityId).toBe(second.entityId);
     expect(deleted.op).toBe('upsert');
     expect(deleted.payload).toMatchObject({ deletedAt: expect.any(String) });

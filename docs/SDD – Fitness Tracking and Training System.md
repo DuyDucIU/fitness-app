@@ -518,6 +518,19 @@ erDiagram
 ### 7.2 Ghi chú thiết kế
 
 - **Đơn vị và quy ước ghi tạ:** `SET_LOGS.weight_value` lưu đúng con số user nhập, kèm `input_unit` (kg/lb) — dữ liệu gốc không đổi khi user đổi đơn vị hiển thị (UC02); quy ước ghi tạ (tổng/mỗi bên/mỗi quả/cột tạ) được snapshot ở `SESSION_EXERCISES.load_input` để lịch sử cũ không bị hiểu sai nếu sau này user đổi quy ước. Chỉ so sánh số tạ trong cùng một bài và cùng một quy ước.
+- **Mặc định theo dụng cụ** (khi user chưa đặt `USER_EXERCISE_SETTINGS`; bảng trong `packages/engine/src/equipment.ts`, tra theo mã dụng cụ của free-exercise-db):
+
+  | Dụng cụ | Bậc tạ | Quy ước ghi tạ | Đòn |
+  | --- | --- | --- | --- |
+  | `barbell` | 5 kg (bánh nhỏ nhất 2,5 kg gắn hai bên) | `total` | 20 kg |
+  | `dumbbell` | 2,5 kg | `per_dumbbell` | — |
+  | `kettlebells` | 4 kg | `per_dumbbell` | — |
+  | `cable` | 5 kg | `stack` | — |
+  | `machine` | 2,5 kg (máy gắn bánh một chỗ như T-bar row) | `stack` | — |
+  | `body only` | 2,5 kg | `added_weight` | — |
+  | mã khác hoặc không có | 2,5 kg | `total` | — |
+
+  Bậc tạ chỉ ràng buộc nút −/+ và các gợi ý có số (làm tròn theo ladder); nhập tay thì tự do.
 - **Sync:** các bảng `WORKOUT_SESSIONS`, `SESSION_EXERCISES`, `SET_LOGS`, `SUGGESTIONS`, `DELOAD_PERIODS` dùng UUID sinh ở client; đẩy lên bằng `INSERT ... ON CONFLICT (id) DO UPDATE`; `USER_EXERCISE_SETTINGS` đẩy cả dòng, `ON CONFLICT (user_id, exercise_id) DO UPDATE`, last-write-wins; kéo về bằng `GET /sync/pull?since=<cursor theo updated_at>`; xoá bằng tombstone `deleted_at`.
 - **Routine (UC05):** xoá routine là đặt `archived_at` và thôi dùng; ngày tập và bài vẫn giữ trong DB để buổi tập cũ còn tra được tên ngày. Xoá một ngày tập hay một bài trong ngày là xoá hẳn; routine luôn còn ít nhất một ngày (xoá ngày cuối trả 409). Mỗi user tối đa một routine đang dùng (partial unique index `routines(user_id) WHERE is_active`), được phép không có routine nào đang dùng. `WORKOUT_SESSIONS.routine_day_id` và `SESSION_EXERCISES.routine_exercise_id` **không** có khoá ngoại sang bảng routine: buổi ghi offline có thể đẩy lên sau khi ngày tập đã bị xoá, và mọi chỗ đọc id này đều tra ngày/bài, tra không ra thì coi như tập tự do / bài ad hoc. Bài đo quãng đường trong ngày tập chỉ có số set và thời gian nghỉ, không có target.
 - **Program không lưu trong DB:** program là YAML trong `packages/programs`, API đọc khi phục vụ danh sách program và khi tạo routine từ program; tên bài trong YAML (id của free-exercise-db) ánh xạ sang `EXERCISES` qua `source_ref`. Routine tạo từ program lưu `source = 'program'` và `program_id` (id trong YAML, không phải khoá ngoại).

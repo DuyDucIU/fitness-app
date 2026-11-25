@@ -184,7 +184,7 @@ describe('bắt đầu buổi từ ngày tập (UC06)', () => {
     );
     expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('');
     expect(
-      screen.getByText('Barbell · incl. 20 kg bar · step 2.5 kg · 3–5 reps'),
+      screen.getByText('Barbell · incl. 20 kg bar · step 5 kg · 3–5 reps'),
     ).toBeInTheDocument();
     expect(screen.getByText('0/5 · 3–5 reps')).toBeInTheDocument();
 
