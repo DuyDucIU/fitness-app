@@ -33,7 +33,7 @@ describe('afterSet — R3 back-off', () => {
     });
   });
 
-  it('Given mức tạ lệch ladder (tạ đơn 23 kg, step 2), When back-off, Then 21 kg làm tròn về bậc gần nhất, cách đều thì xuống: 20 kg', () => {
+  it('Given mức tạ lệch ladder (tạ đơn 23 kg, step 2), When back-off, Then xuống bậc ladder ngay dưới: 22 kg', () => {
     const result = afterSet(
       input({
         set: { weight: 23, reps: 4, rpe: null },
@@ -42,7 +42,30 @@ describe('afterSet — R3 back-off', () => {
         barWeightKg: null,
       }),
     );
-    expect(result?.params.to).toBe(20);
+    expect(result?.params.to).toBe(22);
+  });
+
+  it('Given kettlebell 10 kg lệch ladder bậc 4, When back-off, Then xuống bậc ngay dưới 8 kg, không tụt hai bậc về 4 kg', () => {
+    const result = afterSet(
+      input({
+        set: { weight: 10, reps: 4, rpe: null },
+        loadInput: 'per_dumbbell',
+        stepKg: 4,
+        barWeightKg: null,
+      }),
+    );
+    expect(result?.params.to).toBe(8);
+  });
+
+  it('Given step 1,25 và mức 7,5 kg nằm trên ladder, When back-off, Then đúng một bậc: 6,25 kg', () => {
+    const result = afterSet(
+      input({
+        set: { weight: 7.5, reps: 4, rpe: null },
+        loadInput: 'per_side',
+        stepKg: 1.25,
+      }),
+    );
+    expect(result?.params.to).toBe(6.25);
   });
 
   it('Given tạ đòn 21 kg ghi tổng, When back-off, Then không xuống dưới đòn 20 kg', () => {

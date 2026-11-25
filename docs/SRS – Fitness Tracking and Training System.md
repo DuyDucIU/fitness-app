@@ -377,7 +377,7 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
   - User bỏ qua mà buổi sau vẫn đạt trần, hoặc vượt trần → chúc mừng và nhắc lại (R2).
   - Có thêm gợi ý khởi động (R5), quay lại sau thời gian nghỉ (R6), và deload khi sức mạnh tụt (R7).
 - **Trong buổi (`afterSet`):** set vừa log chạm sàn hoặc dưới sàn rep range → gợi ý back-off về `max(W, current − step)` (R3).
-  - `W` là trọng lượng đòn khi quy ước ghi tạ là `total`, các quy ước khác là 0; `current − step` làm tròn theo ladder. Mức back-off không thấp hơn mức hiện tại (đã ở sàn) hoặc không còn set nào chờ tập thì không gợi ý.
+  - `W` là trọng lượng đòn khi quy ước ghi tạ là `total`, các quy ước khác là 0; `current − step` là bậc ladder ngay dưới mức hiện tại (mức nằm trên ladder thì đúng bằng `current − step`; mức lệch ladder, vd kettlebell 10 kg bậc 4, thì xuống 8 kg chứ không làm tròn về 4 kg). Mức back-off không thấp hơn mức hiện tại (đã ở sàn) hoặc không còn set nào chờ tập thì không gợi ý.
   - Back-off nêu một mức tạ cụ thể nên có `strength = strong`, ghi với `session_exercise_id` của bài trong buổi; các set còn lại điền sẵn mức back-off.
   - Vòng đời: đưa ra ở `pending`; "OK, X kg" là `accepted`; "Keep Y kg" là `dismissed` và ô tạ trở về mức cũ; ghi set kế mà chưa trả lời thì ghi đúng mức back-off là `accepted`, mức khác là `dismissed`; kết thúc buổi mà còn `pending` là `expired`.
   - Các set chờ tập điền mức back-off (hoặc mức cũ sau "Keep") cho tới khi user tự ghi một set sau đó ở mức tạ khác; từ đó các set sau điền như thường. Xoá set gây back-off khi gợi ý còn `pending` thì bỏ gợi ý (tombstone, không tính vào tỉ lệ chấp nhận); Undo việc xoá thì gợi ý quay lại.
