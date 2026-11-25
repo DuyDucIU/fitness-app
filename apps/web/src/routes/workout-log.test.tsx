@@ -461,7 +461,11 @@ describe('số liệu lần trước', () => {
     await user.click(await screen.findByRole('button', { name: 'Log set 2' }));
     await screen.findByRole('button', { name: 'Log set 3' });
     expect(screen.getByRole('textbox', { name: 'Reps' })).toHaveValue('7');
-    expect(loggedSets()).toEqual(['Set 1 82.5 × 8', 'Set 2 80 × 8']);
+    // 82,5 × 8 vượt e1RM của 80 × 8 nên hàng set 1 là hàng PR.
+    expect(setRows().slice(0, 2)).toEqual([
+      'Set 1 82.5 × 8 PR · e1RM 104.5 kg',
+      'Set 2 80 × 8',
+    ]);
     // Buổi đang mở không thành "lần trước" dù vừa có set mới hơn.
     expect(lastTime()).toBe('Last time · Nov 19 80×8 · 8 · 7');
   });
@@ -806,5 +810,86 @@ describe('giữ màn hình sáng', () => {
     );
     await screen.findByRole('button', { name: 'Start freestyle' });
     expect(locks[1].release).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PR tạm trong buổi', () => {
+  /** Dải số áo đang báo PR (nền mực, số cam), nếu có. */
+  function prBand() {
+    return screen
+      .queryByRole('group', { name: 'New PR' })
+      ?.textContent?.replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  beforeEach(async () => {
+    await seedPastWorkout('2026-11-19T10:00:00.000Z', BENCH.id, [
+      { weight: 80, reps: 8 },
+      { weight: 80, reps: 8 },
+      { weight: 80, reps: 7 },
+    ]);
+  });
+
+  it('set vượt e1RM cũ: dải số áo báo PR với tên bài và số mới, hàng set ghi loại PR, offline', async () => {
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+
+    await type(user, 'Weight (total)', '85');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+
+    await waitFor(() =>
+      expect(prBand()).toBe(
+        'New PR · Barbell Bench Press - Medium Grip 85 × 8',
+      ),
+    );
+    await waitFor(() =>
+      expect(setRows()[0]).toBe('Set 1 85 × 8 PR · e1RM 107.7 kg'),
+    );
+
+    // Chạm hàng PR: màn PR của bài thuộc #33, giờ báo "Coming soon"; hàng trở lại ✓.
+    await user.click(screen.getByRole('button', { name: /^Set 1/ }));
+    expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
+    expect(loggedSets()).toEqual(['Set 1 85 × 8']);
+    // Chạm lần nữa thì sửa set như thường.
+    await user.click(screen.getByRole('button', { name: /^Set 1/ }));
+    expect(
+      await screen.findByText('Edit set 1 · Barbell Bench Press - Medium Grip'),
+    ).toBeInTheDocument();
+  });
+
+  it('set chỉ bằng kỷ lục cũ: không báo PR', async () => {
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+
+    // Điền sẵn 80 × 8 theo lần trước: bằng e1RM cũ.
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+    await screen.findByRole('button', { name: 'Log set 2' });
+    expect(prBand()).toBeUndefined();
+    expect(loggedSets()).toEqual(['Set 1 80 × 8']);
+  });
+
+  it('dải PR thôi hiện sau 2,4 giây, trở lại đồng hồ nghỉ', async () => {
+    // Chỉ làm giả đồng hồ ngày giờ; Dexie và userEvent vẫn chạy timer thật.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    onTestFinished(() => void vi.useRealTimers());
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await startFreestyle(user);
+    await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+
+    await type(user, 'Weight (total)', '85');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+    await waitFor(() => expect(prBand()).toBeDefined());
+    expect(screen.queryByRole('timer', { name: 'Rest' })).toBeNull();
+
+    // Đưa app xuống nền rồi mở lại sau 2,5 giây.
+    vi.setSystemTime(Date.now() + 2500);
+    document.dispatchEvent(new Event('visibilitychange'));
+    await waitFor(() => expect(prBand()).toBeUndefined());
+    expect(screen.getByRole('timer', { name: 'Rest' })).toBeInTheDocument();
   });
 });

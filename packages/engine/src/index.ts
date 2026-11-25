@@ -36,3 +36,13 @@ export {
   startRest,
 } from './rest';
 export { lastDayIndex, nextDayIndex, type RotationSession } from './rotation';
+export {
+  e1rm,
+  type NewRecord,
+  newRecords,
+  type NewRecordsInput,
+  PR_TYPES,
+  type PrType,
+  type RecordSession,
+  type RecordSet,
+} from './records';

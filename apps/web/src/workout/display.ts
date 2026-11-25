@@ -1,5 +1,5 @@
 import type { LoadInput } from '@fitness/contract';
-import type { PastSet } from '@fitness/engine';
+import type { NewRecord, PastSet } from '@fitness/engine';
 
 import { exerciseNames } from '@/catalog/display';
 import { formatNumber } from '@/lib/format';
@@ -63,4 +63,36 @@ export function loadLabel(loadInput: LoadInput): string {
     case 'added_weight':
       return m.log_load_added_weight();
   }
+}
+
+/** Loại PR trên hàng set (prototype › .prrow): "e1RM 107,7 kg", "most reps", "heaviest for 5". */
+export function recordTypeText(record: NewRecord): string {
+  switch (record.type) {
+    case 'e1rm':
+      return m.log_pr_e1rm({
+        value: formatNumber(record.value, { maxFractionDigits: 1 }),
+      });
+    case 'weight_at_reps':
+      return m.log_pr_weight_at_reps({ reps: record.reps ?? 0 });
+    case 'max_reps':
+      return m.log_pr_max_reps();
+    case 'session_volume':
+      return m.log_pr_session_volume();
+  }
+}
+
+/**
+ * Số mới của PR trên dải số áo: PR theo set là chính set đó ("85 × 8", "16 reps");
+ * `session_volume` là tổng của buổi ("1.960 kg", "28 reps").
+ */
+export function recordValueText(
+  kind: LogKind,
+  record: NewRecord,
+  weight: number | null,
+  reps: number | null,
+): string {
+  if (record.type !== 'session_volume') return setText(kind, weight, reps);
+  return kind === 'reps'
+    ? `${formatNumber(record.value)} ${m.log_unit_reps()}`
+    : m.log_pr_volume_kg({ value: formatNumber(record.value) });
 }

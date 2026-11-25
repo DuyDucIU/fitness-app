@@ -9,12 +9,18 @@ import type {
   UnitPref,
   WorkoutSession,
 } from '@fitness/contract';
-import { afterSet, equipmentDefaults, type LastTime } from '@fitness/engine';
+import {
+  afterSet,
+  equipmentDefaults,
+  type LastTime,
+  type NewRecord,
+} from '@fitness/engine';
 import type { EntityTable } from 'dexie';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 import { db, type OutboxEvent } from '@/db/db';
 import { findHistory } from '@/workout/last-time';
+import { findRecordHistory, recordsOfSets } from '@/workout/records';
 import {
   type Advice,
   adviseFor,
@@ -390,9 +396,17 @@ async function issueBackOff(
   });
 }
 
+/** Kết quả ghi một set. */
+export interface LoggedSet {
+  /** Back-off đang áp cho các set còn lại; `null`: không có. */
+  backOff: ActiveBackOff | null;
+  /** PR tạm set vừa ghi lập được (UC07 bước 5), PR theo set đứng trước; rỗng: không có. */
+  records: NewRecord[];
+}
+
 /**
- * Ghi một set working vào cuối bài (UC07 bước 3) và trả về back-off đang áp cho các set
- * còn lại (`null`: không có). `setsLeft`: số set còn chờ tập sau set này, để engine biết có
+ * Ghi một set working vào cuối bài (UC07 bước 3), trả về back-off đang áp cho các set
+ * còn lại và PR tạm của set (UC17). `setsLeft`: số set còn chờ tập sau set này, để engine biết có
  * set nào cần back-off (R3) không.
  * - Set đầu của bài mà gợi ý trước buổi vẫn chưa được trả lời: coi như bỏ qua (`dismissed`).
  * - Back-off chưa trả lời: ghi đúng mức back-off là `accepted`, mức khác là `dismissed`.
@@ -401,7 +415,7 @@ export function logSet(
   sessionExerciseId: string,
   values: SetValues,
   setsLeft: number,
-): Promise<ActiveBackOff | null> {
+): Promise<LoggedSet> {
   return db.transaction('rw', ADVICE_TABLES, async () => {
     const exercise = await db.sessionExercises.get(sessionExerciseId);
     const existing = await db.setLogs
@@ -442,8 +456,18 @@ export function logSet(
       deletedAt: null,
     };
     await put(db.setLogs, 'set_logs', row);
-    if (exercise) await issueBackOff(exercise, row, setsLeft);
-    return activeBackOff(sessionExerciseId);
+    if (!exercise) return { backOff: null, records: [] };
+    await issueBackOff(exercise, row, setsLeft);
+    const records = recordsOfSets(
+      await db.exercises.get(exercise.exerciseId),
+      exercise,
+      await findRecordHistory(exercise.exerciseId),
+      [...existing, row],
+    );
+    return {
+      backOff: await activeBackOff(sessionExerciseId),
+      records: records.get(row.id) ?? [],
+    };
   });
 }
 
@@ -580,6 +604,8 @@ export interface OpenExercise extends WorkoutExercise {
   tip: Tip | undefined;
   /** Back-off đang áp cho các set còn lại (UC13); `null`: không có. */
   backOff: ActiveBackOff | null;
+  /** PR tạm của các set đã ghi (UC17), theo id set; set không lập PR thì không có mặt. */
+  records: Map<string, NewRecord[]>;
 }
 /** Buổi đang mở. */
 export interface OpenSession extends Workout {
@@ -602,7 +628,13 @@ async function readOpenSession(): Promise<OpenSession | null> {
           ? await openTip(advice, e.row.exerciseId, e.row.routineExerciseId)
           : undefined;
       const backOff = await activeBackOff(e.row.id);
-      return { ...e, lastTime: advice.lastTime, advice, tip, backOff };
+      const records = recordsOfSets(
+        e.exercise,
+        e.row,
+        await findRecordHistory(e.row.exerciseId),
+        e.sets,
+      );
+      return { ...e, lastTime: advice.lastTime, advice, tip, backOff, records };
     }),
   );
   return { ...workout, exercises };
