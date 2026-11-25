@@ -458,5 +458,43 @@
   "log_note_rep_range": "{min}–{max} rep",
   "plans_browse_programs": "Xem chương trình mẫu",
   "home_plan_deload": "Thấy đuối sức? Lên một tuần tập nhẹ",
-  "home_week_label": "Tuần này: {count} buổi. Mở mục tiêu"
+  "home_week_label": "Tuần này: {count} buổi. Mở mục tiêu",
+  "sug_count": [
+    {
+      "declarations": [
+        "input n"
+      ],
+      "selectors": [
+        "n"
+      ],
+      "match": {
+        "n=1": "một",
+        "n=2": "hai",
+        "n=3": "ba",
+        "n=4": "bốn",
+        "n=5": "năm",
+        "n=6": "sáu",
+        "n=*": "{n}"
+      }
+    }
+  ],
+  "sug_got_it": "Đã hiểu",
+  "sug_all_top": "Lần trước cả {count} set đều đạt {top} rep.",
+  "sug_all_top_after_name": "lần trước cả {count} set đều đạt {top} rep.",
+  "sug_all_time_top": "Lần trước set nào cũng đạt {top}.",
+  "sug_all_time_top_after_name": "lần trước set nào cũng đạt {top}.",
+  "sug_top_again": "Lại {top} ở mọi set. Tốt lắm. Sẵn sàng lên chưa?",
+  "sug_how_weight": "Đến lúc thêm tạ hoặc thêm rep, tuỳ bạn.",
+  "sug_how_weight_today": "Hôm nay thêm tạ hoặc thêm rep, tuỳ bạn.",
+  "sug_how_added_weight": "Thêm rep hoặc đeo thêm tạ, tuỳ bạn.",
+  "sug_how_reps": "Thêm rep hoặc cầm thêm tạ, tuỳ bạn.",
+  "sug_how_time": "Đến lúc giữ lâu thêm một chút.",
+  "sug_why_all_top": "Mọi set chính đều chạm trần khoảng {range} của bạn.",
+  "sug_why_top_again": "Hai buổi liền chạm trần khoảng {range}.",
+  "hint_topped_out": "Lần trước set nào cũng chạm trần.",
+  "hint_transition": "Lần trước mỗi set một mức tạ. Làm lại đúng từng set.",
+  "hint_one_short_weight": "Còn một set chưa tới. Đủ {top} ở cả {count} set là lên tạ được.",
+  "hint_one_short_reps": "Còn một set chưa tới. Đưa cả {count} set lên {top}.",
+  "hint_build_weight": "Giữ {weight} kg và lên dần tới {top} rep mỗi set.",
+  "hint_build_reps": "Lên dần tới {top} rep mỗi set."
 }

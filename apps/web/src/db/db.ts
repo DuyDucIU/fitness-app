@@ -3,6 +3,7 @@ import type {
   Routine,
   SessionExercise,
   SetLog,
+  Suggestion,
   SyncEntity,
   WorkoutSession,
 } from '@fitness/contract';
@@ -77,6 +78,11 @@ export const db = new Dexie('fitness') as Dexie & {
   workoutSessions: EntityTable<WorkoutSession, 'id'>;
   sessionExercises: EntityTable<SessionExercise, 'id'>;
   setLogs: EntityTable<SetLog, 'id'>;
+  /**
+   * Gợi ý của engine và trạng thái trả lời (UC12), local-first qua outbox như dữ liệu buổi
+   * tập: chỉ ghi qua `workout/session`.
+   */
+  suggestions: EntityTable<Suggestion, 'id'>;
 };
 
 db.version(1).stores({
@@ -104,4 +110,8 @@ db.version(6).stores({
 // Cache chỉ đọc của routine (UC05, ADR 0002).
 db.version(7).stores({
   routines: 'id',
+});
+// Gợi ý (UC12): một gợi ý trước buổi ứng với một bài và một lần tập làm căn cứ.
+db.version(8).stores({
+  suggestions: 'id, [exerciseId+basedOnSessionExerciseId], status',
 });

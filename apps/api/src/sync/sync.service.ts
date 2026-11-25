@@ -3,6 +3,7 @@ import { SYNC_PULL_MAX_CHANGES } from '@fitness/contract';
 import type {
   SessionExercise,
   SetLog,
+  Suggestion,
   SyncEvent,
   SyncPullQuery,
   SyncPullResponse,
@@ -96,6 +97,8 @@ function write(tx: Tx, userId: string, event: SyncEvent): Written {
       return upsertSessionExercise(tx, userId, event.payload);
     case 'set_logs':
       return upsertSetLog(tx, userId, event.payload);
+    case 'suggestions':
+      return upsertSuggestion(tx, userId, event.payload);
   }
 }
 
@@ -185,5 +188,44 @@ function upsertSetLog(tx: Tx, userId: string, s: SetLog): Written {
       SELECT 1 FROM session_exercises e
       JOIN workout_sessions w ON w.id = e.session_id
       WHERE e.id = set_logs.session_exercise_id AND w.user_id = ${userId}::uuid)
+    RETURNING id`;
+}
+
+/**
+ * Gợi ý không có khoá ngoại sang bài trong ngày tập hay trong buổi (ghi offline, có thể tới
+ * sau khi các bản ghi đó bị xoá); chỉ kiểm bài được gợi ý là bài user thấy được.
+ */
+function upsertSuggestion(tx: Tx, userId: string, s: Suggestion): Written {
+  return tx.$queryRaw`
+    INSERT INTO suggestions
+      (id, user_id, exercise_id, routine_exercise_id, session_exercise_id,
+       based_on_session_exercise_id, kind, strength, payload, reason, status,
+       created_at, responded_at, updated_at, deleted_at)
+    SELECT
+      ${s.id}::uuid, ${userId}::uuid, ${s.exerciseId}::uuid,
+      ${s.routineExerciseId}::uuid, ${s.sessionExerciseId}::uuid,
+      ${s.basedOnSessionExerciseId}::uuid, ${s.kind}::"SuggestionKind",
+      ${s.strength}::"SuggestionStrength", ${JSON.stringify(s.payload)}::jsonb,
+      ${s.reason}, ${s.status}::"SuggestionStatus", ${s.createdAt}::timestamptz,
+      ${s.respondedAt}::timestamptz, now(), ${s.deletedAt}::timestamptz
+    WHERE EXISTS (
+      SELECT 1 FROM exercises x
+      WHERE x.id = ${s.exerciseId}::uuid
+        AND (x.owner_id IS NULL OR x.owner_id = ${userId}::uuid))
+    ON CONFLICT (id) DO UPDATE SET
+      exercise_id = EXCLUDED.exercise_id,
+      routine_exercise_id = EXCLUDED.routine_exercise_id,
+      session_exercise_id = EXCLUDED.session_exercise_id,
+      based_on_session_exercise_id = EXCLUDED.based_on_session_exercise_id,
+      kind = EXCLUDED.kind,
+      strength = EXCLUDED.strength,
+      payload = EXCLUDED.payload,
+      reason = EXCLUDED.reason,
+      status = EXCLUDED.status,
+      created_at = EXCLUDED.created_at,
+      responded_at = EXCLUDED.responded_at,
+      updated_at = now(),
+      deleted_at = EXCLUDED.deleted_at
+    WHERE suggestions.user_id = EXCLUDED.user_id
     RETURNING id`;
 }

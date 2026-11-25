@@ -1,11 +1,12 @@
 import type { RoutineDay } from '@fitness/contract';
+import { equipmentDefaults } from '@fitness/engine';
 import * as React from 'react';
 import { Link } from 'react-router';
 
 import { exerciseNames } from '@/catalog/display';
 import { useCatalog } from '@/catalog/use-catalog';
 import { UpdateBanner } from '@/components/app-update';
-import { Bib, BibBand, BibPerf, BibStub } from '@/components/bib';
+import { Bib, BibBand, BibPerf, BibStub, BibTip } from '@/components/bib';
 import { EmptyState } from '@/components/empty-state';
 import { EditIcon, MoonIcon } from '@/components/icons';
 import { OrderNo } from '@/components/text';
@@ -28,7 +29,9 @@ import {
   rotatedDays,
   useActiveRoutine,
 } from '@/routines/rotation';
-import { useOpenSession } from '@/workout/session';
+import { answerSuggestion, useOpenSession } from '@/workout/session';
+import { tipText } from '@/workout/suggestion-text';
+import { type DayTip, useDayTips } from '@/workout/suggestions';
 import { useStartWorkout } from '@/workout/use-start-workout';
 import { useThisWeek } from '@/workout/week';
 import { WORKOUT_PATH } from '@/workout/workout-resume-bar';
@@ -37,8 +40,8 @@ import { WORKOUT_PATH } from '@/workout/workout-resume-bar';
  * Today (prototypes/home, UC06): các ngày tập của routine đang dùng là các tấm số áo trên
  * một dải vuốt, ngày kế tiếp đứng đầu, tấm tập tự do đứng cuối; nút chính bắt đầu ngày
  * đang chọn. Có buổi đang dở thì nút chính thành tiếp tục buổi đó. Dải tuần đánh dấu ngày
- * đã tập; mục tiêu và streak (#36, #37), gợi ý trước buổi (#25) thuộc ticket riêng; lối
- * vào deload (#30) báo "Coming soon".
+ * đã tập; mục tiêu và streak (#36, #37) thuộc ticket riêng; lối vào deload (#30) báo
+ * "Coming soon".
  */
 export function TodayPage() {
   const open = useOpenSession();
@@ -329,7 +332,7 @@ function Slide({
 /**
  * Tấm số áo của một ngày tập (prototype › bibHTML): dải tên (cam với ngày kế tiếp) và số
  * thứ tự ngày, danh sách bài kèm target, số working set và lần tập gần nhất, rồi cuống
- * "trước khi tập" (gợi ý thật thuộc #25).
+ * "trước khi tập": các gợi ý trước buổi chưa trả lời (UC12) thay cho câu chữ tĩnh.
  */
 function DayBib({
   day,
@@ -353,6 +356,7 @@ function DayBib({
   const locale = getLocale();
   const exercises = [...day.exercises].sort((a, b) => a.position - b.position);
   const sets = workingSets(exercises);
+  const tips = useDayTips(day);
 
   return (
     <Slide
@@ -411,9 +415,43 @@ function DayBib({
         </span>
       </div>
       <BibPerf />
-      <BibStub label={m.home_before_start()}>
-        {last ? m.home_before_start_repeat() : m.home_before_start_first()}
-      </BibStub>
+      {tips === undefined ? null : tips.length > 0 ? (
+        tips.map((tip) => <DayTipNote key={tip.target.id} tip={tip} />)
+      ) : (
+        <BibStub label={m.home_before_start()}>
+          {last ? m.home_before_start_repeat() : m.home_before_start_first()}
+        </BibStub>
+      )}
     </Slide>
+  );
+}
+
+/**
+ * Một gợi ý trước buổi trên tấm ngày tập (prototypes/home › tipHTML): tên bài in đậm, lời
+ * gợi ý, lý do; "Got it" ghi `accepted` qua outbox, chạy cả khi offline.
+ */
+function DayTipNote({ tip }: { tip: DayTip }) {
+  const metric = tip.exercise?.metricType ?? 'weight_reps';
+  const loadInput = equipmentDefaults(
+    tip.exercise?.equipment ?? null,
+  ).loadInput;
+  const { text, why } = tipText(tip.suggestion, metric, loadInput, true);
+  const name = tip.exercise
+    ? exerciseNames(tip.exercise, getLocale()).name
+    : '…';
+  return (
+    <BibTip
+      why={why}
+      actions={
+        <Button
+          variant="ink"
+          onClick={() => void answerSuggestion(tip, 'accepted')}
+        >
+          {m.sug_got_it()}
+        </Button>
+      }
+    >
+      <b>{name}:</b> {text}
+    </BibTip>
   );
 }

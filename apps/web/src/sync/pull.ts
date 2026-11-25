@@ -44,6 +44,7 @@ export function createSyncPull(deps: {
     workout_sessions: db.workoutSessions,
     session_exercises: db.sessionExercises,
     set_logs: db.setLogs,
+    suggestions: db.suggestions,
   };
 
   /**

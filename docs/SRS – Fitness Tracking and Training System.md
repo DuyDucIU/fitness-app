@@ -377,6 +377,8 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
   - User bỏ qua mà buổi sau vẫn đạt trần, hoặc vượt trần → chúc mừng và nhắc lại (R2).
   - Có thêm gợi ý khởi động (R5), quay lại sau thời gian nghỉ (R6), và deload khi sức mạnh tụt (R7).
 - **Trong buổi (`afterSet`):** set vừa log chạm sàn hoặc dưới sàn rep range → gợi ý back-off về `max(W, current − step)` (R3).
+- Nhận biết R2 từ số liệu: hai buổi gần nhất của bài đều đạt trần ở mọi working set, cùng mức tạ và cùng quy ước ghi tạ; buổi sau đã lên tạ mà vẫn đạt trần thì là R1. R4 không lưu thành gợi ý: chỉ bỏ R1, điền sẵn đúng từng set của buổi trước và nhắc ngắn cạnh số liệu lần trước.
+- Vòng đời gợi ý trước buổi: bắt đầu buổi (hoặc thêm bài ad hoc) thì ghi các gợi ý của bài ở trạng thái `pending`; "Got it" (ở Today hay màn ghi set) là `accepted`; ghi set đầu của bài mà chưa trả lời là `dismissed`; kết thúc buổi mà còn `pending` là `expired`. Trả lời ở Today trước khi vào buổi thì ghi luôn bản ghi đã trả lời, không tạo bản thứ hai. Mỗi gợi ý ứng với một bài và một lần tập làm căn cứ (`based_on_session_exercise_id`).
 - Mọi gợi ý đều kèm lý do (`reason`) và user có quyền bỏ qua (`status = dismissed`). Tỉ lệ chấp nhận gợi ý (`SUGGESTIONS.status`) là metric đánh giá engine. Gợi ý và trạng thái của nó được ghi vào máy rồi đẩy lên qua outbox (UUID sinh ở client), nên chạy được khi offline.
 - Engine đọc input (target của routine, cài đặt bài tập, lịch sử deload, các buổi gần nhất) từ dữ liệu trên máy, không gọi mạng.
 

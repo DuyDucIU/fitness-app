@@ -419,12 +419,14 @@ erDiagram
     SUGGESTIONS {
         uuid id PK "client generated"
         uuid user_id FK
+        uuid exercise_id "exercise suggested for, incl. ad hoc"
         uuid routine_exercise_id FK "null if ad hoc"
         uuid session_exercise_id FK "null = pre-session"
+        uuid based_on_session_exercise_id "last time used as basis, dedupe key"
         text kind "increase | celebrate | back_off | return_from_break | deload"
         text strength "soft | strong"
-        jsonb payload "weight only for back_off, return_from_break, deload"
-        text reason "human readable"
+        jsonb payload "reason params; weight only for back_off, return_from_break, deload"
+        text reason "reason code, copy built on client"
         text status "pending | accepted | dismissed | expired"
         timestamptz created_at
         timestamptz responded_at

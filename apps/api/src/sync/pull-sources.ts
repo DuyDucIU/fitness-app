@@ -201,8 +201,68 @@ const SOURCES: PullSource[] = [
       }));
     },
   },
+  {
+    entity: 'suggestions',
+    async read(tx, userId, after, limit) {
+      const rows = await tx.$queryRaw<
+        {
+          ts: string;
+          id: string;
+          exercise_id: string;
+          routine_exercise_id: string | null;
+          session_exercise_id: string | null;
+          based_on_session_exercise_id: string | null;
+          kind: SuggestionPayload['kind'];
+          strength: SuggestionPayload['strength'];
+          payload: SuggestionPayload['payload'];
+          reason: string;
+          status: SuggestionPayload['status'];
+          created_at: Date;
+          responded_at: Date | null;
+          deleted_at: Date | null;
+        }[]
+      >`
+        SELECT ${tsText('g.updated_at')} AS ts, g.id::text AS id,
+          g.exercise_id::text AS exercise_id,
+          g.routine_exercise_id::text AS routine_exercise_id,
+          g.session_exercise_id::text AS session_exercise_id,
+          g.based_on_session_exercise_id::text AS based_on_session_exercise_id,
+          g.kind::text AS kind, g.strength::text AS strength, g.payload, g.reason,
+          g.status::text AS status, g.created_at, g.responded_at, g.deleted_at
+        FROM suggestions g
+        WHERE g.user_id = ${userId}::uuid ${afterClause('g.updated_at', after, 'g.id')}
+        ORDER BY g.updated_at, g.id
+        LIMIT ${limit}`;
+      return rows.map((r) => ({
+        key: { ts: r.ts, entity: 'suggestions', id: r.id },
+        change: {
+          entity: 'suggestions',
+          op: 'upsert',
+          payload: {
+            id: r.id,
+            exerciseId: r.exercise_id,
+            routineExerciseId: r.routine_exercise_id,
+            sessionExerciseId: r.session_exercise_id,
+            basedOnSessionExerciseId: r.based_on_session_exercise_id,
+            kind: r.kind,
+            strength: r.strength,
+            reason: r.reason,
+            payload: r.payload,
+            status: r.status,
+            createdAt: iso(r.created_at),
+            respondedAt: isoOrNull(r.responded_at),
+            deletedAt: isoOrNull(r.deleted_at),
+          },
+        },
+      }));
+    },
+  },
 ];
 
+type SuggestionPayload = Extract<
+  SyncEvent,
+  { entity: 'suggestions' }
+>['payload'];
 type SyncLoadInput = Extract<
   SyncEvent,
   { entity: 'session_exercises' }

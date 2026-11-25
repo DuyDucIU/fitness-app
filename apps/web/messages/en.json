@@ -486,5 +486,43 @@
         "countPlural=other": "This week: {count} sessions. Open goals"
       }
     }
-  ]
+  ],
+  "sug_count": [
+    {
+      "declarations": [
+        "input n"
+      ],
+      "selectors": [
+        "n"
+      ],
+      "match": {
+        "n=1": "one",
+        "n=2": "two",
+        "n=3": "three",
+        "n=4": "four",
+        "n=5": "five",
+        "n=6": "six",
+        "n=*": "{n}"
+      }
+    }
+  ],
+  "sug_got_it": "Got it",
+  "sug_all_top": "All {count} sets hit {top} reps last time.",
+  "sug_all_top_after_name": "all {count} sets hit {top} reps last time.",
+  "sug_all_time_top": "Every set reached {top} last time.",
+  "sug_all_time_top_after_name": "every set reached {top} last time.",
+  "sug_top_again": "{top} on every set again. Nice. Ready to go up?",
+  "sug_how_weight": "Time to add weight or reps, your call.",
+  "sug_how_weight_today": "Add weight or reps today, your call.",
+  "sug_how_added_weight": "Add reps or strap on some weight, your call.",
+  "sug_how_reps": "Add reps or hold a weight, your call.",
+  "sug_how_time": "Time to go a little longer.",
+  "sug_why_all_top": "Every working set reached the top of your {range} range.",
+  "sug_why_top_again": "Second session in a row at the top of {range}.",
+  "hint_topped_out": "You topped out on every set last time.",
+  "hint_transition": "Weights changed across sets last time. Match them set by set.",
+  "hint_one_short_weight": "One set came up short. Hit {top} on all {count} and it’s time to go heavier.",
+  "hint_one_short_reps": "One set came up short. Get all {count} to {top}.",
+  "hint_build_weight": "Stay at {weight} kg and build to {top} reps a set.",
+  "hint_build_reps": "Build to {top} reps a set."
 }

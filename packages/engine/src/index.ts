@@ -11,6 +11,16 @@ export {
   type SearchableExercise,
   searchExercises,
 } from './search';
+export {
+  type BeforeSession,
+  beforeSession,
+  type BeforeSessionInput,
+  type Metric,
+  type PastSession,
+  type PreSessionHint,
+  type PreSessionSuggestion,
+  type Target,
+} from './before-session';
 export { type LastTime, type PastSet, prefillFromLast } from './last-time';
 export {
   addRest,

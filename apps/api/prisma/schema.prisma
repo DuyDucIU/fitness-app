@@ -75,6 +75,28 @@ enum SetType {
   failure
 }
 
+/// Loại gợi ý (SUGGESTIONS.kind).
+enum SuggestionKind {
+  increase
+  celebrate
+  back_off
+  return_from_break
+  deload
+}
+
+enum SuggestionStrength {
+  soft
+  strong
+}
+
+/// Trạng thái gợi ý: tỉ lệ chấp nhận (metric của engine) tính trên cột này.
+enum SuggestionStatus {
+  pending
+  accepted
+  dismissed
+  expired
+}
+
 /// Ngôn ngữ giao diện (D27, SDD 3.5). Tiếng Anh là mặc định.
 enum Locale {
   en
@@ -100,6 +122,7 @@ model User {
   aliases         ExerciseAlias[]
   workoutSessions WorkoutSession[]
   routines        Routine[]
+  suggestions     Suggestion[]
 
   @@map("users")
 }
@@ -312,4 +335,37 @@ model SetLog {
 
   @@index([sessionExerciseId])
   @@map("set_logs")
+}
+
+// Gợi ý của progression engine (UC12, UC13), local-first qua outbox như dữ liệu buổi tập.
+// Cố ý không có khoá ngoại sang bài tập, ngày tập hay buổi tập (như SDD 7.2): gợi ý ghi
+// offline có thể đẩy lên sau khi các bản ghi đó đã bị xoá. Xoá user thì xoá theo cascade.
+
+model Suggestion {
+  id                       String             @id @db.Uuid
+  userId                   String             @map("user_id") @db.Uuid
+  /// Bài được gợi ý, kể cả bài ad hoc
+  exerciseId               String             @map("exercise_id") @db.Uuid
+  /// null = bài ad hoc
+  routineExerciseId        String?            @map("routine_exercise_id") @db.Uuid
+  /// null = gợi ý trước buổi
+  sessionExerciseId        String?            @map("session_exercise_id") @db.Uuid
+  /// Lần tập gần nhất của bài làm căn cứ: cùng căn cứ là cùng một gợi ý
+  basedOnSessionExerciseId String?            @map("based_on_session_exercise_id") @db.Uuid
+  kind                     SuggestionKind
+  strength                 SuggestionStrength
+  /// Tham số của lý do (số set, rep range, mức tạ…)
+  payload                  Json
+  /// Mã lý do (vd all_sets_top); câu chữ dựng ở client
+  reason                   String
+  status                   SuggestionStatus
+  createdAt                DateTime           @map("created_at") @db.Timestamptz(6)
+  respondedAt              DateTime?          @map("responded_at") @db.Timestamptz(6)
+  updatedAt                DateTime           @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt                DateTime?          @map("deleted_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@map("suggestions")
 }
