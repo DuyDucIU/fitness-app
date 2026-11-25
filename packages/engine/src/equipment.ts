@@ -26,13 +26,22 @@ const FALLBACK: EquipmentDefaults = {
   barWeightKg: null,
 };
 
-/** Bảng mặc định theo mã dụng cụ của free-exercise-db; mã không có ở đây dùng FALLBACK. */
+/**
+ * Bậc tạ theo dụng cụ phổ biến ở phòng tập (SDD 7.2 › Mặc định theo dụng cụ): tạ đòn ghi
+ * tổng nên bánh nhỏ nhất 2,5 kg gắn hai bên là bậc 5 kg; tạ đơn theo bậc 2,5 kg; kettlebell
+ * 4 kg; cáp đa số theo thang 5 kg; máy có loại cột tạ, loại gắn bánh hai bên (5 kg) và loại
+ * gắn bánh một chỗ như T-bar row (2,5 kg), nên lấy bậc nhỏ hơn. Mã dụng cụ của
+ * free-exercise-db không có ở đây dùng FALLBACK. User chỉnh riêng từng bài ở UC14.
+ */
 const BY_EQUIPMENT = new Map<string, EquipmentDefaults>([
-  ['barbell', { stepKg: 2.5, loadInput: 'total', barWeightKg: 20 }],
-  ['dumbbell', { stepKg: 2, loadInput: 'per_dumbbell', barWeightKg: null }],
+  ['barbell', { stepKg: 5, loadInput: 'total', barWeightKg: 20 }],
+  // Thanh EZ: thanh cố định (số trên thanh là tổng) hay thanh rời nặng 5–10 kg tuỳ phòng tập,
+  // nên không đặt đòn mặc định; user đặt riêng từng bài ở UC14.
+  ['e-z curl bar', { stepKg: 5, loadInput: 'total', barWeightKg: null }],
+  ['dumbbell', { stepKg: 2.5, loadInput: 'per_dumbbell', barWeightKg: null }],
   ['kettlebells', { stepKg: 4, loadInput: 'per_dumbbell', barWeightKg: null }],
   ['cable', { stepKg: 5, loadInput: 'stack', barWeightKg: null }],
-  ['machine', { stepKg: 5, loadInput: 'stack', barWeightKg: null }],
+  ['machine', { stepKg: 2.5, loadInput: 'stack', barWeightKg: null }],
   ['body only', { stepKg: 2.5, loadInput: 'added_weight', barWeightKg: null }],
 ]);
 

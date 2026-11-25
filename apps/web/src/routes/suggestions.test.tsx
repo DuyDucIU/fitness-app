@@ -478,17 +478,17 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
       name: /under your 6 minimum/,
     });
     expect(text(tip)).toContain(
-      'That set was 4 reps, under your 6 minimum. Drop to 77.5 kg for the last 2 sets and keep your form tight.',
+      'That set was 4 reps, under your 6 minimum. Drop to 75 kg for the last 2 sets and keep your form tight.',
     );
     expect(
-      within(tip).getByRole('button', { name: 'OK, 77.5 kg' }),
+      within(tip).getByRole('button', { name: 'OK, 75 kg' }),
     ).toBeInTheDocument();
     expect(
       within(tip).getByRole('button', { name: 'Keep 80 kg' }),
     ).toBeInTheDocument();
-    expect(weightBox()).toHaveValue('77.5');
+    expect(weightBox()).toHaveValue('75');
     const sets = screen.getByRole('list', { name: 'Working sets' });
-    expect(text(within(sets).getAllByRole('listitem')[2]!)).toContain('77.5');
+    expect(text(within(sets).getAllByRole('listitem')[2]!)).toContain('75');
     expect(await backOffs()).toEqual([
       expect.objectContaining({
         exerciseId: BENCH.id,
@@ -501,7 +501,7 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
           reps: 4,
           min: 6,
           from: 80,
-          to: 77.5,
+          to: 75,
           sets: 2,
           setLogId: expect.any(String),
         },
@@ -526,10 +526,10 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
       name: /under your 6 minimum/,
     });
 
-    await user.click(within(tip).getByRole('button', { name: 'OK, 77.5 kg' }));
+    await user.click(within(tip).getByRole('button', { name: 'OK, 75 kg' }));
 
     await screen.findByRole('note', { name: /^Last time/ });
-    expect(weightBox()).toHaveValue('77.5');
+    expect(weightBox()).toHaveValue('75');
     expect(await backOffs()).toEqual([
       expect.objectContaining({
         status: 'accepted',
@@ -537,7 +537,7 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
       }),
     ]);
     await logReps(user, 6, 2);
-    expect(weightBox()).toHaveValue('77.5');
+    expect(weightBox()).toHaveValue('75');
   });
 
   it('Keep: dismissed, ô tạ trở về mức cũ', async () => {
@@ -640,7 +640,7 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
     const tip = await screen.findByRole('note', {
       name: /under your 6 minimum/,
     });
-    await user.click(within(tip).getByRole('button', { name: 'OK, 77.5 kg' }));
+    await user.click(within(tip).getByRole('button', { name: 'OK, 75 kg' }));
     await screen.findByRole('note', { name: /^Last time/ });
     await user.clear(weightBox());
     await user.type(weightBox(), '80');
@@ -726,8 +726,8 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
     await logReps(user, 4, 1);
     await screen.findByRole('note', { name: /under your 6 minimum/ });
 
-    expect(weightBox()).toHaveValue('77.5');
-    expect(plannedRow(3)).toContain('77.5');
+    expect(weightBox()).toHaveValue('75');
+    expect(plannedRow(3)).toContain('75');
   });
 
   it('đóng rồi mở lại app: back-off pending vẫn hiện, ô tạ vẫn ở mức back-off', async () => {
@@ -739,7 +739,7 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
     expect(
       await screen.findByRole('note', { name: /under your 6 minimum/ }),
     ).toBeInTheDocument();
-    expect(weightBox()).toHaveValue('77.5');
+    expect(weightBox()).toHaveValue('75');
   });
 
   it('bài chỉ reps dưới sàn: không back-off', async () => {
