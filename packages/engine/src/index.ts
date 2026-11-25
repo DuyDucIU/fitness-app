@@ -21,6 +21,8 @@ export {
   type PreSessionSuggestion,
   type Target,
 } from './before-session';
+export { afterSet, type AfterSetInput, type BackOff } from './after-set';
+export { ENGINE_DEFAULTS } from './defaults';
 export { type LastTime, type PastSet, prefillFromLast } from './last-time';
 export {
   addRest,

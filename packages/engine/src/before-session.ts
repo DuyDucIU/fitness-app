@@ -68,7 +68,23 @@ function bounds(metric: Metric, target: Target | null) {
   return top === null ? null : { min, top };
 }
 
-const valueOf = (metric: Metric, set: PastSet) =>
+/**
+ * Rep range (hoặc thời gian) mà luật so sánh: của target; bài ad hoc thì của lần gần nhất
+ * có rep range (SRS Phụ lục A › trường hợp biên). `null`: không có, không chạy R1–R3.
+ */
+export function rangeFor(
+  metric: Metric,
+  target: Target | null,
+  history: PastSession[],
+): { min: number | null; top: number } | null {
+  if (target) return bounds(metric, target);
+  return (
+    history.map((h) => bounds(metric, h.target)).find((b) => b !== null) ??
+    null
+  );
+}
+
+const valueOf =(metric: Metric, set: PastSet) =>
   metric === 'duration' ? set.durationS : set.reps;
 
 /** STABLE: mọi working set cùng một mức tạ (GLOSSARY SRS 1.3). Bài không tạ luôn STABLE. */
@@ -89,11 +105,7 @@ export function beforeSession(input: BeforeSessionInput): BeforeSession {
   const { metric, history } = input;
   const [last, previous] = history;
   if (!last || metric === 'distance') return NOTHING;
-  // Bài ad hoc: rep range của lần gần nhất có rep range (SRS Phụ lục A › trường hợp biên).
-  const range = input.target
-    ? bounds(metric, input.target)
-    : (history.map((h) => bounds(metric, h.target)).find((b) => b !== null) ??
-      null);
+  const range = rangeFor(metric, input.target, history);
   if (!range) return NOTHING;
   const { min, top } = range;
 
