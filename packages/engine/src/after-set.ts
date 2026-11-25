@@ -39,6 +39,13 @@ export interface BackOff {
   params: { reps: number; min: number; from: number; to: number; sets: number };
 }
 
+/** Bậc ladder (bội số của `step`) lớn nhất nhỏ hơn hẳn `value`. */
+function ladderBelow(value: number, step: number): number {
+  // Trừ sai số dấu phẩy động để mức nằm đúng trên ladder (vd 7.5 / 2.5) xuống đúng một bậc.
+  const rung = Math.ceil(value / step - 1e-9) - 1;
+  return roundToLadder(rung * step, step);
+}
+
 export function afterSet(input: AfterSetInput): BackOff | null {
   const { set, stepKg } = input;
   if (input.metric !== 'weight_reps' || input.setsLeft <= 0) return null;
@@ -50,9 +57,11 @@ export function afterSet(input: AfterSetInput): BackOff | null {
     set.rpe !== null &&
     set.rpe >= ENGINE_DEFAULTS.backOffRpe;
   if (set.reps > min || (set.reps === min && !allOut)) return null;
-  // max(W, current − step): W là đòn khi ghi tổng tạ, còn lại là 0.
+  // max(W, current − step): W là đòn khi ghi tổng tạ, còn lại là 0. `current − step` là bậc
+  // ladder ngay dưới mức hiện tại, để mức lệch ladder (kettlebell 10 kg, bậc 4) chỉ giảm một
+  // bậc (8 kg) chứ không tụt hai bậc (4 kg).
   const floor = input.loadInput === 'total' ? (input.barWeightKg ?? 0) : 0;
-  const to = Math.max(floor, roundToLadder(set.weight - stepKg, stepKg));
+  const to = Math.max(floor, ladderBelow(set.weight, stepKg));
   // Đã ở sàn thì không còn gì để giảm.
   if (to >= set.weight) return null;
   return {
