@@ -1,11 +1,11 @@
-import type { LoadInput, MetricType } from '@fitness/contract';
+import type { LoadInput, MetricType, Suggestion } from '@fitness/contract';
 import type { PreSessionHint, PreSessionSuggestion } from '@fitness/engine';
 
 import { formatElapsed, formatNumber } from '@/lib/format';
 import { m } from '@/paraglide/messages.js';
 
 /**
- * Câu chữ của gợi ý trước buổi (UC12), dựng ở client từ mã lý do và tham số engine trả về,
+ * Câu chữ của gợi ý (UC12, UC13), dựng ở client từ mã lý do và tham số engine trả về,
  * theo ngôn ngữ đang dùng (prototypes/home › suggestionsFor, prototypes/workout-log › r1,
  * hintFor).
  */
@@ -92,4 +92,45 @@ export function hintText(hint: PreSessionHint, reps: boolean): string {
             top: formatNumber(hint.top),
           });
   }
+}
+
+/** Các phần câu của gợi ý back-off; mức tạ mới in đậm giữa `dropBefore` và `dropAfter`. */
+export interface BackOffText {
+  lead: string;
+  dropBefore: string;
+  dropAfter: string;
+  /** Mức tạ vừa ghi và mức back-off, đã định dạng theo ngôn ngữ. */
+  from: string;
+  to: string;
+}
+
+/**
+ * Câu của gợi ý back-off (UC13, R3; prototypes/workout-log › logSet, rpeBackoff) từ mã lý
+ * do và tham số. `null` nếu bản ghi thiếu tham số (vd bản ghi từ client khác hỏng).
+ */
+export function backOffText({
+  reason,
+  payload,
+}: Suggestion): BackOffText | null {
+  const { reps, min, from, to, sets } = payload;
+  if (
+    typeof reps !== 'number' ||
+    typeof min !== 'number' ||
+    typeof from !== 'number' ||
+    typeof to !== 'number' ||
+    typeof sets !== 'number'
+  ) {
+    return null;
+  }
+  const args = { reps: formatNumber(reps), min: formatNumber(min) };
+  const allOut = reason === 'min_all_out';
+  return {
+    lead: allOut ? m.bo_min_all_out(args) : m.bo_under_min(args),
+    dropBefore: m.bo_drop_before(),
+    dropAfter: allOut
+      ? m.bo_drop_after_all_out({ n: sets })
+      : m.bo_drop_after_under_min({ n: sets }),
+    from: formatNumber(from),
+    to: formatNumber(to),
+  };
 }

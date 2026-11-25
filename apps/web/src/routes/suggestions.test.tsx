@@ -429,3 +429,196 @@ describe('màn ghi set: gợi ý trước buổi', () => {
     expect(await suggestionsInOutbox()).toHaveLength(1);
   });
 });
+
+describe('màn ghi set: back-off trong buổi (R3)', () => {
+  /** Lần trước Bench 80 × 8 · 8 · 7: không có gợi ý trước buổi, ô nhập điền 80 × 8. */
+  async function startPushAfterBench() {
+    await seedPush(
+      '2026-11-20T10:00:00.000Z',
+      BENCH_ROW,
+      BENCH.id,
+      benchAt(80, [8, 8, 7]),
+    );
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await user.click(await screen.findByRole('button', { name: 'Start Push' }));
+    await screen.findByRole('heading', { name: 'Push' });
+    return user;
+  }
+
+  async function logReps(
+    user: ReturnType<typeof userEvent.setup>,
+    reps: number,
+    n: number,
+  ) {
+    const input = screen.getByRole('textbox', { name: 'Reps' });
+    await user.clear(input);
+    await user.type(input, String(reps));
+    await user.click(screen.getByRole('button', { name: `Log set ${n}` }));
+    await screen.findByRole('button', { name: `Log set ${n + 1}` });
+  }
+
+  const weightBox = () =>
+    screen.getByRole('textbox', { name: 'Weight (total)' });
+  const backOffs = async () =>
+    (await suggestionsInOutbox()).filter((s) => s.kind === 'back_off');
+
+  it('set dưới sàn: gợi ý giảm một step ngay sau khi ghi, offline, điền sẵn các set còn lại; ghi pending qua outbox', async () => {
+    const user = await startPushAfterBench();
+    expect(weightBox()).toHaveValue('80');
+
+    await logReps(user, 4, 1);
+
+    const tip = await screen.findByRole('note', {
+      name: /under your 6 minimum/,
+    });
+    expect(text(tip)).toContain(
+      'That set was 4 reps, under your 6 minimum. Drop to 77.5 kg for the last 2 sets and keep your form tight.',
+    );
+    expect(
+      within(tip).getByRole('button', { name: 'OK, 77.5 kg' }),
+    ).toBeInTheDocument();
+    expect(
+      within(tip).getByRole('button', { name: 'Keep 80 kg' }),
+    ).toBeInTheDocument();
+    expect(weightBox()).toHaveValue('77.5');
+    const sets = screen.getByRole('list', { name: 'Working sets' });
+    expect(text(within(sets).getAllByRole('listitem')[2]!)).toContain('77.5');
+    expect(await backOffs()).toEqual([
+      expect.objectContaining({
+        exerciseId: BENCH.id,
+        routineExerciseId: BENCH_ROW,
+        sessionExerciseId: expect.any(String),
+        kind: 'back_off',
+        strength: 'strong',
+        reason: 'under_min',
+        payload: { reps: 4, min: 6, from: 80, to: 77.5, sets: 2 },
+        status: 'pending',
+        respondedAt: null,
+      }),
+    ]);
+  });
+
+  it('set trong rep range: không gợi ý back-off', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 6, 1);
+    expect(screen.queryByRole('note', { name: /minimum/ })).toBeNull();
+    expect(weightBox()).toHaveValue('80');
+    expect(await backOffs()).toEqual([]);
+  });
+
+  it('OK: accepted, gợi ý ẩn, các set sau vẫn ở mức back-off', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 4, 1);
+    const tip = await screen.findByRole('note', {
+      name: /under your 6 minimum/,
+    });
+
+    await user.click(within(tip).getByRole('button', { name: 'OK, 77.5 kg' }));
+
+    await screen.findByRole('note', { name: /^Last time/ });
+    expect(weightBox()).toHaveValue('77.5');
+    expect(await backOffs()).toEqual([
+      expect.objectContaining({
+        status: 'accepted',
+        respondedAt: expect.any(String),
+      }),
+    ]);
+    await logReps(user, 6, 2);
+    expect(weightBox()).toHaveValue('77.5');
+  });
+
+  it('Keep: dismissed, ô tạ trở về mức cũ', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 4, 1);
+    const tip = await screen.findByRole('note', {
+      name: /under your 6 minimum/,
+    });
+
+    await user.click(within(tip).getByRole('button', { name: 'Keep 80 kg' }));
+
+    await screen.findByRole('note', { name: /^Last time/ });
+    expect(weightBox()).toHaveValue('80');
+    expect(await backOffs()).toEqual([
+      expect.objectContaining({ status: 'dismissed' }),
+    ]);
+  });
+
+  it('ghi set kế khi chưa trả lời: ghi đúng mức back-off là accepted', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 4, 1);
+    await screen.findByRole('note', { name: /under your 6 minimum/ });
+
+    await logReps(user, 6, 2);
+
+    expect(await backOffs()).toEqual([
+      expect.objectContaining({ status: 'accepted' }),
+    ]);
+  });
+
+  it('ghi set kế khi chưa trả lời ở mức khác: dismissed', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 4, 1);
+    await screen.findByRole('note', { name: /under your 6 minimum/ });
+    await user.clear(weightBox());
+    await user.type(weightBox(), '80');
+
+    await logReps(user, 6, 2);
+
+    expect(await backOffs()).toEqual([
+      expect.objectContaining({ status: 'dismissed' }),
+    ]);
+  });
+
+  it('set cuối của bài dưới sàn: không còn set nào nên không gợi ý', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 8, 1);
+    await logReps(user, 8, 2);
+    const input = screen.getByRole('textbox', { name: 'Reps' });
+    await user.clear(input);
+    await user.type(input, '4');
+    await user.click(screen.getByRole('button', { name: 'Log set 3' }));
+    // Xong bài thì màn chuyển sang bài kế.
+    await screen.findByRole('button', { name: 'Log set 1' });
+    expect(await backOffs()).toEqual([]);
+  });
+
+  it('kết thúc buổi khi back-off chưa trả lời: expired', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 4, 1);
+    await screen.findByRole('note', { name: /under your 6 minimum/ });
+
+    await user.click(screen.getByRole('button', { name: 'Finish' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Finish workout' }),
+    );
+
+    await screen.findByRole('button', { name: 'Start Push' });
+    expect(await backOffs()).toEqual([
+      expect.objectContaining({ status: 'expired', respondedAt: null }),
+    ]);
+  });
+
+  it('đóng rồi mở lại app: back-off pending vẫn hiện, ô tạ vẫn ở mức back-off', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 4, 1);
+    await screen.findByRole('note', { name: /under your 6 minimum/ });
+    cleanup();
+    await openApp('/workout', signedInAn);
+    expect(
+      await screen.findByRole('note', { name: /under your 6 minimum/ }),
+    ).toBeInTheDocument();
+    expect(weightBox()).toHaveValue('77.5');
+  });
+
+  it('bài chỉ reps dưới sàn: không back-off', async () => {
+    const user = await startPushAfterBench();
+    await user.click(screen.getByRole('button', { name: /^Pushups,/ }));
+    const input = await screen.findByRole('textbox', { name: 'Reps' });
+    await user.clear(input);
+    await user.type(input, '5');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+    await screen.findByRole('button', { name: 'Log set 2' });
+    expect(await backOffs()).toEqual([]);
+  });
+});
