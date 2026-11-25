@@ -435,7 +435,8 @@ export function logSet(
       ...setFields(values),
       durationS: null,
       distanceM: null,
-      // Web chưa có ô nhập RPE (#40); có thì nhánh "= rep_min tuỳ RPE" của R3 tự chạy.
+      // Web chưa ghi RPE (#40). RPE hỏi trong lúc nghỉ, sau khi set đã ghi (DESIGN.md › RPE),
+      // nên nhánh "= rep_min tuỳ RPE" của R3 phải chạy lại `afterSet` lúc ghi RPE, không ở đây.
       rpe: null,
       completedAt: at,
       deletedAt: null,

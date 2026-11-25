@@ -670,6 +670,56 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
     ]);
   });
 
+  it('Undo sau khi xoá set gây back-off: gợi ý quay lại pending và hiện lại', async () => {
+    const user = await startPushAfterBench();
+    await logReps(user, 4, 1);
+    await screen.findByRole('note', { name: /under your 6 minimum/ });
+    await user.click(screen.getByRole('button', { name: /^Set 1/ }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Delete set 1' }),
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+
+    expect(
+      await screen.findByRole('note', { name: /under your 6 minimum/ }),
+    ).toBeInTheDocument();
+    expect(await backOffs()).toEqual([
+      expect.objectContaining({ status: 'pending', deletedAt: null }),
+    ]);
+  });
+
+  it('bài ad hoc trong buổi tự do: rep range lấy từ lần gần nhất có rep range, set dưới sàn vẫn back-off', async () => {
+    await seedPush(
+      '2026-11-20T10:00:00.000Z',
+      BENCH_ROW,
+      BENCH.id,
+      benchAt(80, [8, 8, 7]),
+    );
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await user.click(await screen.findByRole('tab', { name: 'Freestyle' }));
+    await user.click(screen.getByRole('button', { name: 'Start freestyle' }));
+    await screen.findByRole('heading', { name: 'Freestyle' });
+    await user.click(screen.getByRole('button', { name: 'Add exercise' }));
+    await user.keyboard('bench');
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Barbell Bench Press - Medium Grip/,
+      }),
+    );
+    await screen.findByRole('button', { name: 'Log set 1' });
+
+    await logReps(user, 4, 1);
+
+    expect(
+      await screen.findByRole('note', { name: /under your 6 minimum/ }),
+    ).toBeInTheDocument();
+    expect(await backOffs()).toEqual([
+      expect.objectContaining({ routineExerciseId: null, status: 'pending' }),
+    ]);
+  });
+
   it('bài chưa có lịch sử: các set chờ tập vẫn hiện mức back-off', async () => {
     const user = await startPushAfterBench(null);
     await user.type(weightBox(), '80');
