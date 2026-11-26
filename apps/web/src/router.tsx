@@ -13,6 +13,7 @@ import {
   RoutinePage,
 } from '@/routes/plans';
 import { ProgressPage } from '@/routes/progress';
+import { BodyPage } from '@/routes/progress-body';
 import { MePage } from '@/routes/root-screens';
 import { TodayPage } from '@/routes/today';
 import { NotFoundPage, RouteError } from '@/routes/route-error';
@@ -60,6 +61,7 @@ export function createRoutes(auth: Auth): RouteObject[] {
             { path: '/history', Component: HistoryPage },
             { path: '/history/:sessionId', Component: HistorySessionPage },
             { path: '/progress', Component: ProgressPage },
+            { path: '/progress/body', Component: BodyPage },
             { path: '/me', Component: MePage },
             { path: '/me/account', Component: AccountPage },
             { path: WORKOUT_PATH, Component: WorkoutLogPage },

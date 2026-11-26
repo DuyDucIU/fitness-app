@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 import { AuthModule } from './auth/auth.module';
+import { BodyMetricsModule } from './body-metrics/body-metrics.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { validateEnv } from './config/env';
 import { HealthController } from './health/health.controller';
@@ -23,6 +24,7 @@ import { UsersModule } from './users/users.module';
     RoutinesModule,
     SyncModule,
     ProgressModule,
+    BodyMetricsModule,
   ],
   controllers: [HealthController],
   providers: [

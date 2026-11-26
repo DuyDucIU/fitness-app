@@ -12,8 +12,8 @@ import { exerciseNames } from '@/catalog/display';
 import { useCatalog } from '@/catalog/use-catalog';
 import { Row, RowEnd, RowTitle } from '@/components/block';
 import { Chart } from '@/components/chart';
-import { Segmented, Subtabs } from '@/components/controls';
-import { Alert, EmptyState } from '@/components/empty-state';
+import { Segmented } from '@/components/controls';
+import { Alert } from '@/components/empty-state';
 import { Select } from '@/components/field';
 import { AlertIcon, BackIcon, ChevronIcon, PlayIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,11 @@ import {
 import { getLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
+import {
+  BlockHeading,
+  NoticeBib,
+  ProgressTabs,
+} from '@/progress/progress-parts';
 import { useProgress } from '@/progress/use-progress';
 import { RootScreen } from '@/routes/root-screens';
 import { loadLabel } from '@/workout/display';
@@ -54,45 +59,6 @@ function muscleGroupName(group: MuscleGroup): string {
     case 'neck':
       return m.muscle_group_neck();
   }
-}
-
-/** Training | Body. Màn chỉ số cơ thể làm ở #35, tới lúc đó báo "Coming soon". */
-function ProgressTabs() {
-  const comingSoon = useComingSoon();
-  return (
-    <Subtabs
-      aria-label={m.progress_tabs_label()}
-      items={[
-        { to: '/progress', label: m.progress_tab_training() },
-        // #35
-        { onClick: comingSoon, label: m.progress_tab_body() },
-      ]}
-    />
-  );
-}
-
-/** Khối kiểu số áo có dải viền rỗng và câu ở giữa: chưa có dữ liệu, hay cần mạng. */
-function NoticeBib({
-  title,
-  children,
-  stat,
-  action,
-}: {
-  title: string;
-  children: React.ReactNode;
-  stat?: React.ReactNode;
-  action: React.ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-md bg-tyvek">
-      <h2 className="flex min-h-14 items-center px-4 py-1.5 label-caps shadow-[inset_0_0_0_2px_var(--color-ink)]">
-        {title}
-      </h2>
-      <EmptyState stat={stat} action={action}>
-        {children}
-      </EmptyState>
-    </section>
-  );
 }
 
 /**
@@ -179,27 +145,6 @@ function Training({ data }: { data: ProgressResponse }) {
       <Frequency data={data} range={weeks} />
       <E1rm series={data.e1rm} from={firstWeek.start} />
     </>
-  );
-}
-
-/** Tiêu đề khối (.chd): tiêu đề 16px 700, dòng phụ 12px, số lớn tuỳ chọn bên phải. */
-function BlockHeading({
-  title,
-  sub,
-  value,
-}: {
-  title: string;
-  sub: string;
-  value?: string;
-}) {
-  return (
-    <div className="flex items-start gap-2 px-4 pt-3.5">
-      <h2 className="flex-1 text-read leading-[1.3] font-bold">
-        {title}
-        <small className="block text-label font-semibold">{sub}</small>
-      </h2>
-      {value && <b className="text-num leading-none numeral">{value}</b>}
-    </div>
   );
 }
 

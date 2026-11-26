@@ -7,3 +7,4 @@ export * from './suggestion';
 export * from './sync';
 export * from './routine';
 export * from './progress';
+export * from './body-metric';
