@@ -287,6 +287,40 @@ describe('Progress cần mạng', () => {
     );
   });
 
+  it('buổi vừa xong còn trong outbox: đẩy lên xong thì tải lại biểu đồ', async () => {
+    await db.outbox.add({
+      entity: 'workout_sessions',
+      entityId: SESSION(9),
+      op: 'upsert',
+      payload: {
+        id: SESSION(9),
+        routineDayId: null,
+        startedAt: '2026-11-18T10:00:00.000Z',
+        endedAt: '2026-11-18T11:00:00.000Z',
+        notes: null,
+        deletedAt: null,
+      },
+      createdAt: Date.now(),
+      attempts: 0,
+    });
+    let release = () => {};
+    const pushed = new Promise<void>((resolve) => (release = resolve));
+    const fetchProgress = vi
+      .fn<() => Promise<ProgressResponse>>()
+      .mockResolvedValueOnce(emptyProgress())
+      .mockResolvedValue(sampleProgress());
+    await openApp('/progress', {
+      ...signedInAn,
+      fetchProgress,
+      pushEvents: () => pushed,
+    });
+    expect(await screen.findByText('Not enough data yet')).toBeInTheDocument();
+
+    release();
+    expect(await screen.findByText('This week')).toBeInTheDocument();
+    expect(fetchProgress).toHaveBeenCalledTimes(2);
+  });
+
   it('server lỗi: báo lỗi và thử lại được', async () => {
     const user = userEvent.setup();
     const fetchProgress = vi

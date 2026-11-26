@@ -1,6 +1,7 @@
 import type { ProgressResponse } from '@fitness/contract';
 import * as React from 'react';
 
+import { useSyncStatus } from '@/hooks/use-sync-status';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/errors';
 
@@ -18,8 +19,8 @@ export type ProgressState =
 
 /**
  * Số liệu biểu đồ tiến độ (UC19) từ server. Không cache trên máy: offline thì báo cần mạng,
- * có mạng lại (sự kiện `online`) thì tự tải lại. Tải mỗi lần mở màn để buổi vừa đồng bộ
- * hiện ngay.
+ * có mạng lại (sự kiện `online`) thì tự tải lại. Tải mỗi lần mở màn, và lại lần nữa khi outbox
+ * vừa đẩy hết, để buổi vừa xong hiện ngay.
  */
 export function useProgress(): {
   state: ProgressState;
@@ -47,6 +48,17 @@ export function useProgress(): {
       cancelled = true;
     };
   }, [fetchProgress, attempt]);
+
+  // Buổi vừa xong có thể còn trong outbox lúc mở màn: đẩy hết lên server thì tải lại.
+  const { pending } = useSyncStatus();
+  const hadPending = React.useRef(pending > 0);
+  React.useEffect(() => {
+    if (pending > 0) hadPending.current = true;
+    else if (hadPending.current) {
+      hadPending.current = false;
+      setAttempt((a) => a + 1);
+    }
+  }, [pending]);
 
   const ready = state.status === 'ready';
   React.useEffect(() => {
