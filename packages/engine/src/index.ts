@@ -37,6 +37,19 @@ export {
 } from './rest';
 export { lastDayIndex, nextDayIndex, type RotationSession } from './rotation';
 export {
+  buildProgress,
+  type E1rmPoint,
+  type E1rmSeries,
+  type Progress,
+  type ProgressExercise,
+  type ProgressInput,
+  type ProgressMonth,
+  type ProgressMuscle,
+  type ProgressSession,
+  type ProgressSet,
+  type ProgressWeek,
+} from './progress';
+export {
   E1RM_MAX_REPS,
   e1rm,
   type NewRecord,

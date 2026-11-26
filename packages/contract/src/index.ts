@@ -6,3 +6,4 @@ export * from './workout';
 export * from './suggestion';
 export * from './sync';
 export * from './routine';
+export * from './progress';

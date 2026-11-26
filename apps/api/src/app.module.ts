@@ -7,6 +7,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { validateEnv } from './config/env';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProgressModule } from './progress/progress.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { RoutinesModule } from './routines/routines.module';
 import { SyncModule } from './sync/sync.module';
@@ -21,6 +22,7 @@ import { UsersModule } from './users/users.module';
     CatalogModule,
     RoutinesModule,
     SyncModule,
+    ProgressModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -26,6 +26,14 @@ export class UsersService {
     return (await this.upsert(auth)).id;
   }
 
+  /** Id và múi giờ của user theo JWT, tạo bản ghi nếu chưa có. */
+  async ensureUser(
+    auth: AuthContext,
+  ): Promise<{ id: string; timezone: string }> {
+    const { id, timezone } = await this.upsert(auth);
+    return { id, timezone };
+  }
+
   private upsert(auth: AuthContext) {
     return this.prisma.user.upsert({
       where: { authSubject: auth.sub },

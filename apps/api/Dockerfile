@@ -8,7 +8,7 @@
 FROM node:24-alpine AS base
 WORKDIR /repo
 
-# ---- build: cài đủ dependency rồi biên dịch contract + api ----
+# ---- build: cài đủ dependency rồi biên dịch contract + engine + api ----
 FROM base AS build
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
@@ -20,8 +20,10 @@ RUN npm ci --workspace @fitness/api --include-workspace-root
 
 COPY tsconfig.base.json ./
 COPY packages/contract packages/contract
+COPY packages/engine packages/engine
 COPY apps/api apps/api
 RUN npm run build -w @fitness/contract \
+ && npm run build -w @fitness/engine \
  && cd apps/api \
  && npx prisma generate \
  && npx nest build
@@ -47,6 +49,8 @@ COPY --from=prod-deps /repo/node_modules ./node_modules
 COPY --from=prod-deps /repo/apps/api/node_modules apps/api/node_modules
 COPY --from=build /repo/packages/contract/package.json packages/contract/package.json
 COPY --from=build /repo/packages/contract/dist packages/contract/dist
+COPY --from=build /repo/packages/engine/package.json packages/engine/package.json
+COPY --from=build /repo/packages/engine/dist packages/engine/dist
 COPY --from=build /repo/apps/api/package.json apps/api/package.json
 COPY --from=build /repo/apps/api/dist apps/api/dist
 WORKDIR /repo/apps/api
