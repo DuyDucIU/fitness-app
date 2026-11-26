@@ -282,10 +282,11 @@ function SessionDetail({ workout }: { workout: HistoryWorkout }) {
     [exercises.length, m.history_stat_exercises()],
   ] as const;
 
-  // Số sẽ lưu của từng set còn giữ; một ô chưa hợp lệ thì khoá nút lưu.
+  // Số sẽ lưu của từng set còn giữ; một ô chưa hợp lệ thì khoá nút lưu. Bài ghi bằng thời
+  // gian, quãng đường (#13) chưa sửa được nên không tính.
   const edits = edit
     ? exercises.flatMap((item) =>
-        item.sets
+        (logKind(item) === 'unsupported' ? [] : item.sets)
           .filter((set) => !edit.removed.has(set.id))
           .map((set) => ({
             setId: set.id,
@@ -520,29 +521,23 @@ function ExerciseBlock({
   const name = exerciseName(item);
   const kind = logKind(item);
   const sub = exerciseSub(item);
-  const title = (
-    <span className="min-w-0 flex-1 leading-[1.3] font-bold">
-      {name}
-      {sub && <small className="block text-label font-normal">{sub}</small>}
-    </span>
-  );
   return (
     <Bib>
       <h2>
-        {edit ? (
-          <span className="flex w-full items-center gap-2 py-3 pr-2 pl-4">
-            {title}
+        <button
+          type="button"
+          onClick={onOpenExercise}
+          className="flex w-full items-center gap-2 py-3 pr-2 pl-4 text-left"
+        >
+          <span className="min-w-0 flex-1 leading-[1.3] font-bold">
+            {name}
+            {sub && (
+              <small className="block text-label font-normal">{sub}</small>
+            )}
           </span>
-        ) : (
-          <button
-            type="button"
-            onClick={onOpenExercise}
-            className="flex w-full items-center gap-2 py-3 pr-2 pl-4 text-left"
-          >
-            {title}
-            <ChevronIcon className="size-5 flex-none" aria-hidden />
-          </button>
-        )}
+          {/* Đang sửa thì ẩn chevron, như prototype. */}
+          {!edit && <ChevronIcon className="size-5 flex-none" aria-hidden />}
+        </button>
       </h2>
       <ul aria-label={name}>
         {item.sets

@@ -10,7 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AN, clearDb, PASSWORD } from '@/auth/testing';
-import { BENCH, CATALOG, SQUAT } from '@/catalog/testing';
+import { BENCH, CATALOG, SLED_PUSH, SQUAT } from '@/catalog/testing';
 import { db, type SyncReject } from '@/db/db';
 import { updateSet } from '@/workout/session';
 import { openApp } from '@/test/open-app';
@@ -523,6 +523,39 @@ describe('sửa và xoá buổi cũ (UC11)', () => {
     expect(screen.queryByText(/^Editing · /)).not.toBeInTheDocument();
     expect(setRows(BENCH_NAME)).toEqual(['Set 180 × 8', 'Set 280 × 7']);
     expect(await outboxEvents()).toEqual([]);
+  });
+
+  it('bài đo quãng đường (chưa sửa được) giữ hàng chỉ đọc, không khoá nút lưu', async () => {
+    const user = userEvent.setup();
+    const w = serverWorkout('2026-11-19T10:00:00.000Z', [
+      { exerciseId: BENCH.id, sets: [[80, 8]] },
+      { exerciseId: SLED_PUSH.id, sets: [[0, 0]] },
+    ]);
+    await seedLocal(w);
+    // Set đo quãng đường: không có tạ, reps.
+    await db.setLogs.put({
+      ...w.sets[1],
+      weightValue: null,
+      inputUnit: null,
+      reps: null,
+      distanceM: 20,
+    });
+    await openApp(`/history/${w.session.id}`, signedInAn);
+    await openEditor(user);
+
+    expect(
+      within(screen.getByRole('list', { name: 'Sled push' })).queryByRole(
+        'textbox',
+      ),
+    ).not.toBeInTheDocument();
+    const reps = screen.getByRole('textbox', {
+      name: `${BENCH_NAME} set 1 reps`,
+    });
+    await user.clear(reps);
+    await user.type(reps, '9');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(setRows(BENCH_NAME)).toEqual(['Set 180 × 9']));
   });
 
   it('lưu set đã xoá: set thành tombstone trong outbox, set còn lại không đổi', async () => {
