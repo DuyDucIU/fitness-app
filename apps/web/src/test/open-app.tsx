@@ -13,9 +13,18 @@ import { createTestAuth } from '@/auth/testing';
 import { createCatalogSync } from '@/catalog/catalog-sync';
 import { ToastProvider } from '@/components/toast';
 import { db } from '@/db/db';
-import type { RoutinesApi } from '@/lib/api';
+import type { BodyMetricsApi, RoutinesApi } from '@/lib/api';
 import { ApiError } from '@/lib/errors';
+import { fakeBodyMetricsServer } from '@/progress/testing';
+import { BodyMetricsApiContext } from '@/progress/use-body-metrics';
 import { ProgressFetchContext } from '@/progress/use-progress';
+
+/** REST chỉ số cơ thể như đang mất mạng. */
+function offlineBodyMetrics(): BodyMetricsApi {
+  const server = fakeBodyMetricsServer();
+  server.online = false;
+  return server.api;
+}
 import { createRoutes } from '@/router';
 import { RoutineSyncContext } from '@/routines/routine-context';
 import { createRoutineSync } from '@/routines/routine-sync';
@@ -31,6 +40,8 @@ import { createSyncPull } from '@/sync/pull';
  * - `routinesApi`: REST routine giả (thường là `fakeRoutinesServer().api`); hàm không truyền
  *   thì như đang mất mạng.
  * - `fetchProgress`: GET /v1/progress giả; mặc định như đang mất mạng. `online`: trình duyệt có mạng không (mặc định có).
+ * - `bodyMetricsApi`: REST chỉ số cơ thể giả (thường là `fakeBodyMetricsServer().api`);
+ *   mặc định như đang mất mạng.
  * - `reconnect()`: giả lập trình duyệt có mạng trở lại.
  * - `becomeVisible()`: giả lập user quay lại app (`visibilitychange` sang hiện).
  */
@@ -42,6 +53,7 @@ export async function openApp(
     pullChanges?: (since?: string) => Promise<SyncPullResponse>;
     routinesApi?: Partial<RoutinesApi>;
     fetchProgress?: () => Promise<ProgressResponse>;
+    bodyMetricsApi?: BodyMetricsApi;
     online?: () => boolean;
   } = {},
 ) {
@@ -50,6 +62,7 @@ export async function openApp(
     pushEvents: pushEventsOption,
     pullChanges: pullChangesOption,
     routinesApi: routinesApiOption,
+    bodyMetricsApi = offlineBodyMetrics(),
     fetchProgress = () =>
       Promise.reject<ProgressResponse>(new ApiError('network', 0)),
     online,
@@ -119,9 +132,11 @@ export async function openApp(
     <AuthContext value={ctx.auth}>
       <RoutineSyncContext value={routineSync}>
         <ProgressFetchContext value={fetchProgress}>
-          <ToastProvider>
-            <RouterProvider router={router} />
-          </ToastProvider>
+          <BodyMetricsApiContext value={bodyMetricsApi}>
+            <ToastProvider>
+              <RouterProvider router={router} />
+            </ToastProvider>
+          </BodyMetricsApiContext>
         </ProgressFetchContext>
       </RoutineSyncContext>
     </AuthContext>,

@@ -1,5 +1,11 @@
 import {
   type AddRoutineExerciseRequest,
+  type BodyMetric,
+  BodyMetricSchema,
+  type BodyMetricsResponse,
+  BodyMetricsResponseSchema,
+  type CreateBodyMetricRequest,
+  type UpdateBodyMetricRequest,
   type CatalogResponse,
   CatalogResponseSchema,
   ErrorResponseSchema,
@@ -114,6 +120,30 @@ export const routinesApi = {
   deleteExercise: (id: string) => write('DELETE', `/routine-exercises/${id}`),
 };
 export type RoutinesApi = typeof routinesApi;
+
+const bodyMetric = (d: unknown): BodyMetric => BodyMetricSchema.parse(d);
+
+/** REST chỉ số cơ thể (UC18), cần mạng cả khi đọc lẫn ghi (ADR 0002). */
+export const bodyMetricsApi = {
+  list: (): Promise<BodyMetricsResponse> =>
+    request('/body-metrics', (d) => BodyMetricsResponseSchema.parse(d), {
+      auth: true,
+    }),
+  create: (body: CreateBodyMetricRequest): Promise<BodyMetric> =>
+    request('/body-metrics', bodyMetric, { auth: true, method: 'POST', body }),
+  update: (id: string, body: UpdateBodyMetricRequest): Promise<BodyMetric> =>
+    request(`/body-metrics/${id}`, bodyMetric, {
+      auth: true,
+      method: 'PATCH',
+      body,
+    }),
+  remove: (id: string): Promise<void> =>
+    request(`/body-metrics/${id}`, () => undefined, {
+      auth: true,
+      method: 'DELETE',
+    }),
+};
+export type BodyMetricsApi = typeof bodyMetricsApi;
 
 export const api = {
   health: (): Promise<HealthResponse> =>

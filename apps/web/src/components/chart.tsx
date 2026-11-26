@@ -14,6 +14,8 @@ export interface ChartPoint {
   label: string;
   /** Nhãn ngắn trên cột hiện tại (biểu đồ cột), vd "3". */
   short?: string;
+  /** Chấm mực ở điểm này (biểu đồ đường ít điểm, vd số đo cơ thể). */
+  dot?: boolean;
 }
 
 /**
@@ -126,6 +128,17 @@ export function Chart({
           d={d}
           className="fill-none stroke-ink stroke-2 [stroke-linecap:round] [stroke-linejoin:round]"
         />
+        {points.map((p, i) =>
+          p.dot && i !== last ? (
+            <circle
+              key={i}
+              cx={X(i)}
+              cy={Y(p.y)}
+              r={4}
+              className="fill-ink stroke-tyvek stroke-2"
+            />
+          ) : null,
+        )}
         <circle
           cx={X(last)}
           cy={Y(hp.y)}

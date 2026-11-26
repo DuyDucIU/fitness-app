@@ -261,18 +261,15 @@ describe('Progress › Training (UC19)', () => {
     ).toBeInTheDocument();
   });
 
-  it('Body và "All records" chưa có (#35, #33): báo Coming soon', async () => {
+  it('"All records" chưa có (#33): báo Coming soon', async () => {
     const user = userEvent.setup();
     await openProgress(async () => sampleProgress());
-    await screen.findByText('This week');
-    await user.click(screen.getByRole('tab', { name: 'Body' }));
-    expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
     await user.click(
-      screen.getByRole('button', {
+      await screen.findByRole('button', {
         name: 'All Barbell Bench Press - Medium Grip records',
       }),
     );
-    expect(screen.getAllByText('Coming soon.').length).toBeGreaterThan(0);
+    expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
   });
 });
 
