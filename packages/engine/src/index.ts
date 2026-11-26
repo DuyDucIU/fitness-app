@@ -4,6 +4,14 @@ export {
   LOAD_INPUTS,
   type LoadInput,
 } from './equipment';
+export {
+  type ExerciseSettings,
+  exerciseSettings,
+  stepChoices,
+  stepWeight,
+  WEIGHT_STEPS,
+  weightFloor,
+} from './exercise-settings';
 export { roundToLadder } from './ladder';
 export {
   type ExerciseMatch,

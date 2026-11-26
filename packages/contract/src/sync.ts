@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { ExerciseSettingSchema } from './exercise-setting';
 import { SuggestionSchema } from './suggestion';
 import {
   SessionExerciseSchema,
@@ -20,7 +21,8 @@ export const SYNC_PUSH_MAX_EVENTS = 100;
 
 /**
  * Một sự kiện outbox: bản ghi đầy đủ của bảng `entity` tại thời điểm thay đổi. Xoá là
- * tombstone `deletedAt` nên mọi sự kiện đều là upsert.
+ * tombstone `deletedAt` nên mọi sự kiện đều là upsert. Khoá của bản ghi là `id`, trừ
+ * `user_exercise_settings` khoá theo `exerciseId` (xem `syncKeyOf`).
  */
 export const SyncEventSchema = z.discriminatedUnion('entity', [
   z.object({
@@ -43,11 +45,23 @@ export const SyncEventSchema = z.discriminatedUnion('entity', [
     op: z.literal('upsert'),
     payload: SuggestionSchema,
   }),
+  z.object({
+    entity: z.literal('user_exercise_settings'),
+    op: z.literal('upsert'),
+    payload: ExerciseSettingSchema,
+  }),
 ]);
 export type SyncEvent = z.infer<typeof SyncEventSchema>;
 
 /** Bảng phía server mà outbox đẩy lên, cũng là `entity` của sự kiện. */
 export type SyncEntity = SyncEvent['entity'];
+
+/** Khoá của bản ghi trong sự kiện: `id`, hoặc bài với cài đặt bài tập (khoá user × bài). */
+export function syncKeyOf(event: SyncEvent): string {
+  return event.entity === 'user_exercise_settings'
+    ? event.payload.exerciseId
+    : event.payload.id;
+}
 
 /** POST /v1/sync/push — các sự kiện theo đúng thứ tự `seq` trên máy. */
 export const SyncPushRequestSchema = z.object({
