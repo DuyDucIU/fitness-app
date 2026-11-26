@@ -869,6 +869,8 @@ describe('PR tạm trong buổi', () => {
     await waitFor(() => expect(prBand()).toBeDefined());
 
     await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
+    // Khối của lần đầu cùng tên đã có sẵn: đợi lần thứ hai thành bài hiện tại (Log set 1).
+    await screen.findByRole('button', { name: 'Log set 1' });
     await type(user, 'Weight (total)', '85');
     await type(user, 'Reps', '8');
     await user.click(screen.getByRole('button', { name: 'Log set 1' }));

@@ -504,6 +504,21 @@
   "backoff_min_all_out": "{reps} rep và đã cạn sức, đúng mức tối thiểu {min}.",
   "backoff_drop_before": "Giảm xuống",
   "backoff_kg": "{weight} kg",
+  "backoff_under_min_after_pr": "Kỷ lục mới, tốt lắm. Có điều {reps} rep là dưới mức tối thiểu {min}.",
+  "backoff_drop_after_pr": [
+    {
+      "declarations": [
+        "input n"
+      ],
+      "selectors": [
+        "n"
+      ],
+      "match": {
+        "n=1": "cho set cuối để quay lại đúng khoảng rep.",
+        "n=*": "cho {n} set cuối để quay lại đúng khoảng rep."
+      }
+    }
+  ],
   "backoff_drop_after_under_min": [
     {
       "declarations": [

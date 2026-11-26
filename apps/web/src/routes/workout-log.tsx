@@ -981,6 +981,9 @@ function SetBib({
         mode.type === 'log' ? (
         <BackOffStub
           backOff={item.backOff.suggestion}
+          afterRecord={item.records.has(
+            String(item.backOff.suggestion.payload.setLogId),
+          )}
           onWeight={(weight) => onDraftChange({ ...draft, weight })}
         />
       ) : (
@@ -1037,12 +1040,15 @@ function TipStub({ item }: { item: OpenExercise }) {
  */
 function BackOffStub({
   backOff,
+  afterRecord,
   onWeight,
 }: {
   backOff: Suggestion;
+  /** Set gây back-off vừa lập PR: câu mở bằng lời chúc mừng. */
+  afterRecord: boolean;
   onWeight: (weight: number) => void;
 }) {
-  const text = backOffText(backOff);
+  const text = backOffText(backOff, afterRecord);
   const params = backOffParams(backOff);
   if (!text || !params) return null;
   const { from, to } = text;

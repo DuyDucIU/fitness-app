@@ -532,6 +532,21 @@
   "backoff_min_all_out": "{reps} reps with nothing left, right at your {min} minimum.",
   "backoff_drop_before": "Drop to",
   "backoff_kg": "{weight} kg",
+  "backoff_under_min_after_pr": "New best, nice. {reps} reps is under your {min} minimum, though.",
+  "backoff_drop_after_pr": [
+    {
+      "declarations": [
+        "input n"
+      ],
+      "selectors": [
+        "n"
+      ],
+      "match": {
+        "n=1": "for the last set to stay in your rep range.",
+        "n=*": "for the last {n} sets to stay in your rep range."
+      }
+    }
+  ],
   "backoff_drop_after_under_min": [
     {
       "declarations": [

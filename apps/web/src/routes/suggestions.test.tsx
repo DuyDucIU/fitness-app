@@ -785,3 +785,35 @@ describe('màn ghi set: PR tạm ở set cuối của bài', () => {
     );
   });
 });
+
+describe('màn ghi set: back-off sau set vừa lập PR', () => {
+  it('set nặng lập PR e1RM nhưng dưới sàn: back-off mở bằng lời chúc mừng, mức back-off giữ nguyên', async () => {
+    await seedPush(
+      '2026-11-20T10:00:00.000Z',
+      BENCH_ROW,
+      BENCH.id,
+      benchAt(80, [8, 8, 7]),
+    );
+    const user = userEvent.setup();
+    await openApp('/', signedInAn);
+    await user.click(await screen.findByRole('button', { name: 'Start Push' }));
+    await screen.findByRole('heading', { name: 'Push' });
+
+    // 100 × 3: e1RM 110 vượt 101,3 nhưng 3 reps dưới sàn 6.
+    const weight = screen.getByRole('textbox', { name: 'Weight (total)' });
+    await user.clear(weight);
+    await user.type(weight, '100');
+    const reps = screen.getByRole('textbox', { name: 'Reps' });
+    await user.clear(reps);
+    await user.type(reps, '3');
+    await user.click(screen.getByRole('button', { name: 'Log set 1' }));
+
+    const tip = await screen.findByRole('note', { name: /New best/ });
+    expect(text(tip)).toContain(
+      'New best, nice. 3 reps is under your 6 minimum, though. Drop to 95 kg for the last 2 sets to stay in your rep range.',
+    );
+    expect(
+      within(tip).getByRole('button', { name: 'OK, 95 kg' }),
+    ).toBeInTheDocument();
+  });
+});
