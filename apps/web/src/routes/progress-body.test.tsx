@@ -168,6 +168,24 @@ describe('Progress › Body (UC18)', () => {
     ).toHaveTextContent('edited');
   });
 
+  it('lưu sheet sửa mà không đổi gì thì không ghi, kể cả mốc đo có giây', async () => {
+    const withSeconds = entry('weight', 72.5, '2026-11-18', {
+      measuredAt: '2026-11-18T12:00:37.000Z',
+    });
+    const { server } = await openBody([withSeconds]);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Edit weight from Nov 18, 72.5 kg' }),
+    );
+    const sheet = await screen.findByRole('dialog');
+    await userEvent.click(
+      within(sheet).getByRole('button', { name: 'Save changes' }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(server.entries).toEqual([withSeconds]);
+  });
+
   it('xoá một lần đo rồi hoàn tác', async () => {
     const { server } = await openBody();
     await userEvent.click(

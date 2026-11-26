@@ -18,6 +18,11 @@ import { ApiError } from '@/lib/errors';
 import { fakeBodyMetricsServer } from '@/progress/testing';
 import { BodyMetricsApiContext } from '@/progress/use-body-metrics';
 import { ProgressFetchContext } from '@/progress/use-progress';
+import { createRoutes } from '@/router';
+import { RoutineSyncContext } from '@/routines/routine-context';
+import { createRoutineSync } from '@/routines/routine-sync';
+import { createOutboxPush } from '@/sync/outbox-push';
+import { createSyncPull } from '@/sync/pull';
 
 /** REST chỉ số cơ thể như đang mất mạng. */
 function offlineBodyMetrics(): BodyMetricsApi {
@@ -25,11 +30,6 @@ function offlineBodyMetrics(): BodyMetricsApi {
   server.online = false;
   return server.api;
 }
-import { createRoutes } from '@/router';
-import { RoutineSyncContext } from '@/routines/routine-context';
-import { createRoutineSync } from '@/routines/routine-sync';
-import { createOutboxPush } from '@/sync/outbox-push';
-import { createSyncPull } from '@/sync/pull';
 
 /**
  * Mở app ở `url` với router thật, Dexie thật (fake-indexeddb) và Supabase giả

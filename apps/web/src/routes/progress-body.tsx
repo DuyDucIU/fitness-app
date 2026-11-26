@@ -1,6 +1,7 @@
 import {
   type BodyMetric,
   type BodyMetricKind,
+  BODY_METRICS,
   isBodyMetricValueValid,
 } from '@fitness/contract';
 import * as React from 'react';
@@ -44,40 +45,23 @@ const LIST_LIMIT = 10;
 /** Ít lần đo hơn số này thì chấm mọi điểm trên đường. */
 const DOT_BELOW = 6;
 
-function metricName(metric: BodyMetricKind): string {
-  switch (metric) {
-    case 'weight':
-      return m.body_weight();
-    case 'waist':
-      return m.body_waist();
-    case 'body_fat':
-      return m.body_body_fat();
-  }
-}
-
-/** Tên chỉ số giữa câu ("No weight entries yet."). */
-function metricNoun(metric: BodyMetricKind): string {
-  switch (metric) {
-    case 'weight':
-      return m.body_weight_lower();
-    case 'waist':
-      return m.body_waist_lower();
-    case 'body_fat':
-      return m.body_body_fat_lower();
-  }
-}
-
-/** Đơn vị lưu và hiển thị. #38: cân nặng theo `unitPref` khi có cài đặt đơn vị (kg/lb). */
-function metricUnit(metric: BodyMetricKind): string {
-  switch (metric) {
-    case 'weight':
-      return m.unit_kg();
-    case 'waist':
-      return m.unit_cm();
-    case 'body_fat':
-      return m.unit_percent();
-  }
-}
+/** Chữ của từng chỉ số: tên, tên giữa câu ("No weight entries yet.") và đơn vị lưu/hiển thị. */
+// #38: cân nặng nhập và hiển thị theo `unitPref` (kg/lb) khi có cài đặt đơn vị; lưu vẫn bằng kg.
+const METRIC_TEXT: Record<
+  BodyMetricKind,
+  { name: () => string; noun: () => string; unit: () => string }
+> = {
+  weight: { name: m.body_weight, noun: m.body_weight_lower, unit: m.unit_kg },
+  waist: { name: m.body_waist, noun: m.body_waist_lower, unit: m.unit_cm },
+  body_fat: {
+    name: m.body_body_fat,
+    noun: m.body_body_fat_lower,
+    unit: m.unit_percent,
+  },
+};
+const metricName = (metric: BodyMetricKind) => METRIC_TEXT[metric].name();
+const metricNoun = (metric: BodyMetricKind) => METRIC_TEXT[metric].noun();
+const metricUnit = (metric: BodyMetricKind) => METRIC_TEXT[metric].unit();
 
 const valueText = (value: number) =>
   formatNumber(value, { maxFractionDigits: 1 });
@@ -198,7 +182,7 @@ function Measurements({
         aria-label={m.body_metric_label()}
         value={metric}
         onValueChange={setMetric}
-        options={(['weight', 'waist', 'body_fat'] as const).map((k) => ({
+        options={BODY_METRICS.map((k) => ({
           value: k,
           label: metricName(k),
         }))}
@@ -257,7 +241,7 @@ function MetricChart({
           title={name}
           xHead={m.progress_axis_date()}
           yHead={m.body_axis({ name, unit })}
-          yFormat={(v) => formatNumber(v, { maxFractionDigits: 1 })}
+          yFormat={valueText}
           empty=""
         />
       ) : (
@@ -449,17 +433,17 @@ function EditSheet({
     const problem = valueError(metric, value);
     setError(problem);
     if (problem || value === null) return;
-    const measuredAt = fromLocalInput(measured, at);
-    const changed =
-      value !== entry.value || Date.parse(measuredAt) !== at.getTime();
-    if (!changed) {
+    // Ô thời điểm chỉ tới phút: so theo chữ trong ô để mốc có giây không bị coi là đã sửa.
+    const valueChanged = value !== entry.value;
+    const timeChanged = measured !== toLocalInput(at);
+    if (!valueChanged && !timeChanged) {
       onClose();
       return;
     }
     setBusy(true);
     const saved = await update(entry.id, {
-      ...(value !== entry.value && { value }),
-      ...(Date.parse(measuredAt) !== at.getTime() && { measuredAt }),
+      ...(valueChanged && { value }),
+      ...(timeChanged && { measuredAt: fromLocalInput(measured, at) }),
     });
     setBusy(false);
     if (!saved) return;
