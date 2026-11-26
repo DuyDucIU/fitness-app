@@ -339,6 +339,8 @@ type Period = 'week' | 'month';
 
 function Frequency({ data, range }: { data: ProgressResponse; range: number }) {
   const [period, setPeriod] = React.useState<Period>('week');
+  // #36: dòng "Goal: N a week" và nhãn đạt/trượt mục tiêu từng tuần (prototype).
+  // #30: tuần deload tô màu `rule`, ghi "deload week · streak paused".
   const points =
     period === 'week'
       ? data.weeks.slice(-range).map((w) => ({
