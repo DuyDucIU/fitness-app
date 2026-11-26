@@ -7,6 +7,8 @@ import {
   HealthResponseSchema,
   type MeResponse,
   MeResponseSchema,
+  type ProgressResponse,
+  ProgressResponseSchema,
   type CreateRoutineDayRequest,
   type CreateRoutineRequest,
   type Routine,
@@ -118,6 +120,11 @@ export const api = {
     request('/health', (d) => HealthResponseSchema.parse(d), { auth: false }),
   me: (): Promise<MeResponse> =>
     request('/me', (d) => MeResponseSchema.parse(d), { auth: true }),
+  /** Biểu đồ tiến độ (UC19), cần mạng. */
+  progress: (): Promise<ProgressResponse> =>
+    request('/progress', (d) => ProgressResponseSchema.parse(d), {
+      auth: true,
+    }),
   catalog: (): Promise<CatalogResponse> =>
     request('/catalog', (d) => CatalogResponseSchema.parse(d), { auth: true }),
   syncPush: (events: SyncEvent[]): Promise<SyncPushResponse> =>

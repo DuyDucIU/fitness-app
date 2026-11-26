@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formatLongDate,
+  formatMonthShort,
+  formatMonthYear,
   formatNumber,
+  fromLocalDate,
   formatShortDate,
   formatTime,
   formatWeekdayLetter,
@@ -93,5 +96,24 @@ describe('parseDecimal', () => {
     expect(parseDecimal('abc')).toBeNull();
     expect(parseDecimal('1,2,3')).toBeNull();
     expect(parseDecimal('1.000,5')).toBeNull();
+  });
+});
+
+describe('tháng và ngày lịch', () => {
+  it('nhãn tháng ngắn trên trục: "Nov" (en) / "T11" (vi)', () => {
+    expect(formatMonthShort(date, 'en')).toBe('Nov');
+    expect(formatMonthShort(date, 'vi')).toBe('T11');
+  });
+
+  it('tháng kèm năm: "Nov 2026" (en) / "Tháng 11/2026" (vi)', () => {
+    expect(formatMonthYear(date, 'en')).toBe('Nov 2026');
+    expect(formatMonthYear(date, 'vi')).toBe('Tháng 11/2026');
+  });
+
+  it('ngày lịch YYYY-MM-DD thành nửa đêm giờ máy, không lệch ngày', () => {
+    const d = fromLocalDate('2026-11-16');
+    expect([d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()]).toEqual([
+      2026, 10, 16, 0,
+    ]);
   });
 });

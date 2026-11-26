@@ -1,5 +1,6 @@
 import type {
   CatalogResponse,
+  ProgressResponse,
   SyncEvent,
   SyncPullResponse,
 } from '@fitness/contract';
@@ -14,6 +15,7 @@ import { ToastProvider } from '@/components/toast';
 import { db } from '@/db/db';
 import type { RoutinesApi } from '@/lib/api';
 import { ApiError } from '@/lib/errors';
+import { ProgressFetchContext } from '@/progress/use-progress';
 import { createRoutes } from '@/router';
 import { RoutineSyncContext } from '@/routines/routine-context';
 import { createRoutineSync } from '@/routines/routine-sync';
@@ -27,7 +29,8 @@ import { createSyncPull } from '@/sync/pull';
  * - `pushEvents`: POST /v1/sync/push giả; mặc định như đang mất mạng (outbox giữ nguyên).
  * - `pullChanges`: GET /v1/sync/pull giả; mặc định như đang mất mạng.
  * - `routinesApi`: REST routine giả (thường là `fakeRoutinesServer().api`); hàm không truyền
- *   thì như đang mất mạng. `online`: trình duyệt có mạng không (mặc định có).
+ *   thì như đang mất mạng.
+ * - `fetchProgress`: GET /v1/progress giả; mặc định như đang mất mạng. `online`: trình duyệt có mạng không (mặc định có).
  * - `reconnect()`: giả lập trình duyệt có mạng trở lại.
  * - `becomeVisible()`: giả lập user quay lại app (`visibilitychange` sang hiện).
  */
@@ -38,6 +41,7 @@ export async function openApp(
     pushEvents?: (events: SyncEvent[]) => Promise<unknown>;
     pullChanges?: (since?: string) => Promise<SyncPullResponse>;
     routinesApi?: Partial<RoutinesApi>;
+    fetchProgress?: () => Promise<ProgressResponse>;
     online?: () => boolean;
   } = {},
 ) {
@@ -46,6 +50,8 @@ export async function openApp(
     pushEvents: pushEventsOption,
     pullChanges: pullChangesOption,
     routinesApi: routinesApiOption,
+    fetchProgress = () =>
+      Promise.reject<ProgressResponse>(new ApiError('network', 0)),
     online,
     ...authOptions
   } = options;
@@ -112,9 +118,11 @@ export async function openApp(
   render(
     <AuthContext value={ctx.auth}>
       <RoutineSyncContext value={routineSync}>
-        <ToastProvider>
-          <RouterProvider router={router} />
-        </ToastProvider>
+        <ProgressFetchContext value={fetchProgress}>
+          <ToastProvider>
+            <RouterProvider router={router} />
+          </ToastProvider>
+        </ProgressFetchContext>
       </RoutineSyncContext>
     </AuthContext>,
   );

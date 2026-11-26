@@ -128,6 +128,32 @@ export function formatWeekdayShort(
   return dateFormat(locale, { weekday: 'short' }).format(date);
 }
 
+/** Tháng ngắn trên trục biểu đồ: "Nov" (en) / "T11" (vi). */
+export function formatMonthShort(
+  date: Date,
+  locale: Locale = getLocale(),
+): string {
+  if (locale === 'vi') return `T${date.getMonth() + 1}`;
+  return dateFormat(locale, { month: 'short' }).format(date);
+}
+
+/** Tháng kèm năm: "Nov 2026" (en) / "Tháng 11/2026" (vi). */
+export function formatMonthYear(
+  date: Date,
+  locale: Locale = getLocale(),
+): string {
+  if (locale === 'vi') {
+    return `Tháng ${date.getMonth() + 1}/${date.getFullYear()}`;
+  }
+  return dateFormat(locale, { month: 'short', year: 'numeric' }).format(date);
+}
+
+/** Ngày lịch "YYYY-MM-DD" (vd đầu tuần từ server) thành nửa đêm giờ máy của ngày đó. */
+export function fromLocalDate(date: string): Date {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /** Giờ: "7:05 PM" (en) / "19:05" (vi). */
 export function formatTime(date: Date, locale: Locale = getLocale()): string {
   return dateFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(
