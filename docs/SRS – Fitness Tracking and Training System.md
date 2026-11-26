@@ -349,6 +349,7 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Tiền điều kiện:** Có session đang mở.
 - **Luồng chính:**
   1. User nhấn "Kết thúc buổi tập"; app ghi `ended_at`.
+     - App hiện **trang tóm tắt** của buổi (prototypes/workout-log › `showSummary`): số working set, số phút, PR mới của buổi (UC17), trạng thái đồng bộ, các bài đã tập và set bỏ qua; nút về Today. Chạy được khi offline. Chi tiết và các điểm chưa chốt ở #65. **Bổ sung (26/11/2026).**
   2. Outbox đẩy toàn bộ set/session chưa sync lên server (`POST /sync/push`, upsert theo id).
   3. Server tính lại cache PR và streak liên quan.
   4. App kéo về thay đổi mới (`GET /sync/pull?since=cursor`).
