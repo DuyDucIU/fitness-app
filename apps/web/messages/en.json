@@ -646,7 +646,7 @@
   "progress_e1rm_none": "Log a weight × reps exercise to see its estimated 1RM.",
   "progress_all_records": "All {name} records",
   "body_offline_title": "Measurements need a connection",
-  "body_offline_body": "Your measurements are kept online. They load as soon as you’re back online.",
+  "body_offline_body": "Your measurements are stored with your account. They load as soon as you’re back online.",
   "body_error_title": "Couldn’t load your measurements",
   "body_needs_network": "Saving a measurement needs a connection. Try again when you’re online.",
   "body_metric_label": "Measurement",
