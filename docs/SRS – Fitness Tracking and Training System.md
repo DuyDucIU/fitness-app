@@ -476,7 +476,7 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
   - e1RM mỗi buổi: set có e1RM **cao nhất** trong các set có tạ và **≤ 12 reps** (cùng trần với PR e1RM ở UC17), nên đỉnh đường e1RM là PR. Chỉ bài `weight_reps`. Tạ quy về kg theo `input_unit` của từng set. Bài thêm hai lần trong buổi cùng `load_input` gộp thành một điểm. Ô chọn bài có một mục cho mỗi cặp bài × `load_input`; bài có nhiều cách ghi thì mục ghi kèm cách ghi.
   - Số set theo nhóm cơ đếm kiểu "fractional" (Pelland và cs., 2024): mỗi set +1 cho nhóm có cơ chính (`primary`) của bài, +0,5 cho nhóm chỉ có cơ phụ (`secondary`); mỗi nhóm tính một lần mỗi set. Tuần đang xem so với trung bình 4 tuần trước đó.
   - Tần suất xem được theo tuần (4 hoặc 12 tuần gần nhất) hoặc theo tháng (luôn 12 tháng gần nhất, tháng này tính tới hôm nay).
-  - Không có bản trên máy: offline thì báo cần mạng, có mạng lại thì tự tải.
+  - Không có bản trên máy: offline thì báo cần mạng, có mạng lại thì tự tải. Server lỗi thì báo lỗi kèm nút thử lại.
 - **Hậu điều kiện:** User thấy xu hướng tiến bộ theo thời gian.
 
 #### UC20 — Xem lịch sử bài tập và PR
