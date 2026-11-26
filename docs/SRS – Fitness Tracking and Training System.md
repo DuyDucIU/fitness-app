@@ -458,8 +458,9 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Tiền điều kiện:** Đã đăng nhập.
 - **Luồng chính:**
   1. User nhập thủ công một chỉ số (`weight`/`body_fat`/`waist`) và thời điểm đo.
-  2. App lưu `BODY_METRICS` với `source = manual`.
-  3. (Post-MVP, khi có UC29) Nếu chỉ số trùng loại và thời điểm với dữ liệu đồng bộ từ Health Connect (UC29, `source = health_connect`), giữ cả hai bản ghi riêng (không merge) — phân biệt qua `source`.
+  2. App lưu `BODY_METRICS` với `source = manual`. Số phải nằm trong khoảng hợp lệ của từng loại, tính cả hai đầu, theo đơn vị lưu: cân nặng 25–350 kg, vòng eo 50–250 cm, body fat 2–60 %. Khoảng này để bắt gõ nhầm và nhầm đơn vị (vòng eo nhập bằng inch, body fat nhập dạng phân số 0,18), không để đánh giá sức khoẻ; ngoài khoảng thì app báo kiểm tra lại đơn vị và server trả 400.
+  3. User sửa được số hoặc thời điểm đo của một lần đo (không đổi loại chỉ số); lần đo đã sửa ghi `edited`. Xoá là xoá hẳn, kèm Hoàn tác 5 giây (DESIGN.md › Xoá); Hoàn tác ghi lại lần đo như một lần nhập mới.
+  4. (Post-MVP, khi có UC29) Nếu chỉ số trùng loại và thời điểm với dữ liệu đồng bộ từ Health Connect (UC29, `source = health_connect`), giữ cả hai bản ghi riêng (không merge) — phân biệt qua `source`.
 - **Hậu điều kiện:** Chỉ số xuất hiện trong biểu đồ tiến độ (UC19) và có thể dùng làm mục tiêu `body_metric` (UC15).
 
 #### UC19 — Xem biểu đồ e1RM theo bài, số set mỗi tuần theo nhóm cơ, tần suất tập

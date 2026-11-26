@@ -455,6 +455,8 @@ erDiagram
         timestamptz measured_at
         text source "manual | health_connect"
         text external_id "dedupe on sync"
+        timestamptz created_at
+        timestamptz edited_at "null = chưa sửa"
     }
     DAILY_ACTIVITIES {
         uuid id PK
@@ -564,7 +566,7 @@ Contract chi tiết (request/response schema của từng route) được viết
 | Sync | UC06–UC11, UC12–UC14, UC22 | Push/pull idempotent cho session/set, gợi ý, deload, cài đặt bài tập |
 | Suggestions | UC12–UC14, UC22 | Gợi ý sinh ở client; trạng thái accepted/dismissed, deload và cài đặt bài tập ghi qua Sync |
 | Goals & Challenges | UC15–UC17 | CRUD goal, đọc streak, PR |
-| Metrics & Progress | UC18–UC20 | Ghi chỉ số cơ thể, đọc biểu đồ/lịch sử |
+| Metrics & Progress | UC18–UC20 | Thêm/sửa/xoá chỉ số cơ thể (cần mạng, xoá hẳn), đọc biểu đồ/lịch sử |
 | Account | UC02, UC21, UC23 | Cài đặt, xoá tài khoản, onboarding |
 | Imports | UC25–UC27 | Post-MVP — tạo job, poll trạng thái, confirm |
 | Device | UC28–UC30 | Post-MVP — lưu scope đã cấp, trigger sync Health Connect |
