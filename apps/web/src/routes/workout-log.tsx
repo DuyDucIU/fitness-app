@@ -1014,9 +1014,10 @@ function SetBib({
     band = (
       <div className="relative bg-tyvek text-ink shadow-[inset_0_0_0_2px_var(--color-blue)]">
         {layer(false)}
+        {/* Lớp phủ chỉ để hiện tiến độ; chạm xuyên qua tới dải thật (nút "⋯") bên dưới. */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-blue text-on-signal [transition:clip-path_0.25s_linear]"
+          className="pointer-events-none absolute inset-0 bg-blue text-on-signal [transition:clip-path_0.25s_linear]"
           style={{ clipPath: `inset(0 ${(1 - rest.fraction) * 100}% 0 0)` }}
         >
           {layer(true)}
