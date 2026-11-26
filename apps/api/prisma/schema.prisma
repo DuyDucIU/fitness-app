@@ -97,6 +97,19 @@ enum SuggestionStatus {
   expired
 }
 
+/// Loại chỉ số cơ thể (BODY_METRICS.metric). Cân nặng lưu kg, vòng eo cm, body fat %.
+enum BodyMetricKind {
+  weight
+  waist
+  body_fat
+}
+
+/// Nguồn chỉ số cơ thể. `health_connect` là post-MVP (UC29), chưa ghi.
+enum BodyMetricSource {
+  manual
+  health_connect
+}
+
 /// Ngôn ngữ giao diện (D27, SDD 3.5). Tiếng Anh là mặc định.
 enum Locale {
   en
@@ -123,6 +136,7 @@ model User {
   workoutSessions WorkoutSession[]
   routines        Routine[]
   suggestions     Suggestion[]
+  bodyMetrics     BodyMetric[]
 
   @@map("users")
 }
@@ -368,4 +382,27 @@ model Suggestion {
 
   @@index([userId, updatedAt])
   @@map("suggestions")
+}
+
+// Chỉ số cơ thể (UC18): ghi bằng REST, cần mạng (ADR 0002), không đi qua outbox nên xoá là
+// xoá hẳn. Xoá user thì xoá theo cascade.
+
+model BodyMetric {
+  id         String           @id @default(uuid()) @db.Uuid
+  userId     String           @map("user_id") @db.Uuid
+  metric     BodyMetricKind
+  value      Decimal          @db.Decimal
+  measuredAt DateTime         @map("measured_at") @db.Timestamptz(6)
+  source     BodyMetricSource
+  /// Id bản ghi bên Health Connect để khử trùng khi đồng bộ (post-MVP)
+  externalId String?          @map("external_id")
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// Lần sửa số hoặc thời điểm gần nhất; null = chưa sửa
+  editedAt   DateTime?        @map("edited_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, source, externalId])
+  @@index([userId, measuredAt(sort: Desc)])
+  @@map("body_metrics")
 }
