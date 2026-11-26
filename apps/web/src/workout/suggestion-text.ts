@@ -107,14 +107,28 @@ export interface BackOffText {
 
 /**
  * Câu của gợi ý back-off (UC13, R3; prototypes/workout-log › logSet, rpeBackoff) từ mã lý
- * do và tham số. `null` nếu bản ghi thiếu tham số.
+ * do và tham số. `afterRecord`: set gây back-off vừa lập PR (UC17), câu mở bằng lời chúc
+ * mừng thay vì nghe như chê; mức back-off giữ nguyên. `null` nếu bản ghi thiếu tham số.
  */
-export function backOffText(s: Suggestion): BackOffText | null {
+export function backOffText(
+  s: Suggestion,
+  afterRecord = false,
+): BackOffText | null {
   const params = backOffParams(s);
   if (!params) return null;
   const { reps, min, from, to, sets } = params;
   const args = { reps: formatNumber(reps), min: formatNumber(min) };
   const allOut = s.reason === 'min_all_out';
+  // Nhánh "đúng sàn, cạn sức" (RPE, #40) giữ câu riêng: set đó đã đạt sàn.
+  if (afterRecord && !allOut) {
+    return {
+      lead: m.backoff_under_min_after_pr(args),
+      dropBefore: m.backoff_drop_before(),
+      dropAfter: m.backoff_drop_after_pr({ n: sets }),
+      from: formatNumber(from),
+      to: formatNumber(to),
+    };
+  }
   return {
     lead: allOut ? m.backoff_min_all_out(args) : m.backoff_under_min(args),
     dropBefore: m.backoff_drop_before(),

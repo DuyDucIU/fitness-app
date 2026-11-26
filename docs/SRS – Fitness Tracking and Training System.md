@@ -349,6 +349,7 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Tiền điều kiện:** Có session đang mở.
 - **Luồng chính:**
   1. User nhấn "Kết thúc buổi tập"; app ghi `ended_at`.
+     - App hiện **trang tóm tắt** của buổi (prototypes/workout-log › `showSummary`): số working set, số phút, PR mới của buổi (UC17), trạng thái đồng bộ, các bài đã tập và set bỏ qua; nút về Today. Chạy được khi offline. Chi tiết và các điểm chưa chốt ở #65. **Bổ sung (26/11/2026).**
   2. Outbox đẩy toàn bộ set/session chưa sync lên server (`POST /sync/push`, upsert theo id).
   3. Server tính lại cache PR và streak liên quan.
   4. App kéo về thay đổi mới (`GET /sync/pull?since=cursor`).
@@ -440,6 +441,12 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
   2. App hiện **thông báo trong app** ngay trên màn hình buổi tập: tên bài, loại PR (e1RM / weight\_at\_reps / max\_reps / session\_volume) và giá trị mới.
   3. User bấm vào thông báo → mở màn hình lịch sử/PR của bài đó (UC20).
   4. Khi sync, server tính lại và là nguồn chuẩn; nếu server không công nhận PR (hiếm, ví dụ set bị sửa sau đó), PR được gỡ khỏi `PERSONAL_RECORDS` mà không thông báo thêm.
+- **Cách tính PR** (hàm thuần trong `packages/engine`, client và server dùng chung — D7). **Chốt (25/11/2026).**
+  - Chỉ so working set chưa xoá của **cùng bài và cùng `load_input`** (D15). Chưa có buổi nào đã kết thúc của bài với cùng `load_input` thì không có PR, kể cả khi set sau vượt set trước trong buổi đầu. Phải **vượt hẳn** kỷ lục; bằng thì không tính.
+  - Theo set, mỗi kiểu bài một loại (DESIGN.md › PR theo kiểu bài): tạ × reps → `e1rm` (Epley), chỉ với set **≤ 12 reps**: quá mức này set thiên về sức bền và Epley ước lượng kém, nên set đó không lập và không làm mốc PR e1RM (vẫn tính vào `session_volume`). **Chốt (26/11/2026).**; bài reps có tạ đeo thêm > 0 → `weight_at_reps`: tạ nặng hơn mọi set có tạ đeo thêm với **ít nhất N reps** (N = reps của set); bài reps ở BW (0 kg / không tạ) → `max_reps`, so với các set BW, và cần có ít nhất một set BW trước đó. Chưa có set có tạ đeo thêm nào với ít nhất N reps thì set có tạ đeo thêm là PR `weight_at_reps` (như prototype). Bài bấm giờ, quãng đường chưa có loại PR.
+  - `session_volume`: tổng tạ × reps các working set của bài trong buổi (bài reps: tổng reps), so với buổi cao nhất trước đó. Báo **một lần**, ở set đẩy tổng qua kỷ lục. Đây là volume của một bài trong một buổi, khác "Volume (theo nhóm cơ)" ở Phụ lục tính bằng số set.
+  - Set vừa lập PR mà cũng dưới sàn rep range (R3) thì vẫn gợi ý back-off như thường, nhưng câu mở bằng lời chúc mừng ("New best, nice. 3 reps is under your 6 minimum, though…") thay vì nghe như chê; mức back-off và nút trả lời giữ nguyên. **Chốt (26/11/2026).**
+  - Một set lập nhiều PR thì thông báo PR theo set trước, `session_volume` sau. Trên màn buổi tập, dải số áo đổi sang nền mực trong 2,4 giây với tên bài và số mới; hàng set ghi loại PR tới khi user chạm vào.
 - **Phạm vi:** MVP chỉ có thông báo trong app. Push notification (Web Push) để post-MVP: PR chỉ phát sinh khi user đang log trong app, trong khi Web Push cần HTTPS, quyền thông báo, và trên iOS chỉ hoạt động khi app đã được thêm vào màn hình chính (iOS 16.4+). **Chốt.**
 - **Hậu điều kiện:** User thấy PR ngay khi đạt, không cần rời màn hình buổi tập.
 
@@ -675,6 +682,6 @@ Các ngưỡng cụ thể (RPE threshold, tỉ lệ %, số ngày...) nằm tron
 | Ladder | Các mức tạ khả dụng = bội số của step; làm tròn về mức gần nhất, cách đều thì làm tròn xuống |
 | Working set | Set tính vào rep range mục tiêu, không gồm set khởi động |
 | Load input | Quy ước ghi tạ: `total` (tổng), `per_side` (mỗi bên), `per_dumbbell` (mỗi quả), `stack` (cột tạ), `added_weight` (tạ đeo thêm) |
-| Volume (theo nhóm cơ) | Đo bằng số working set/tuần, không cộng tổng kg (vì quy ước ghi tạ khác nhau giữa các bài) |
+| Volume (theo nhóm cơ) | Đo bằng số working set/tuần, không cộng tổng kg (vì quy ước ghi tạ khác nhau giữa các bài). PR `session_volume` thì khác: tổng tạ × reps của một bài trong một buổi, cùng `load_input` (UC17) |
 | Tombstone | Đánh dấu xoá bằng `deleted_at` thay vì xoá cứng ngay, phục vụ đồng bộ offline-first |
 | Cache chỉ đọc | Bản sao trên máy của routine và catalog bài tập để engine và màn bắt đầu buổi chạy offline; không sửa trực tiếp, làm mới khi có mạng |

@@ -244,6 +244,15 @@
   "log_rest_paused": "Đang dừng",
   "log_rest_resume": "Tiếp",
   "log_rest_pause": "Dừng",
+  "log_pr_label": "PR mới",
+  "log_pr_band": "PR mới · {name}",
+  "log_pr_row": "PR · {type}",
+  "log_pr_e1rm": "e1RM {value} kg",
+  "log_pr_weight_at_reps": "nặng nhất cho {reps}",
+  "log_pr_max_reps": "nhiều rep nhất",
+  "log_pr_session_volume": "volume",
+  "log_pr_volume_kg": "{value} kg",
+  "log_pr_announce": "PR mới: {name}, {type}, {value}.",
   "common_undo": "Hoàn tác",
   "history_empty_title": "Chưa có buổi tập nào",
   "history_empty_body": "Buổi tập đã kết thúc sẽ hiện ở đây, mới nhất trước. Bắt đầu buổi đầu tiên ngay thôi.",
@@ -495,6 +504,21 @@
   "backoff_min_all_out": "{reps} rep và đã cạn sức, đúng mức tối thiểu {min}.",
   "backoff_drop_before": "Giảm xuống",
   "backoff_kg": "{weight} kg",
+  "backoff_under_min_after_pr": "Kỷ lục mới, tốt lắm. Có điều {reps} rep là dưới mức tối thiểu {min}.",
+  "backoff_drop_after_pr": [
+    {
+      "declarations": [
+        "input n"
+      ],
+      "selectors": [
+        "n"
+      ],
+      "match": {
+        "n=1": "cho set cuối để quay lại đúng khoảng rep.",
+        "n=*": "cho {n} set cuối để quay lại đúng khoảng rep."
+      }
+    }
+  ],
   "backoff_drop_after_under_min": [
     {
       "declarations": [

@@ -40,6 +40,7 @@ import {
 } from '@/components/icons';
 import { SyncPill } from '@/components/sync-pill';
 import { useToast } from '@/components/toast-context';
+import { useComingSoon } from '@/hooks/use-coming-soon';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -75,6 +76,8 @@ import {
   type LogKind,
   logKind,
   pastSetTexts,
+  recordTypeText,
+  recordValueText,
   setText,
 } from '@/workout/display';
 import { unlockRestAlarm } from '@/workout/rest-alarm';
@@ -152,6 +155,23 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const [finishOpen, setFinishOpen] = React.useState(false);
   const [chosenId, setChosenId] = React.useState<string>();
   const [editingId, setEditingId] = React.useState<string | null>(null);
+  // Chạm hàng PR mở màn PR của bài (UC17 bước 3).
+  // #33
+  const openRecords = useComingSoon();
+  /** Set có PR mà user đã chạm: hàng trở lại ✓, chạm lần nữa là sửa set (prototype › prSeen). */
+  const [seenRecords, setSeenRecords] = React.useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  /** PR vừa lập: dải số áo báo PR tới `until` (DESIGN.md › Mực, số cam: giữ 2,4 giây). */
+  const [prFlash, setPrFlash] = React.useState<PrFlash | null>(null);
+  React.useEffect(() => {
+    if (!prFlash) return;
+    const id = window.setTimeout(
+      () => setPrFlash(null),
+      prFlash.until - Date.now(),
+    );
+    return () => window.clearTimeout(id);
+  }, [prFlash]);
   /**
    * Số set dự định theo bài, chỉ là trạng thái giao diện (SET_LOGS chỉ chứa set đã ghi).
    * Mặc định 3, "Add set" tăng thêm; không bao giờ ít hơn số set đã ghi.
@@ -244,7 +264,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
       const restAfter = exercises.some(
         (e) => remainingOf(e) - (e === current ? 1 : 0) > 0,
       );
-      const backOff = await logSet(
+      const { backOff, records } = await logSet(
         current.row.id,
         values,
         remainingOf(current) - 1,
@@ -256,7 +276,21 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
       // Set kế tiếp (thứ tự nextNo tính từ 0) theo lần trước, không có thì giữ số vừa ghi;
       // có back-off thì lấy mức tạ của back-off.
       setNextDraft(withBackOff(prefillAt(current, nextNo) ?? values, backOff));
-      toast.announce(m.log_set_saved({ n: nextNo }));
+      // PR tạm (UC17): dải số áo báo tên bài và số mới; loại PR nằm ở hàng set và lời đọc.
+      const [record] = records;
+      const saved = m.log_set_saved({ n: nextNo });
+      if (record) {
+        const name = exerciseName(current);
+        const value = recordValueText(kind, record, values.weight, values.reps);
+        setPrFlash({
+          name,
+          value,
+          until: prFlashUntil(),
+        });
+        toast.announce(
+          `${saved} ${m.log_pr_announce({ name, type: recordTypeText(record), value })}`,
+        );
+      } else toast.announce(saved);
     }
   }
 
@@ -398,6 +432,8 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
             mode={mode}
             draft={draft}
             rest={rest}
+            // Dải PR đè mọi trạng thái của dải, kể cả đang sửa (prototype › flashPR).
+            pr={prFlash && now < prFlash.until ? prFlash : null}
             onDraftChange={setDraft}
             onDelete={remove}
             onAddSet={addPlannedSet}
@@ -442,6 +478,14 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                       past?.reps ?? null,
                     );
                   }
+                  // Hàng PR (nền mực, chữ cam) tới khi user chạm vào (prototype › .prrow);
+                  // đang sửa set đó thì là hàng hiện tại.
+                  const [record] =
+                    (set &&
+                      !isCurrent &&
+                      !seenRecords.has(set.id) &&
+                      current.records.get(set.id)) ||
+                    [];
                   return (
                     <li
                       key={set?.id ?? `planned-${i}`}
@@ -449,14 +493,24 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                     >
                       <Row
                         asChild
-                        tone={isCurrent ? 'current' : 'default'}
+                        tone={
+                          record ? 'inverse' : isCurrent ? 'current' : 'default'
+                        }
                         className="border-t-0"
                       >
                         <button
                           type="button"
                           aria-pressed={set ? set.id === editingId : undefined}
-                          // Chạm set đã ghi để sửa; chạm hàng chờ để thoát sửa.
-                          onClick={() => setEditingId(set ? set.id : null)}
+                          // Chạm set đã ghi để sửa; chạm hàng chờ để thoát sửa; chạm hàng
+                          // PR thì mở màn PR của bài.
+                          onClick={() => {
+                            if (set && record) {
+                              setSeenRecords((seen) =>
+                                new Set(seen).add(set.id),
+                              );
+                              openRecords();
+                            } else setEditingId(set ? set.id : null);
+                          }}
                         >
                           <RowKey>
                             <span className="uppercase">
@@ -464,7 +518,12 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                             </span>
                           </RowKey>{' '}
                           <RowValue>{value}</RowValue>
-                          {set ? (
+                          {record ? (
+                            <RowEnd>
+                              {' '}
+                              {m.log_pr_row({ type: recordTypeText(record) })}
+                            </RowEnd>
+                          ) : set ? (
                             <span className="ml-auto">
                               <RowCheck label={m.log_logged()} />
                             </span>
@@ -591,6 +650,24 @@ function ExerciseChip({
   );
 }
 
+/** Thời gian dải số áo báo PR mới (DESIGN.md › Tấm số áo). */
+const PR_FLASH_MS = 2400;
+
+/** Mốc thôi hiện dải PR, tính lúc set vừa ghi lập PR. */
+const prFlashUntil = () => Date.now() + PR_FLASH_MS;
+
+/**
+ * PR vừa lập, hiện trên dải số áo hiện tại kèm tên bài lập PR, kể cả khi set đó là set cuối
+ * và màn đã sang bài kế (prototype › flashPR).
+ */
+interface PrFlash {
+  name: string;
+  /** Số mới: set vừa ghi, hay tổng volume của buổi. */
+  value: string;
+  /** Mốc thời điểm thôi hiện (ms). */
+  until: number;
+}
+
 /** Trạng thái tấm số áo: đang ghi set n/total, đang sửa set n, hay đã xong mọi set. */
 type BibMode =
   | { type: 'log'; n: number; total: number }
@@ -609,6 +686,7 @@ function SetBib({
   mode,
   draft,
   rest: restTimer,
+  pr,
   onDraftChange,
   onDelete,
   onAddSet,
@@ -619,6 +697,8 @@ function SetBib({
   draft: Draft;
   /** Đang nghỉ thì dải số áo thành đồng hồ nghỉ; vừa hết giờ thì dải loé cam ba lần. */
   rest: RestTimerState;
+  /** PR vừa lập: dải số áo thành mực, số cam, đè lên mọi trạng thái khác của dải. */
+  pr: PrFlash | null;
   onDraftChange: (draft: Draft) => void;
   onDelete: () => void;
   onAddSet: () => void;
@@ -736,7 +816,22 @@ function SetBib({
   const flashClass = restTimer.flashing && 'animate-rest-over';
   const onAnimationEnd = restTimer.flashing ? restTimer.endFlash : undefined;
   let band: React.ReactNode;
-  if (rest && mode.type !== 'edit') {
+  if (pr) {
+    band = (
+      <div
+        role="group"
+        aria-label={m.log_pr_label()}
+        className="flex min-h-14 items-center gap-2.5 bg-ink py-1.5 pr-4 pl-4 text-tyvek"
+      >
+        <span className="line-clamp-2 min-w-0 flex-1 label-caps">
+          {m.log_pr_band({ name: pr.name })}
+        </span>{' '}
+        <b className="text-num leading-none whitespace-nowrap text-orange numeral">
+          {pr.value}
+        </b>
+      </div>
+    );
+  } else if (rest && mode.type !== 'edit') {
     // Dải chính là đồng hồ nghỉ: lớp lam phủ lên rồi rút dần về bên trái (DESIGN.md › Nghỉ).
     const layer = (hidden: boolean) => (
       <div className="flex min-h-14 items-center gap-2 py-1.5 pr-4 pl-4">
@@ -886,6 +981,9 @@ function SetBib({
         mode.type === 'log' ? (
         <BackOffStub
           backOff={item.backOff.suggestion}
+          afterRecord={item.records.has(
+            String(item.backOff.suggestion.payload.setLogId),
+          )}
           onWeight={(weight) => onDraftChange({ ...draft, weight })}
         />
       ) : (
@@ -942,12 +1040,15 @@ function TipStub({ item }: { item: OpenExercise }) {
  */
 function BackOffStub({
   backOff,
+  afterRecord,
   onWeight,
 }: {
   backOff: Suggestion;
+  /** Set gây back-off vừa lập PR: câu mở bằng lời chúc mừng. */
+  afterRecord: boolean;
   onWeight: (weight: number) => void;
 }) {
-  const text = backOffText(backOff);
+  const text = backOffText(backOff, afterRecord);
   const params = backOffParams(backOff);
   if (!text || !params) return null;
   const { from, to } = text;

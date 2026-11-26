@@ -251,6 +251,15 @@
   "log_rest_paused": "Paused",
   "log_rest_resume": "Resume",
   "log_rest_pause": "Pause",
+  "log_pr_label": "New PR",
+  "log_pr_band": "New PR · {name}",
+  "log_pr_row": "PR · {type}",
+  "log_pr_e1rm": "e1RM {value} kg",
+  "log_pr_weight_at_reps": "heaviest for {reps}",
+  "log_pr_max_reps": "most reps",
+  "log_pr_session_volume": "volume",
+  "log_pr_volume_kg": "{value} kg",
+  "log_pr_announce": "New PR: {name}, {type}, {value}.",
   "common_undo": "Undo",
   "history_empty_title": "No workouts yet",
   "history_empty_body": "Finished workouts land here, newest first. Your first one is a tap away.",
@@ -523,6 +532,21 @@
   "backoff_min_all_out": "{reps} reps with nothing left, right at your {min} minimum.",
   "backoff_drop_before": "Drop to",
   "backoff_kg": "{weight} kg",
+  "backoff_under_min_after_pr": "New best, nice. {reps} reps is under your {min} minimum, though.",
+  "backoff_drop_after_pr": [
+    {
+      "declarations": [
+        "input n"
+      ],
+      "selectors": [
+        "n"
+      ],
+      "match": {
+        "n=1": "for the last set to stay in your rep range.",
+        "n=*": "for the last {n} sets to stay in your rep range."
+      }
+    }
+  ],
   "backoff_drop_after_under_min": [
     {
       "declarations": [
