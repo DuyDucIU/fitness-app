@@ -1,6 +1,7 @@
 import type { CatalogExercise } from '@fitness/contract';
 import type { ExerciseMatch } from '@fitness/engine';
 import * as React from 'react';
+import { Link } from 'react-router';
 
 import {
   equipmentLabel,
@@ -8,6 +9,7 @@ import {
   primaryMuscles,
 } from '@/catalog/display';
 import { useExerciseSearch } from '@/catalog/use-catalog';
+import { exercisePath } from '@/catalog/paths';
 import { Block, Row, RowEnd, RowTitle } from '@/components/block';
 import { EmptyState } from '@/components/empty-state';
 import { SearchInput } from '@/components/field';
@@ -53,7 +55,7 @@ function ExerciseResult({
 
 /**
  * Ô tìm và danh sách bài trên catalog trên máy (UC03), chạy được khi offline. Có
- * `onPick` thì mỗi kết quả là nút chọn bài; không có thì chỉ để xem.
+ * `onPick` thì mỗi kết quả là nút chọn bài; không có thì là link tới chi tiết bài.
  */
 export function ExerciseSearch({
   onPick,
@@ -89,8 +91,10 @@ export function ExerciseSearch({
                 </button>
               </Row>
             ) : (
-              <Row className="border-t-0">
-                <ExerciseResult match={match} />
+              <Row asChild className="border-t-0">
+                <Link to={exercisePath(match.exercise.id)}>
+                  <ExerciseResult match={match} />
+                </Link>
               </Row>
             )}
           </li>

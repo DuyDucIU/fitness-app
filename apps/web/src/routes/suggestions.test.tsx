@@ -511,6 +511,40 @@ describe('màn ghi set: back-off trong buổi (R3)', () => {
     ]);
   });
 
+  it('bậc tạ đã chỉnh 2,5 kg (UC14): back-off làm tròn theo bậc mới, offline', async () => {
+    await db.exerciseSettings.put({
+      exerciseId: BENCH.id,
+      weightStepKg: 2.5,
+      loadInput: 'total',
+      barWeightKg: 20,
+      restAutoStart: true,
+    });
+    const user = await startPushAfterBench();
+    await logReps(user, 4, 1);
+    expect(
+      await screen.findByRole('button', { name: 'OK, 77.5 kg' }),
+    ).toBeInTheDocument();
+    expect(weightBox()).toHaveValue('77.5');
+  });
+
+  it('đòn đã chỉnh 15 kg: back-off từ 20 kg dừng ở 15 kg; ở đúng 15 kg thì không gợi ý', async () => {
+    await db.exerciseSettings.put({
+      exerciseId: BENCH.id,
+      weightStepKg: 5,
+      loadInput: 'total',
+      barWeightKg: 15,
+      restAutoStart: true,
+    });
+    const user = await startPushAfterBench(20);
+    await logReps(user, 4, 1);
+    expect(
+      await screen.findByRole('button', { name: 'OK, 15 kg' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'OK, 15 kg' }));
+    await logReps(user, 4, 2);
+    expect((await backOffs()).map((s) => s.payload.to)).toEqual([15]);
+  });
+
   it('set trong rep range: không gợi ý back-off', async () => {
     const user = await startPushAfterBench();
     await logReps(user, 6, 1);

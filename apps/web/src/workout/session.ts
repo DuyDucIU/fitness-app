@@ -1,5 +1,6 @@
 import type {
   CatalogExercise,
+  ExerciseSetting,
   RoutineDay,
   RoutineExercise,
   SessionExercise,
@@ -11,11 +12,12 @@ import type {
 } from '@fitness/contract';
 import {
   afterSet,
-  equipmentDefaults,
+  type ExerciseSettings,
+  exerciseSettings,
   type LastTime,
   type NewRecord,
 } from '@fitness/engine';
-import type { EntityTable } from 'dexie';
+import type { EntityTable, Table } from 'dexie';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 import { db, type OutboxEvent } from '@/db/db';
@@ -51,10 +53,20 @@ async function put<T extends { id: string }>(
   entity: SyncEntity,
   row: T,
 ) {
+  await putKeyed(table, entity, row, row.id);
+}
+
+/** Như `put`, với khoá bản ghi `entityId` (cài đặt bài tập khoá theo bài, `syncKeyOf`). */
+async function putKeyed<T>(
+  table: Pick<Table<T>, 'put'>,
+  entity: SyncEntity,
+  row: T,
+  entityId: string,
+) {
   await table.put(row);
   const event: Omit<OutboxEvent, 'seq'> = {
     entity,
-    entityId: row.id,
+    entityId,
     // Xoá là tombstone `deletedAt`, đẩy lên bằng upsert như mọi thay đổi khác.
     op: 'upsert',
     payload: row,
@@ -73,8 +85,61 @@ function findOpenSession() {
     .first();
 }
 
+/** Cài đặt của engine từ dòng USER_EXERCISE_SETTINGS đã lưu. */
+function fromRow(row: ExerciseSetting): ExerciseSettings {
+  return {
+    stepKg: row.weightStepKg,
+    loadInput: row.loadInput,
+    barWeightKg: row.barWeightKg,
+    restAutoStart: row.restAutoStart,
+  };
+}
+
+/**
+ * Cài đặt đang áp cho một bài (UC14): dòng user đã lưu trên máy, chưa có thì mặc định theo
+ * dụng cụ. Gọi trong `useLiveQuery` hay transaction có `db.exerciseSettings`.
+ */
+export async function readSettings(
+  exerciseId: string,
+  equipment: string | null,
+): Promise<ExerciseSettings> {
+  const row = await db.exerciseSettings.get(exerciseId);
+  return exerciseSettings(equipment, row ? fromRow(row) : null);
+}
+
+/**
+ * Lưu cài đặt riêng của một bài (UC08, UC14): cả dòng (cài đặt đang áp, đè phần đổi) vào máy
+ * cùng một sự kiện outbox, nên chỉnh được khi offline. Đổi quy ước ghi tạ không đụng tới
+ * bài đã chụp quy ước trong buổi; buổi sau mới dùng quy ước mới.
+ */
+export function saveExerciseSettings(
+  exercise: Pick<CatalogExercise, 'id' | 'equipment'>,
+  change: Partial<ExerciseSettings>,
+): Promise<void> {
+  return db.transaction('rw', db.exerciseSettings, db.outbox, async () => {
+    const next = {
+      ...(await readSettings(exercise.id, exercise.equipment)),
+      ...change,
+    };
+    const row: ExerciseSetting = {
+      exerciseId: exercise.id,
+      weightStepKg: next.stepKg,
+      loadInput: next.loadInput,
+      barWeightKg: next.barWeightKg,
+      restAutoStart: next.restAutoStart,
+    };
+    await putKeyed(
+      db.exerciseSettings,
+      'user_exercise_settings',
+      row,
+      exercise.id,
+    );
+  });
+}
+
 /** Bảng mà việc đưa ra gợi ý trước buổi đọc và ghi. */
 const ADVICE_TABLES = [
+  db.exerciseSettings,
   db.suggestions,
   db.sessionExercises,
   db.workoutSessions,
@@ -206,7 +271,7 @@ async function findRoutineDay(dayId: string): Promise<RoutineDay | undefined> {
 /**
  * Bắt đầu buổi theo một ngày tập (UC06 bước 2–3), đọc từ cache routine nên chạy được khi
  * offline: buổi mang `routineDayId`, các bài theo thứ tự trong ngày, mỗi bài gắn
- * `routineExerciseId` và chụp lại quy ước ghi tạ mặc định theo dụng cụ. Đã có buổi đang mở
+ * `routineExerciseId` và chụp lại quy ước ghi tạ đang áp của bài (UC14). Đã có buổi đang mở
  * thì trả về buổi đó, như tập tự do.
  */
 export function startRoutineDay(dayId: string): Promise<string> {
@@ -234,8 +299,12 @@ export function startRoutineDay(dayId: string): Promise<string> {
         sessionId: session.id,
         exerciseId: target.exerciseId,
         routineExerciseId: target.id,
-        loadInput: equipmentDefaults(catalog[position]?.equipment ?? null)
-          .loadInput,
+        loadInput: (
+          await readSettings(
+            target.exerciseId,
+            catalog[position]?.equipment ?? null,
+          )
+        ).loadInput,
         position,
         supersetGroup: target.supersetGroup,
         deletedAt: null,
@@ -248,7 +317,7 @@ export function startRoutineDay(dayId: string): Promise<string> {
 }
 
 /**
- * Thêm một bài ad hoc vào cuối buổi, chụp lại quy ước ghi tạ mặc định theo dụng cụ.
+ * Thêm một bài ad hoc vào cuối buổi, chụp lại quy ước ghi tạ đang áp của bài (UC14).
  * Trả về id của bài trong buổi.
  */
 export function addExercise(
@@ -265,7 +334,8 @@ export function addExercise(
       sessionId,
       exerciseId: exercise.id,
       routineExerciseId: null,
-      loadInput: equipmentDefaults(exercise.equipment).loadInput,
+      loadInput: (await readSettings(exercise.id, exercise.equipment))
+        .loadInput,
       position: Math.max(-1, ...existing.map((e) => e.position)) + 1,
       supersetGroup: null,
       deletedAt: null,
@@ -362,8 +432,9 @@ async function issueBackOff(
   const target = await targetOf(row);
   // Bài ad hoc: rep range lấy từ lần tập gần nhất có rep range (SRS Phụ lục A).
   const history = target ? [] : await findHistory(row.exerciseId);
-  // Bậc tạ và đòn mặc định theo dụng cụ; cài đặt riêng từng bài (UC14) chưa có.
-  const { stepKg, barWeightKg } = equipmentDefaults(
+  // Bậc tạ và đòn theo cài đặt riêng của bài (UC14), chưa đặt thì theo dụng cụ.
+  const { stepKg, barWeightKg } = await readSettings(
+    row.exerciseId,
     exercise?.equipment ?? null,
   );
   const backOff = afterSet({
@@ -551,6 +622,31 @@ export function restoreSet(setId: string): Promise<void> {
 }
 
 /**
+ * Bỏ một bài chưa ghi set nào khỏi buổi đang mở (tombstone, đồng bộ như mọi thay đổi khác).
+ * Bài đã có set thì giữ nguyên: set đã ghi vẫn thuộc buổi.
+ */
+export function removeExercise(sessionExerciseId: string): Promise<void> {
+  return db.transaction(
+    'rw',
+    [db.sessionExercises, db.setLogs, db.outbox],
+    async () => {
+      const row = await db.sessionExercises.get(sessionExerciseId);
+      if (!row || row.deletedAt) return;
+      const logged = await db.setLogs
+        .where('sessionExerciseId')
+        .equals(sessionExerciseId)
+        .filter((s) => s.deletedAt === null)
+        .count();
+      if (logged > 0) return;
+      await put(db.sessionExercises, 'session_exercises', {
+        ...row,
+        deletedAt: now(),
+      });
+    },
+  );
+}
+
+/**
  * Kết thúc buổi (UC10 bước 1): ghi `endedAt`, kể cả khi đang offline. Gợi ý (trước buổi hay
  * back-off) chưa được trả lời thì hết hạn (`expired`).
  */
@@ -604,6 +700,8 @@ export interface OpenExercise extends WorkoutExercise {
   backOff: ActiveBackOff | null;
   /** PR tạm của các set đã ghi (UC17), theo id set; set không lập PR thì không có mặt. */
   records: Map<string, NewRecord[]>;
+  /** Cài đặt đang áp của bài (UC14): bậc tạ, đòn, tự chạy rest timer. */
+  settings: ExerciseSettings;
 }
 /** Buổi đang mở. */
 export interface OpenSession extends Workout {
@@ -627,7 +725,19 @@ async function readOpenSession(): Promise<OpenSession | null> {
           : undefined;
       const backOff = await activeBackOff(e.row.id);
       const records = await findSessionRecords(e.exercise, e.row);
-      return { ...e, lastTime: advice.lastTime, advice, tip, backOff, records };
+      const settings = await readSettings(
+        e.row.exerciseId,
+        e.exercise?.equipment ?? null,
+      );
+      return {
+        ...e,
+        lastTime: advice.lastTime,
+        advice,
+        tip,
+        backOff,
+        records,
+        settings,
+      };
     }),
   );
   return { ...workout, exercises };
@@ -671,4 +781,18 @@ export async function readWorkout(session: WorkoutSession): Promise<Workout> {
  */
 export function useOpenSession(): OpenSession | null | undefined {
   return useLiveQuery(readOpenSession, []);
+}
+
+/**
+ * Cài đặt đang áp của một bài (UC14), tự cập nhật khi user chỉnh. `undefined` khi đang đọc
+ * IndexedDB hoặc chưa có bài.
+ */
+export function useExerciseSettings(
+  exercise: Pick<CatalogExercise, 'id' | 'equipment'> | undefined,
+): ExerciseSettings | undefined {
+  return useLiveQuery(
+    async () =>
+      exercise ? readSettings(exercise.id, exercise.equipment) : undefined,
+    [exercise?.id, exercise?.equipment],
+  );
 }

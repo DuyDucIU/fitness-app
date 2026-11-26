@@ -1,9 +1,10 @@
-import type {
-  SyncEntity,
-  SyncEvent,
-  SyncPullResponse,
+import {
+  type SyncEntity,
+  type SyncEvent,
+  type SyncPullResponse,
+  syncKeyOf,
 } from '@fitness/contract';
-import type { EntityTable } from 'dexie';
+import type { Table } from 'dexie';
 
 import { type Auth, type AuthState, OWNER_KEY, ownerOf } from '@/auth/auth';
 import type { AuthUser } from '@/auth/gateway';
@@ -40,11 +41,12 @@ export function createSyncPull(deps: {
 }): { pull(): Promise<void> } {
   const { db, auth } = deps;
 
-  const tables: Record<SyncEntity, EntityTable<{ id: string }, 'id'>> = {
+  const tables: Record<SyncEntity, Table> = {
     workout_sessions: db.workoutSessions,
     session_exercises: db.sessionExercises,
     set_logs: db.setLogs,
     suggestions: db.suggestions,
+    user_exercise_settings: db.exerciseSettings,
   };
 
   /**
@@ -94,7 +96,7 @@ export function createSyncPull(deps: {
   }
 
   async function isLocalChange(change: SyncEvent, rejected: Set<string>) {
-    const id = change.payload.id;
+    const id = syncKeyOf(change);
     if (rejected.has(`${change.entity}|${id}`)) return true;
     const pending = await db.outbox
       .where('[entity+entityId]')

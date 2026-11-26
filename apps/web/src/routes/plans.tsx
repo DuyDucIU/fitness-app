@@ -5,7 +5,7 @@ import type {
   RoutineDay,
   RoutineExercise,
 } from '@fitness/contract';
-import { equipmentDefaults } from '@fitness/engine';
+import { exerciseSettings } from '@fitness/engine';
 import * as React from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 
@@ -71,7 +71,7 @@ import {
 } from '@/routines/use-routines';
 import { loadLabel } from '@/workout/display';
 import { findLastTime } from '@/workout/last-time';
-import { useOpenSession } from '@/workout/session';
+import { useExerciseSettings, useOpenSession } from '@/workout/session';
 import { useStartWorkout } from '@/workout/use-start-workout';
 import { WorkoutResumeBar } from '@/workout/workout-resume-bar';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -95,7 +95,6 @@ function useExerciseLookup() {
     };
   }, [catalog]);
 }
-
 
 /** Dòng gợi ý dưới danh sách kéo thả, kèm biểu tượng tay nắm (.reorder-hint). */
 function ReorderHint({ id, children }: { id: string; children: string }) {
@@ -248,7 +247,9 @@ export function PlansPage() {
             {others.map((r) => (
               <Row key={r.id} asChild>
                 <Link to={routinePath(r.id)}>
-                  <RowTitle sub={m.plans_routine_days({ count: r.days.length })}>
+                  <RowTitle
+                    sub={m.plans_routine_days({ count: r.days.length })}
+                  >
                     {r.name}
                   </RowTitle>
                   <RowEnd chevron />
@@ -485,7 +486,8 @@ function RoutineEditor({ routine }: { routine: Routine }) {
               const done = await write((api) =>
                 api.update(routine.id, { isActive: true }),
               );
-              if (done) toast.show(m.routine_now_active({ name: routine.name }));
+              if (done)
+                toast.show(m.routine_now_active({ name: routine.name }));
             }}
           />
         </div>
@@ -566,7 +568,10 @@ function RoutineEditor({ routine }: { routine: Routine }) {
 interface DayActions {
   rename(name: string): Promise<unknown>;
   add(target: AddRoutineExerciseRequest): Promise<boolean>;
-  update(row: RoutineExercise, changes: Partial<ExerciseTarget>): Promise<boolean>;
+  update(
+    row: RoutineExercise,
+    changes: Partial<ExerciseTarget>,
+  ): Promise<boolean>;
   remove(row: RoutineExercise): Promise<boolean>;
   reorder(ids: string[]): Promise<unknown>;
 }
@@ -620,7 +625,13 @@ export function DayPage() {
   return <SavedDayEditor routine={routine} day={day} />;
 }
 
-function SavedDayEditor({ routine, day }: { routine: Routine; day: RoutineDay }) {
+function SavedDayEditor({
+  routine,
+  day,
+}: {
+  routine: Routine;
+  day: RoutineDay;
+}) {
   const write = useRoutineWrite();
   const navigate = useNavigate();
   const toast = useToast();
@@ -631,8 +642,7 @@ function SavedDayEditor({ routine, day }: { routine: Routine; day: RoutineDay })
       ok(await write((api) => api.addExercise(day.id, target))),
     update: async (row, changes) =>
       ok(await write((api) => api.updateExercise(row.id, changes))),
-    remove: async (row) =>
-      ok(await write((api) => api.deleteExercise(row.id))),
+    remove: async (row) => ok(await write((api) => api.deleteExercise(row.id))),
     reorder: (ids) => write((api) => api.reorderExercises(day.id, ids)),
   };
 
@@ -861,29 +871,19 @@ function DayEditor({
     setEditing(null);
     const index = exercises.findIndex((e) => e.id === row.id);
     if (!(await actions.remove(row))) return;
-    toast.show(
-      m.day_exercise_removed({ name: lookup.name(row.exerciseId) }),
-      {
-        durationMs: 4000,
-        action: {
-          label: m.common_undo(),
-          onClick: () =>
-            void actions.add({ ...requestOf(row), position: index }),
-        },
+    toast.show(m.day_exercise_removed({ name: lookup.name(row.exerciseId) }), {
+      durationMs: 4000,
+      action: {
+        label: m.common_undo(),
+        onClick: () => void actions.add({ ...requestOf(row), position: index }),
       },
-    );
+    });
   }
 
   return (
     <AppShell
       banner={<WorkoutResumeBar />}
-      top={
-        <PlansTop
-          title={name}
-          sub={sub}
-          backTo={routinePath(routine.id)}
-        />
-      }
+      top={<PlansTop title={name} sub={sub} backTo={routinePath(routine.id)} />}
       foot={<Foot dock={dock} />}
     >
       <Block pad>
@@ -1000,12 +1000,14 @@ function ExerciseRow({
     false,
   );
   const metric = exercise?.metricType ?? 'weight_reps';
+  // Quy ước ghi tạ đang áp của bài (UC14); đang đọc thì theo mặc định của dụng cụ.
+  const { loadInput } =
+    useExerciseSettings(exercise) ??
+    exerciseSettings(exercise?.equipment ?? null, null);
   const details = [
     exercise?.equipment && equipmentLabel(exercise.equipment),
     metric === 'weight_reps'
-      ? capitalize(
-          loadLabel(equipmentDefaults(exercise?.equipment ?? null).loadInput),
-        )
+      ? capitalize(loadLabel(loadInput))
       : metricLabel(metric),
   ]
     .filter(Boolean)

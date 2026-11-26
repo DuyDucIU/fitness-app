@@ -1,5 +1,6 @@
 import type {
   CatalogExercise,
+  ExerciseSetting,
   Routine,
   SessionExercise,
   SetLog,
@@ -18,7 +19,7 @@ export interface OutboxEvent {
   seq: number;
   /** Bảng gốc của sự kiện, vd "set_logs". */
   entity: SyncEntity;
-  /** UUID sinh ở client của bản ghi. */
+  /** Khoá của bản ghi: UUID sinh ở client, hoặc id bài với cài đặt bài tập (`syncKeyOf`). */
   entityId: string;
   /** Xoá là tombstone `deletedAt`, nên mọi sự kiện đều là upsert. */
   op: 'upsert';
@@ -83,6 +84,11 @@ export const db = new Dexie('fitness') as Dexie & {
    * tập: chỉ ghi qua `workout/session`.
    */
   suggestions: EntityTable<Suggestion, 'id'>;
+  /**
+   * Cài đặt riêng từng bài (UC08, UC14), local-first qua outbox như dữ liệu buổi tập: chỉ ghi
+   * qua `workout/session`, cả dòng, khoá theo bài. Bài chưa có dòng dùng mặc định theo dụng cụ.
+   */
+  exerciseSettings: EntityTable<ExerciseSetting, 'exerciseId'>;
 };
 
 db.version(1).stores({
@@ -119,4 +125,8 @@ db.version(8).stores({
 db.version(9).stores({
   suggestions:
     'id, [exerciseId+basedOnSessionExerciseId], status, sessionExerciseId',
+});
+// Cài đặt riêng từng bài (UC14): một dòng cho mỗi bài.
+db.version(10).stores({
+  exerciseSettings: 'exerciseId',
 });
