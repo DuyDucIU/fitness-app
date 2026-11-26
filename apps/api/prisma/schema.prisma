@@ -131,12 +131,13 @@ model User {
   createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   deletedAt           DateTime?     @map("deleted_at") @db.Timestamptz(6)
 
-  exercises       Exercise[]
-  aliases         ExerciseAlias[]
-  workoutSessions WorkoutSession[]
-  routines        Routine[]
-  suggestions     Suggestion[]
-  bodyMetrics     BodyMetric[]
+  exercises        Exercise[]
+  aliases          ExerciseAlias[]
+  workoutSessions  WorkoutSession[]
+  routines         Routine[]
+  suggestions      Suggestion[]
+  bodyMetrics      BodyMetric[]
+  exerciseSettings UserExerciseSetting[]
 
   @@map("users")
 }
@@ -169,11 +170,12 @@ model Exercise {
   license    String?
   isArchived Boolean        @default(false) @map("is_archived")
 
-  owner            User?             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner            User?                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   muscles          ExerciseMuscle[]
   aliases          ExerciseAlias[]
   sessionExercises SessionExercise[]
   routineExercises RoutineExercise[]
+  userSettings     UserExerciseSetting[]
 
   @@unique([source, sourceRef])
   @@map("exercises")
@@ -382,6 +384,30 @@ model Suggestion {
 
   @@index([userId, updatedAt])
   @@map("suggestions")
+}
+
+// Cài đặt riêng từng bài (UC08, UC14), local-first qua outbox: app đẩy cả dòng, upsert theo
+// khoá user × bài, last-write-wins. `updated_at` do server đặt (cursor của pull). Không xoá
+// dòng nên không có tombstone. Xoá user hay bài tuỳ chỉnh thì xoá theo cascade.
+
+model UserExerciseSetting {
+  userId        String    @map("user_id") @db.Uuid
+  exerciseId    String    @map("exercise_id") @db.Uuid
+  /// Bậc tạ (kg) cho nút −/+ và các gợi ý có số
+  weightStepKg  Decimal   @map("weight_step_kg") @db.Decimal
+  /// Quy ước ghi tạ cho các buổi sau; bài trong buổi chụp lại ở session_exercises.load_input
+  loadInput     LoadInput @map("load_input")
+  /// null = không có đòn
+  barWeightKg   Decimal?  @map("bar_weight_kg") @db.Decimal
+  restAutoStart Boolean   @default(true) @map("rest_auto_start")
+  updatedAt     DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@id([userId, exerciseId])
+  @@index([userId, updatedAt])
+  @@map("user_exercise_settings")
 }
 
 // Chỉ số cơ thể (UC18): ghi bằng REST, cần mạng (ADR 0002), không đi qua outbox nên xoá là

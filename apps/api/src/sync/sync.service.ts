@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { SYNC_PULL_MAX_CHANGES } from '@fitness/contract';
+import { SYNC_PULL_MAX_CHANGES, syncKeyOf } from '@fitness/contract';
 import type {
+  ExerciseSetting,
   SessionExercise,
   SetLog,
   Suggestion,
@@ -17,7 +18,7 @@ import { Prisma } from '../generated/prisma/client';
 import { decodeCursor, encodeCursor, readChanges } from './pull-sources';
 
 type Tx = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
-type Written = Promise<{ id: string }[]>;
+type Written = Promise<unknown[]>;
 
 /**
  * Lưu sự kiện outbox (SDD 3.2, 7.2) bằng `INSERT ... ON CONFLICT (id) DO UPDATE`, nên gửi
@@ -47,7 +48,7 @@ export class SyncService {
         const written = await write(tx, userId, event);
         if (written.length === 0) {
           throw new ForbiddenException(
-            `${event.entity} ${event.payload.id} không thuộc user`,
+            `${event.entity} ${syncKeyOf(event)} không thuộc user`,
           );
         }
       }
@@ -99,6 +100,8 @@ function write(tx: Tx, userId: string, event: SyncEvent): Written {
       return upsertSetLog(tx, userId, event.payload);
     case 'suggestions':
       return upsertSuggestion(tx, userId, event.payload);
+    case 'user_exercise_settings':
+      return upsertExerciseSetting(tx, userId, event.payload);
   }
 }
 
@@ -228,4 +231,33 @@ function upsertSuggestion(tx: Tx, userId: string, s: Suggestion): Written {
       deleted_at = EXCLUDED.deleted_at
     WHERE suggestions.user_id = EXCLUDED.user_id
     RETURNING id`;
+}
+
+/**
+ * Cài đặt bài tập (UC14): cả dòng, upsert theo khoá user × bài (SDD 7.2), last-write-wins.
+ * Khoá có `user_id` nên không ghi đè được dòng của user khác; chỉ kiểm bài là bài user thấy.
+ */
+function upsertExerciseSetting(
+  tx: Tx,
+  userId: string,
+  s: ExerciseSetting,
+): Promise<{ exercise_id: string }[]> {
+  return tx.$queryRaw`
+    INSERT INTO user_exercise_settings
+      (user_id, exercise_id, weight_step_kg, load_input, bar_weight_kg, rest_auto_start,
+       updated_at)
+    SELECT
+      ${userId}::uuid, ${s.exerciseId}::uuid, ${s.weightStepKg}::numeric,
+      ${s.loadInput}::"LoadInput", ${s.barWeightKg}::numeric, ${s.restAutoStart}, now()
+    WHERE EXISTS (
+      SELECT 1 FROM exercises x
+      WHERE x.id = ${s.exerciseId}::uuid
+        AND (x.owner_id IS NULL OR x.owner_id = ${userId}::uuid))
+    ON CONFLICT (user_id, exercise_id) DO UPDATE SET
+      weight_step_kg = EXCLUDED.weight_step_kg,
+      load_input = EXCLUDED.load_input,
+      bar_weight_kg = EXCLUDED.bar_weight_kg,
+      rest_auto_start = EXCLUDED.rest_auto_start,
+      updated_at = now()
+    RETURNING exercise_id`;
 }
