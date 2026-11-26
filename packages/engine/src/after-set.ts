@@ -6,6 +6,7 @@ import {
 } from './before-session';
 import type { LoadInput } from './equipment';
 import { ENGINE_DEFAULTS } from './defaults';
+import { weightFloor } from './exercise-settings';
 import { roundToLadder } from './ladder';
 
 /**
@@ -60,8 +61,7 @@ export function afterSet(input: AfterSetInput): BackOff | null {
   // max(W, current − step): W là đòn khi ghi tổng tạ, còn lại là 0. `current − step` là bậc
   // ladder ngay dưới mức hiện tại, để mức lệch ladder (kettlebell 10 kg, bậc 4) chỉ giảm một
   // bậc (8 kg) chứ không tụt hai bậc (4 kg).
-  const floor = input.loadInput === 'total' ? (input.barWeightKg ?? 0) : 0;
-  const to = Math.max(floor, ladderBelow(set.weight, stepKg));
+  const to = Math.max(weightFloor(input), ladderBelow(set.weight, stepKg));
   // Đã ở sàn thì không còn gì để giảm.
   if (to >= set.weight) return null;
   return {

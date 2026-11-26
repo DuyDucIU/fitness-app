@@ -257,6 +257,43 @@ const SOURCES: PullSource[] = [
       }));
     },
   },
+  {
+    entity: 'user_exercise_settings',
+    async read(tx, userId, after, limit) {
+      // Khoá trong luồng pull là bài: mỗi user một dòng cho mỗi bài.
+      const rows = await tx.$queryRaw<
+        {
+          ts: string;
+          id: string;
+          weight_step_kg: number;
+          load_input: SyncLoadInput;
+          bar_weight_kg: number | null;
+          rest_auto_start: boolean;
+        }[]
+      >`
+        SELECT ${tsText('u.updated_at')} AS ts, u.exercise_id::text AS id,
+          u.weight_step_kg::float8 AS weight_step_kg, u.load_input::text AS load_input,
+          u.bar_weight_kg::float8 AS bar_weight_kg, u.rest_auto_start
+        FROM user_exercise_settings u
+        WHERE u.user_id = ${userId}::uuid ${afterClause('u.updated_at', after, 'u.exercise_id')}
+        ORDER BY u.updated_at, u.exercise_id
+        LIMIT ${limit}`;
+      return rows.map((r) => ({
+        key: { ts: r.ts, entity: 'user_exercise_settings', id: r.id },
+        change: {
+          entity: 'user_exercise_settings',
+          op: 'upsert',
+          payload: {
+            exerciseId: r.id,
+            weightStepKg: r.weight_step_kg,
+            loadInput: r.load_input,
+            barWeightKg: r.bar_weight_kg,
+            restAutoStart: r.rest_auto_start,
+          },
+        },
+      }));
+    },
+  },
 ];
 
 type SuggestionPayload = Extract<

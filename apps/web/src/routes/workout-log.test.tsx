@@ -207,7 +207,7 @@ describe('tập tự do ghi trên máy', () => {
     await user.click(resume);
     await screen.findByRole('heading', { name: 'Freestyle' });
     expect(
-      screen.getByRole('button', { name: /Barbell Bench Press/ }),
+      screen.getByRole('button', { name: /^Barbell Bench Press.*sets$/ }),
     ).toBeInTheDocument();
     expect(loggedSets()).toEqual([
       'Set 1 80 × 8',

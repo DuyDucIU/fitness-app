@@ -5,10 +5,10 @@ import type {
   Suggestion,
 } from '@fitness/contract';
 import {
-  equipmentDefaults,
   type LastTime,
   prefillFromLast,
   restSecondsFor,
+  stepWeight,
 } from '@fitness/engine';
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router';
@@ -26,18 +26,24 @@ import {
   RowValue,
 } from '@/components/block';
 import { Chip, ChipRow } from '@/components/chip';
+import { Stepper } from '@/components/controls';
 import { EmptyState } from '@/components/empty-state';
-import { NumberInput } from '@/components/field';
+import { Field, NumberInput } from '@/components/field';
 import {
   AddRestIcon,
   CheckIcon,
+  LinkIcon,
   MinusIcon,
+  MoreIcon,
   PauseIcon,
   PlayIcon,
   PlusIcon,
+  PlansIcon,
   SkipIcon,
+  SwapIcon,
   TrashIcon,
 } from '@/components/icons';
+import { Menu, MenuItem } from '@/components/menu';
 import { SyncPill } from '@/components/sync-pill';
 import { useToast } from '@/components/toast-context';
 import { useComingSoon } from '@/hooks/use-coming-soon';
@@ -53,6 +59,7 @@ import {
 import { useNow } from '@/hooks/use-now';
 import { useWakeLock } from '@/hooks/use-wake-lock';
 import { formatElapsed, formatNumber, formatShortDate } from '@/lib/format';
+import { formatSeconds } from '@/routines/display';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
 import {
@@ -63,6 +70,7 @@ import {
   deleteSet,
   finishSession,
   logSet,
+  removeExercise,
   restoreSet,
   type OpenExercise,
   type OpenSession,
@@ -80,6 +88,7 @@ import {
   recordValueText,
   setText,
 } from '@/workout/display';
+import { ExerciseSettingsFields } from '@/workout/exercise-settings-fields';
 import { unlockRestAlarm } from '@/workout/rest-alarm';
 import { backOffText, hintText, tipText } from '@/workout/suggestion-text';
 import { backOffParams } from '@/workout/suggestions';
@@ -155,6 +164,18 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const [finishOpen, setFinishOpen] = React.useState(false);
   const [chosenId, setChosenId] = React.useState<string>();
   const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  // #22
+  const swapExercise = useComingSoon();
+  // #23
+  const regroup = useComingSoon();
+  /**
+   * Thời gian nghỉ (giây) user chỉnh cho từng bài trong buổi ở menu bài; chỉ là trạng thái
+   * giao diện của buổi, không sửa `rest_seconds` của routine (SRS UC09).
+   */
+  const [restById, setRestById] = React.useState<Record<string, number>>({});
+  const restOf = (item: OpenExercise) =>
+    restById[item.row.id] ?? restSecondsFor(item.target?.restSeconds ?? null);
   // Chạm hàng PR mở màn PR của bài (UC17 bước 3).
   // #33
   const openRecords = useComingSoon();
@@ -269,9 +290,10 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
         values,
         remainingOf(current) - 1,
       );
-      // Nghỉ theo `rest_seconds` của bài trong ngày tập; bài ad hoc thì mặc định (UC08).
-      if (restAfter)
-        rest.start(restSecondsFor(current.target?.restSeconds ?? null));
+      // Nghỉ theo `rest_seconds` của bài trong ngày tập, bài ad hoc thì mặc định (UC08); bài
+      // tắt tự chạy rest timer (UC14) thì chờ user bấm nút bắt đầu nghỉ.
+      if (restAfter && current.settings.restAutoStart)
+        rest.start(restOf(current));
       else rest.skip();
       // Set kế tiếp (thứ tự nextNo tính từ 0) theo lần trước, không có thì giữ số vừa ghi;
       // có back-off thì lấy mức tạ của back-off.
@@ -303,6 +325,23 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
       action: { label: m.common_undo(), onClick: () => void restoreSet(id) },
       durationMs: 5000,
     });
+  }
+
+  /**
+   * Bỏ bài hiện tại khỏi buổi (prototype › exMenu › remove): chưa ghi set thì bỏ hẳn bài;
+   * đã ghi thì giữ các set đó, chỉ bỏ các set chờ tập.
+   */
+  async function removeCurrent() {
+    if (!current) return;
+    setMenuOpen(false);
+    setEditingId(null);
+    if (current.sets.length > 0) {
+      const done = current.sets.length;
+      setPlannedById((p) => ({ ...p, [current.row.id]: done }));
+    } else {
+      await removeExercise(current.row.id);
+      setChosenId(undefined);
+    }
   }
 
   async function finish() {
@@ -350,6 +389,22 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   // Điều khiển nghỉ ở vùng ngón cái, ngay trên nút chính (prototype › .restctl).
   // Ba nút bằng nhau: Dừng/Tiếp · +30 giây · Bỏ qua (DESIGN.md › Điều khiển nghỉ).
   const restButton = 'h-12 min-w-0 flex-1 px-2';
+  // Bài tắt tự chạy rest timer: một nút bắt đầu nghỉ thay ba nút điều khiển
+  // (prototype › rest-start).
+  const restStart = !rest.left &&
+    !editing &&
+    current &&
+    !current.settings.restAutoStart &&
+    logged.length > 0 && (
+      <Button
+        variant="rest"
+        className={restButton}
+        onClick={() => rest.start(restOf(current))}
+      >
+        <AddRestIcon aria-hidden />
+        {m.log_rest_start({ time: formatSeconds(restOf(current)) })}
+      </Button>
+    );
   const restControls = rest.left && !editing && (
     <>
       {rest.left.paused ? (
@@ -403,7 +458,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
           }
         />
       }
-      foot={<Foot controls={restControls} dock={dock} />}
+      foot={<Foot controls={restControls || restStart} dock={dock} />}
     >
       {current ? (
         <>
@@ -437,6 +492,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
             onDraftChange={setDraft}
             onDelete={remove}
             onAddSet={addPlannedSet}
+            onMenu={() => setMenuOpen(true)}
           />
           {kind !== 'unsupported' && (
             <Block>
@@ -561,6 +617,74 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
           setEditingId(null);
         }}
       />
+
+      {current && (
+        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+          <SheetContent aria-describedby={undefined}>
+            <SheetHeader>
+              <SheetTitle>{exerciseName(current)}</SheetTitle>
+            </SheetHeader>
+            <SheetBody>
+              <Menu>
+                <MenuItem
+                  icon={<SwapIcon aria-hidden />}
+                  sub={m.log_menu_swap_hint()}
+                  onClick={swapExercise}
+                >
+                  {m.log_menu_swap()}
+                </MenuItem>
+                <MenuItem
+                  icon={<LinkIcon aria-hidden />}
+                  sub={m.log_menu_superset_hint()}
+                  onClick={regroup}
+                >
+                  {m.log_menu_superset()}
+                </MenuItem>
+                <MenuItem icon={<PlansIcon aria-hidden />} onClick={regroup}>
+                  {m.log_menu_reorder()}
+                </MenuItem>
+              </Menu>
+              {current.exercise && (
+                <ExerciseSettingsFields
+                  exercise={current.exercise}
+                  settings={current.settings}
+                  barLoadInput={current.row.loadInput}
+                  loadHelp={
+                    current.settings.loadInput !== current.row.loadInput
+                      ? m.settings_load_next()
+                      : undefined
+                  }
+                />
+              )}
+              <Field label={m.log_menu_rest()}>
+                <Stepper
+                  aria-label={m.log_menu_rest()}
+                  value={restOf(current)}
+                  step={15}
+                  min={30}
+                  max={1800}
+                  format={formatSeconds}
+                  onValueChange={(seconds) =>
+                    setRestById((r) => ({ ...r, [current.row.id]: seconds }))
+                  }
+                  decreaseLabel={m.ex_rest_less()}
+                  increaseLabel={m.ex_rest_more()}
+                />
+              </Field>
+              <Menu className="mt-1 border-t border-rule-soft">
+                <MenuItem
+                  danger
+                  icon={<TrashIcon aria-hidden />}
+                  sub={m.log_menu_remove_hint()}
+                  onClick={() => void removeCurrent()}
+                >
+                  {m.log_menu_remove()}
+                </MenuItem>
+              </Menu>
+            </SheetBody>
+          </SheetContent>
+        </Sheet>
+      )}
 
       <Sheet open={finishOpen} onOpenChange={setFinishOpen}>
         <SheetContent aria-describedby={undefined}>
@@ -690,6 +814,7 @@ function SetBib({
   onDraftChange,
   onDelete,
   onAddSet,
+  onMenu,
 }: {
   item: OpenExercise;
   kind: LogKind;
@@ -702,11 +827,16 @@ function SetBib({
   onDraftChange: (draft: Draft) => void;
   onDelete: () => void;
   onAddSet: () => void;
+  /** Mở menu "⋯" của bài (prototype › exMenu): cài đặt bài, thay bài, bỏ bài. */
+  onMenu: () => void;
 }) {
   const equipment = item.exercise?.equipment ?? null;
-  const { stepKg, barWeightKg } = equipmentDefaults(equipment);
+  const { stepKg, barWeightKg } = item.settings;
+  // Bài trong buổi giữ quy ước đã chụp (UC14), nên sàn của nút − theo quy ước đó.
   const { loadInput } = item.row;
+  const ladder = { stepKg, barWeightKg, loadInput };
   const step = formatNumber(stepKg);
+  const less = stepWeight(draft.weight, -1, ladder);
 
   const note = [
     equipment && equipmentLabel(equipment),
@@ -725,6 +855,20 @@ function SetBib({
     value === null
       ? Math.max(0, start)
       : Math.max(0, Math.round((value + by) * 1000) / 1000);
+  const name = exerciseName(item);
+  // Nút "⋯" ở cuối dải (prototype › .band .more); lớp phủ của đồng hồ nghỉ có bản ẩn.
+  const more = (hidden: boolean) => (
+    <button
+      type="button"
+      className="-my-1.5 -mr-3 grid size-11 flex-none place-items-center rounded-sm active:bg-rule-soft"
+      onClick={hidden ? undefined : onMenu}
+      aria-label={hidden ? undefined : m.common_options_for({ name })}
+      aria-hidden={hidden || undefined}
+      tabIndex={hidden ? -1 : undefined}
+    >
+      <MoreIcon className="size-5" />
+    </button>
+  );
 
   const big =
     'h-20 w-full border-0 bg-transparent p-0 text-center text-bib-md shadow-none focus:bg-orange-tint';
@@ -745,10 +889,10 @@ function SetBib({
           type="button"
           className={adj}
           aria-label={m.log_weight_less({ step })}
-          disabled={!draft.weight}
-          onClick={() =>
-            onDraftChange({ ...draft, weight: bump(draft.weight, -stepKg, 0) })
-          }
+          disabled={less === null}
+          onClick={() => {
+            if (less !== null) onDraftChange({ ...draft, weight: less });
+          }}
         >
           <MinusIcon className="size-5" aria-hidden />
         </button>
@@ -762,7 +906,7 @@ function SetBib({
           onClick={() =>
             onDraftChange({
               ...draft,
-              weight: bump(draft.weight, stepKg, barWeightKg ?? stepKg),
+              weight: stepWeight(draft.weight, 1, ladder),
             })
           }
         >
@@ -811,7 +955,6 @@ function SetBib({
     </div>
   );
 
-  const name = exerciseName(item);
   const rest = restTimer.left;
   const flashClass = restTimer.flashing && 'animate-rest-over';
   const onAnimationEnd = restTimer.flashing ? restTimer.endFlash : undefined;
@@ -829,6 +972,7 @@ function SetBib({
         <b className="text-num leading-none whitespace-nowrap text-orange numeral">
           {pr.value}
         </b>
+        {more(false)}
       </div>
     );
   } else if (rest && mode.type !== 'edit') {
@@ -865,14 +1009,16 @@ function SetBib({
             {formatElapsed(rest.seconds * 1000)}
           </span>
         </b>
+        {more(hidden)}
       </div>
     );
     band = (
       <div className="relative bg-tyvek text-ink shadow-[inset_0_0_0_2px_var(--color-blue)]">
         {layer(false)}
+        {/* Lớp phủ chỉ để hiện tiến độ; chạm xuyên qua tới dải thật (nút "⋯") bên dưới. */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-blue text-on-signal [transition:clip-path_0.25s_linear]"
+          className="pointer-events-none absolute inset-0 bg-blue text-on-signal [transition:clip-path_0.25s_linear]"
           style={{ clipPath: `inset(0 ${(1 - rest.fraction) * 100}% 0 0)` }}
         >
           {layer(true)}
@@ -881,17 +1027,18 @@ function SetBib({
     );
   } else if (mode.type === 'edit') {
     band = (
-      <div className="flex min-h-14 items-center px-4 py-1.5 shadow-[inset_0_0_0_2px_var(--color-ink),inset_0_0_0_5px_var(--color-tyvek),inset_0_0_0_6px_var(--color-ink)]">
+      <div className="flex min-h-14 items-center gap-2 px-4 py-1.5 shadow-[inset_0_0_0_2px_var(--color-ink),inset_0_0_0_5px_var(--color-tyvek),inset_0_0_0_6px_var(--color-ink)]">
         <span className="line-clamp-2 min-w-0 flex-1 label-caps">
           {m.log_edit_set_name({ n: mode.n, name })}
         </span>
+        {more(false)}
       </div>
     );
   } else if (mode.type === 'done' || kind === 'unsupported') {
     band = (
       <div
         className={cn(
-          'flex min-h-14 items-center px-4 py-1.5 shadow-[inset_0_0_0_2px_var(--color-ink)]',
+          'flex min-h-14 items-center gap-2 px-4 py-1.5 shadow-[inset_0_0_0_2px_var(--color-ink)]',
           flashClass,
         )}
         onAnimationEnd={onAnimationEnd}
@@ -901,6 +1048,7 @@ function SetBib({
             ? m.log_done_name({ name })
             : name}
         </span>
+        {more(false)}
       </div>
     );
   } else {
@@ -916,6 +1064,7 @@ function SetBib({
         <b className="text-num leading-none whitespace-nowrap uppercase numeral">
           {m.log_set_progress({ n: mode.n, total: mode.total })}
         </b>
+        {more(false)}
       </div>
     );
   }

@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import {
+  type ExerciseSetting,
   type SessionExercise,
   type SetLog,
   type Suggestion,
@@ -11,6 +12,7 @@ import {
   type SyncPullResponse,
   SyncPullResponseSchema,
   SyncPushResponseSchema,
+  syncKeyOf,
   type WorkoutSession,
 } from '@fitness/contract';
 import { AppModule } from '../src/app.module';
@@ -427,6 +429,74 @@ describe('/v1/sync (e2e)', () => {
     });
   });
 
+  describe('cài đặt bài tập', () => {
+    const setting = (over: Partial<ExerciseSetting> = {}): ExerciseSetting => ({
+      exerciseId: benchId,
+      weightStepKg: 2.5,
+      loadInput: 'total',
+      barWeightKg: 15,
+      restAutoStart: false,
+      ...over,
+    });
+    const settingEvent = (payload: ExerciseSetting): SyncEvent => ({
+      entity: 'user_exercise_settings',
+      op: 'upsert',
+      payload,
+    });
+
+    it('lưu cả dòng theo user × bài; lần ghi sau thắng; gửi lại không tạo dòng trùng; kéo về đúng bản mới nhất', async () => {
+      const sub = `${run}-set`;
+      await push(sub, [settingEvent(setting())]).expect(200);
+      const later = setting({ weightStepKg: 1.25, barWeightKg: null });
+      await push(sub, [settingEvent(later)]).expect(200);
+      await push(sub, [settingEvent(later)]).expect(200);
+
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { authSubject: sub },
+      });
+      const rows = await prisma.userExerciseSetting.findMany({
+        where: { userId: user.id },
+      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.weightStepKg.toNumber()).toBe(1.25);
+      expect(rows[0]?.barWeightKg).toBeNull();
+
+      const { changes } = await pullAll(sub);
+      expect(changes).toEqual([settingEvent(later)]);
+    });
+
+    it('cùng một bài, mỗi user một dòng riêng: cài đặt của B không đè của A', async () => {
+      await push(subA, [settingEvent(setting({ weightStepKg: 5 }))]).expect(
+        200,
+      );
+      await push(subB, [settingEvent(setting({ weightStepKg: 1 }))]).expect(
+        200,
+      );
+      const a = await prisma.userExerciseSetting.findFirstOrThrow({
+        where: { exerciseId: benchId, user: { authSubject: subA } },
+      });
+      expect(a.weightStepKg.toNumber()).toBe(5);
+    });
+
+    it('cài đặt cho bài tuỳ chỉnh của A từ B: 403', async () => {
+      await push(subB, [settingEvent(setting({ exerciseId: sledId }))]).expect(
+        403,
+      );
+    });
+
+    it('xoá user thì cài đặt của user xoá theo', async () => {
+      const sub = `${run}-set-gone`;
+      await push(sub, [settingEvent(setting())]).expect(200);
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { authSubject: sub },
+      });
+      await prisma.user.delete({ where: { id: user.id } });
+      expect(
+        await prisma.userExerciseSetting.count({ where: { userId: user.id } }),
+      ).toBe(0);
+    });
+  });
+
   describe('GET /v1/sync/pull', () => {
     it('không có token: 401', async () => {
       await request(app.getHttpServer() as App)
@@ -476,7 +546,7 @@ describe('/v1/sync (e2e)', () => {
 
         expect(pages.length).toBeGreaterThan(2);
         expect(pages.every((p) => p.changes.length <= 2)).toBe(true);
-        const byId = new Map(changes.map((c) => [c.payload.id, c]));
+        const byId = new Map(changes.map((c) => [syncKeyOf(c), c]));
         expect(changes).toHaveLength(byId.size);
         expect([...byId.keys()].sort()).toEqual(
           [

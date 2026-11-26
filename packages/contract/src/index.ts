@@ -4,6 +4,7 @@ export * from './me';
 export * from './catalog';
 export * from './workout';
 export * from './suggestion';
+export * from './exercise-setting';
 export * from './sync';
 export * from './routine';
 export * from './progress';

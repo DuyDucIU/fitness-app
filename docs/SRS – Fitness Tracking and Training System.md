@@ -341,6 +341,8 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
   2. **Thay bài:** app tạo/gán `SESSION_EXERCISES` mới cho bài mới, **bỏ liên kết `routine_exercise_id`** với bài gốc trong routine (session exercise trở thành "ad hoc", `routine_exercise_id = null`).
   3. Màn hình "lần trước" (UC07 bước 2) của bài mới **tính theo lịch sử của chính bài mới đó** — không kế thừa số liệu của bài đã bị thay ra.
   4. Đổi thứ tự/superset chỉ cập nhật `position`/`superset_group` của `SESSION_EXERCISES` trong buổi hiện tại, không ảnh hưởng `ROUTINE_EXERCISES` gốc.
+  5. **Bỏ bài khỏi buổi:** bài chưa ghi set nào thì bỏ hẳn (tombstone `SESSION_EXERCISES.deleted_at`); bài đã ghi set thì giữ bài và các set đã ghi, chỉ bỏ các set còn chờ tập.
+  6. **Thời gian nghỉ trong buổi:** user chỉnh thời gian nghỉ của một bài (±15 giây, tối thiểu 30 giây) cho buổi đang tập; chỉ là trạng thái giao diện của buổi, không sửa `ROUTINE_EXERCISES.rest_seconds`.
 - **Hậu điều kiện:** Buổi tập phản ánh đúng bài/thứ tự thực tế đã tập, độc lập với routine gốc.
 
 #### UC10 — Kết thúc và đồng bộ buổi tập

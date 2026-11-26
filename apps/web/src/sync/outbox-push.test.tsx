@@ -1,4 +1,4 @@
-import type { SyncEvent } from '@fitness/contract';
+import { type SyncEvent, syncKeyOf } from '@fitness/contract';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -167,7 +167,7 @@ describe('đẩy outbox lên server', () => {
     const sets = (await db.setLogs.toArray()).sort(
       (a, b) => a.setIndex - b.setIndex,
     );
-    expect(server.received().map((e) => e.payload.id)).toEqual([
+    expect(server.received().map(syncKeyOf)).toEqual([
       (await db.workoutSessions.toCollection().first())?.id,
       (await db.sessionExercises.toCollection().first())?.id,
       sets[1].id,

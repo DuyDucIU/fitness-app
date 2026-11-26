@@ -4,6 +4,7 @@ import type { Auth } from '@/auth/auth';
 import { PublicOnly, RequireOwner } from '@/auth/guards';
 import { SignInPage, SignUpPage } from '@/routes/auth/auth-screen';
 import { ExerciseLibraryPage } from '@/routes/exercise-library';
+import { ExerciseDetailPage } from '@/routes/exercise-detail';
 import { AccountPage } from '@/routes/me-account';
 import { HistoryPage, HistorySessionPage } from '@/routes/history';
 import {
@@ -55,6 +56,10 @@ export function createRoutes(auth: Auth): RouteObject[] {
             { path: '/', Component: TodayPage },
             { path: '/plans', Component: PlansPage },
             { path: '/plans/exercises', Component: ExerciseLibraryPage },
+            {
+              path: '/plans/exercises/:exerciseId',
+              Component: ExerciseDetailPage,
+            },
             { path: '/plans/new', Component: NewRoutinePage },
             { path: '/plans/:routineId', Component: RoutinePage },
             { path: '/plans/:routineId/days/:dayId', Component: DayPage },

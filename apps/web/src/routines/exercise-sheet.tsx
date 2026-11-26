@@ -1,12 +1,12 @@
 import type { CatalogExercise, RoutineExercise } from '@fitness/contract';
-import { equipmentDefaults } from '@fitness/engine';
 import { useLiveQuery } from 'dexie-react-hooks';
 import * as React from 'react';
 
 import { Stepper, SwitchRow } from '@/components/controls';
 import { Field, InputRow, NumberInput } from '@/components/field';
-import { SwapIcon, TrashIcon } from '@/components/icons';
-import { Menu, MenuItem } from '@/components/menu';
+import { exercisePath } from '@/catalog/paths';
+import { SettingsIcon, SwapIcon, TrashIcon } from '@/components/icons';
+import { Menu, MenuItem, MenuLink } from '@/components/menu';
 import { Input } from '@/components/ui/input';
 import {
   Sheet,
@@ -26,11 +26,16 @@ import {
 } from '@/routines/display';
 import { loadLabel } from '@/workout/display';
 import { findLastTime } from '@/workout/last-time';
+import { useExerciseSettings } from '@/workout/session';
 
 /** Hai đầu khoảng bị gõ ngược thì đổi chỗ (prototype đổi ngay khi gõ). */
 function ordered(target: ExerciseTarget): ExerciseTarget {
   const next = { ...target };
-  if (next.repMin !== null && next.repMax !== null && next.repMin > next.repMax) {
+  if (
+    next.repMin !== null &&
+    next.repMax !== null &&
+    next.repMin > next.repMax
+  ) {
     [next.repMin, next.repMax] = [next.repMax, next.repMin];
   }
   const { targetDurationMinS: a, targetDurationMaxS: b } = next;
@@ -127,7 +132,8 @@ export function ExerciseSheet({
     setDraft((d) => (d ? { ...d, ...change } : d));
 
   const metric = exercise?.metricType ?? 'weight_reps';
-  const load = equipmentDefaults(exercise?.equipment ?? null).loadInput;
+  // Quy ước ghi tạ đang áp của bài (UC14).
+  const load = useExerciseSettings(exercise).loadInput;
   const repHelp =
     metric === 'weight_reps'
       ? m.ex_rep_help_weight()
@@ -263,6 +269,14 @@ export function ExerciseSheet({
               >
                 {m.ex_change()}
               </MenuItem>
+              <MenuLink
+                to={exercisePath(row.exerciseId)}
+                icon={<SettingsIcon aria-hidden />}
+                sub={m.ex_settings_hint()}
+                onClick={close}
+              >
+                {m.ex_settings()}
+              </MenuLink>
               <MenuItem
                 danger
                 icon={<TrashIcon aria-hidden />}
