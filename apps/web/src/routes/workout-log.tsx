@@ -1,9 +1,4 @@
-import type {
-  LoadInput,
-  RoutineExercise,
-  SetLog,
-  Suggestion,
-} from '@fitness/contract';
+import type { LoadInput, RoutineExercise, Suggestion } from '@fitness/contract';
 import {
   type LastTime,
   prefillFromLast,
@@ -74,11 +69,12 @@ import {
   restoreSet,
   type OpenExercise,
   type OpenSession,
-  type SetValues,
   updateSet,
   useOpenSession,
 } from '@/workout/session';
 import {
+  type SetDraft as Draft,
+  draftFrom,
   exerciseName,
   loadLabel,
   type LogKind,
@@ -87,6 +83,7 @@ import {
   recordTypeText,
   recordValueText,
   setText,
+  setValuesOf,
 } from '@/workout/display';
 import { ExerciseSettingsFields } from '@/workout/exercise-settings-fields';
 import { unlockRestAlarm } from '@/workout/rest-alarm';
@@ -112,15 +109,6 @@ export function WorkoutLogPage() {
  * tập thì theo số set của target.
  */
 const DEFAULT_PLANNED_SETS = 3;
-
-interface Draft {
-  weight: number | null;
-  reps: number | null;
-}
-
-function draftFrom(set: SetLog | undefined): Draft {
-  return { weight: set?.weightValue ?? null, reps: set?.reps ?? null };
-}
 
 /**
  * Số điền sẵn cho working set thứ `index` (từ 0) theo lần trước (UC07 bước 3). Bài chưa
@@ -254,13 +242,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
 
   const kind = current ? logKind(current) : 'unsupported';
   const range = current?.target ? repRangeText(current.target) : null;
-  const values: SetValues | null =
-    draft.reps !== null &&
-    Number.isInteger(draft.reps) &&
-    draft.reps > 0 &&
-    (kind === 'reps' || (draft.weight !== null && draft.weight >= 0))
-      ? { weight: kind === 'reps' ? null : draft.weight, reps: draft.reps }
-      : null;
+  const values = setValuesOf(kind, draft);
 
   function choose(item: OpenExercise) {
     setChosenId(item.row.id);

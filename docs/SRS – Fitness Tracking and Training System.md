@@ -365,6 +365,8 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Luồng chính:**
   1. User mở lịch sử (UC20), chọn một buổi tập cũ.
   2. Sửa số liệu set hoặc xoá cả buổi.
+     - **Sửa:** chế độ sửa cả buổi (prototypes/history), lưu một lần mọi set đã sửa hoặc xoá; Cancel bỏ hết. Ô sai (reps không phải số nguyên dương, tạ âm hoặc trống với bài có tạ) thì khoá nút lưu, cùng luật với màn ghi set. Chỉ set có số đổi mới đi qua outbox. **Bổ sung (26/11/2026).**
+     - **Xoá:** hỏi lại trước khi xoá, rồi toast Hoàn tác 5 giây. Xoá đặt cùng một `deleted_at` cho buổi và mọi bài, set còn sống của nó; Hoàn tác chỉ bỏ tombstone của các bản ghi bị xoá cùng lúc đó, bài hay set đã xoá từ trước vẫn là đã xoá. Gợi ý (UC12/UC13) của buổi giữ nguyên, vẫn tính vào tỉ lệ chấp nhận; gợi ý về sau tự lấy buổi gần nhất chưa xoá làm căn cứ. **Bổ sung (26/11/2026).**
   3. Xoá dùng tombstone (`deleted_at`), không xoá cứng ngay để còn đồng bộ.
   4. Server tính lại cache PR/streak liên quan đến buổi bị sửa/xoá (vì đây là dữ liệu dẫn xuất).
 - **Hậu điều kiện:** Số liệu tổng hợp (PR, streak, biểu đồ) phản ánh đúng sau khi sửa.

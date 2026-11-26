@@ -143,6 +143,29 @@ const historyRows = () =>
     .queryAllByRole('list', { name: /^Week of/ })
     .flatMap((list) => within(list).getAllByRole('link'));
 
+/** Các hàng set của một bài trong chi tiết buổi. */
+const setRows = (exercise: string) =>
+  within(screen.getByRole('list', { name: exercise }))
+    .getAllByRole('listitem')
+    .map((item) => item.textContent);
+
+/** Buổi đã có sẵn trên máy (đã kéo về trước đó), không còn gì chờ đẩy. */
+async function seedLocal(w: ReturnType<typeof serverWorkout>) {
+  for (const { entity, payload } of w.changes) {
+    if (entity === 'workout_sessions')
+      await db.workoutSessions.put(payload as WorkoutSession);
+    if (entity === 'session_exercises')
+      await db.sessionExercises.put(payload as SessionExercise);
+    if (entity === 'set_logs') await db.setLogs.put(payload as SetLog);
+  }
+}
+
+/** Các sự kiện outbox chờ đẩy: bảng, id và bản ghi. */
+const outboxEvents = async () =>
+  (await db.outbox.orderBy('seq').toArray()).map(
+    ({ entity, entityId, payload }) => ({ entity, entityId, payload }),
+  );
+
 describe('lịch sử buổi tập', () => {
   it('máy trống: đăng nhập xong, History hiện lại các buổi trên server, nhóm theo tuần, mới nhất trước', async () => {
     const user = userEvent.setup();
@@ -350,7 +373,7 @@ describe('lịch sử buổi tập', () => {
     );
   });
 
-  it('tính năng chưa có (tab PR, bộ lọc, tuỳ chọn buổi, lịch sử bài) báo Coming soon', async () => {
+  it('tính năng chưa có (tab PR, bộ lọc, lịch sử bài) báo Coming soon', async () => {
     const user = userEvent.setup();
     const w = serverWorkout('2026-11-19T10:00:00.000Z', [
       { exerciseId: BENCH.id, sets: [[80, 8]] },
@@ -377,11 +400,229 @@ describe('lịch sử buổi tập', () => {
 
     await user.click(historyRows()[0]);
     await user.click(
-      await screen.findByRole('button', { name: 'Workout options' }),
-    );
-    await user.click(
-      screen.getByRole('button', { name: /Barbell Bench Press - Medium Grip/ }),
+      await screen.findByRole('button', {
+        name: /Barbell Bench Press - Medium Grip/,
+      }),
     );
     expect(await screen.findByText('Coming soon.')).toBeInTheDocument();
+  });
+});
+
+describe('sửa và xoá buổi cũ (UC11)', () => {
+  const BENCH_NAME = 'Barbell Bench Press - Medium Grip';
+
+  it('offline: sửa một set rồi lưu, số mới hiện ra và chỉ set đã đổi vào outbox', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    const w = serverWorkout('2026-11-19T10:00:00.000Z', [
+      {
+        exerciseId: BENCH.id,
+        sets: [
+          [80, 8],
+          [80, 7],
+        ],
+      },
+    ]);
+    await seedLocal(w);
+    await openApp(`/history/${w.session.id}`, signedInAn);
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Workout options' }),
+    );
+    const menu = await screen.findByRole('dialog', { name: 'This workout' });
+    await user.click(within(menu).getByRole('button', { name: /Edit sets/ }));
+    expect(await screen.findByText(/^Editing · Freestyle/)).toBeInTheDocument();
+    const reps = screen.getByRole('textbox', {
+      name: `${BENCH_NAME} set 2 reps`,
+    });
+    await user.clear(reps);
+    await user.type(reps, '8');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(
+      await screen.findByText(
+        'Saved on this device. It syncs when you’re back online.',
+      ),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(setRows(BENCH_NAME)).toEqual(['Set 180 × 8', 'Set 280 × 8']),
+    );
+    expect(await outboxEvents()).toEqual([
+      {
+        entity: 'set_logs',
+        entityId: w.sets[1].id,
+        payload: { ...w.sets[1], reps: 8 },
+      },
+    ]);
+  });
+
+  /** Mở chi tiết buổi rồi vào chế độ sửa set. */
+  async function openEditor(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(
+      await screen.findByRole('button', { name: 'Workout options' }),
+    );
+    const menu = await screen.findByRole('dialog', { name: 'This workout' });
+    await user.click(within(menu).getByRole('button', { name: /Edit sets/ }));
+    await screen.findByText(/^Editing · /);
+  }
+
+  /** Mở menu buổi, chọn xoá buổi rồi xác nhận; trả về sheet xác nhận trước khi bấm. */
+  async function deleteWorkout(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(
+      await screen.findByRole('button', { name: 'Workout options' }),
+    );
+    const menu = await screen.findByRole('dialog', { name: 'This workout' });
+    await user.click(
+      within(menu).getByRole('button', { name: /Delete workout/ }),
+    );
+    const confirm = await screen.findByRole('dialog', {
+      name: 'Delete this workout?',
+    });
+    const text = confirm.textContent;
+    await user.click(
+      within(confirm).getByRole('button', { name: 'Delete workout' }),
+    );
+    return text;
+  }
+
+  const twoBenchSets = () =>
+    serverWorkout('2026-11-19T10:00:00.000Z', [
+      {
+        exerciseId: BENCH.id,
+        sets: [
+          [80, 8],
+          [80, 7],
+        ],
+      },
+    ]);
+
+  it('xoá set rồi Cancel: không ghi gì, set vẫn còn; ô reps sai khoá nút lưu', async () => {
+    const user = userEvent.setup();
+    const w = twoBenchSets();
+    await seedLocal(w);
+    await openApp(`/history/${w.session.id}`, signedInAn);
+    await openEditor(user);
+
+    await user.click(screen.getByRole('button', { name: 'Delete set 1' }));
+    // Set còn lại đánh số lại.
+    const reps = screen.getByRole('textbox', {
+      name: `${BENCH_NAME} set 1 reps`,
+    });
+    expect(reps).toHaveValue('7');
+    expect(
+      screen.queryByRole('textbox', { name: `${BENCH_NAME} set 2 reps` }),
+    ).not.toBeInTheDocument();
+
+    await user.clear(reps);
+    expect(reps).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    await user.type(reps, '0');
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByText(/^Editing · /)).not.toBeInTheDocument();
+    expect(setRows(BENCH_NAME)).toEqual(['Set 180 × 8', 'Set 280 × 7']);
+    expect(await outboxEvents()).toEqual([]);
+  });
+
+  it('lưu set đã xoá: set thành tombstone trong outbox, set còn lại không đổi', async () => {
+    const user = userEvent.setup();
+    const w = twoBenchSets();
+    await seedLocal(w);
+    await openApp(`/history/${w.session.id}`, signedInAn);
+    await openEditor(user);
+
+    await user.click(screen.getByRole('button', { name: 'Delete set 2' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(setRows(BENCH_NAME)).toEqual(['Set 180 × 8']));
+    expect(await outboxEvents()).toEqual([
+      {
+        entity: 'set_logs',
+        entityId: w.sets[1].id,
+        payload: { ...w.sets[1], deletedAt: expect.any(String) },
+      },
+    ]);
+  });
+
+  it('xoá buổi: hỏi lại, buổi rời History, buổi, bài và set thành tombstone; Undo đem buổi về, set đã xoá từ trước vẫn là đã xoá', async () => {
+    const user = userEvent.setup();
+    const kept = serverWorkout('2026-11-17T10:00:00.000Z', [
+      { exerciseId: SQUAT.id, sets: [[100, 5]] },
+    ]);
+    const gone = twoBenchSets();
+    await seedLocal(kept);
+    await seedLocal(gone);
+    // Set 2 đã bị xoá ngay trong buổi tập.
+    const earlier = '2026-11-19T10:20:00.000Z';
+    await db.setLogs.put({ ...gone.sets[1], deletedAt: earlier });
+    const exerciseRow = gone.changes[1].payload as SessionExercise;
+    await openApp(`/history/${gone.session.id}`, signedInAn);
+
+    expect(await deleteWorkout(user)).toContain(
+      'Freestyle on Nov 19 goes from your history.',
+    );
+
+    expect(await screen.findByText('Deleted Freestyle.')).toBeInTheDocument();
+    await waitFor(() => expect(historyRows()).toHaveLength(1));
+    expect(historyRows()[0]).toHaveTextContent(/^17Tue/);
+    const events = await outboxEvents();
+    expect(events.map((e) => [e.entity, e.entityId])).toEqual([
+      ['set_logs', gone.sets[0].id],
+      ['session_exercises', exerciseRow.id],
+      ['workout_sessions', gone.session.id],
+    ]);
+    const at = (events[2].payload as WorkoutSession).deletedAt;
+    expect(at).toEqual(expect.any(String));
+    expect(
+      events.map((e) => (e.payload as { deletedAt: string | null }).deletedAt),
+    ).toEqual([at, at, at]);
+
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(historyRows()).toHaveLength(2));
+    expect(historyRows()[0]).toHaveTextContent(/^19ThuFreestyle1 working set/);
+    expect(await db.workoutSessions.get(gone.session.id)).toMatchObject({
+      deletedAt: null,
+    });
+    expect(await db.sessionExercises.get(exerciseRow.id)).toMatchObject({
+      deletedAt: null,
+    });
+    expect(await db.setLogs.get(gone.sets[0].id)).toMatchObject({
+      deletedAt: null,
+    });
+    expect(await db.setLogs.get(gone.sets[1].id)).toMatchObject({
+      deletedAt: earlier,
+    });
+  });
+
+  it('"lần trước" bỏ qua buổi vừa xoá trong History', async () => {
+    const user = userEvent.setup();
+    const older = serverWorkout('2026-11-17T10:00:00.000Z', [
+      { exerciseId: BENCH.id, sets: [[75, 9]] },
+    ]);
+    const newer = serverWorkout('2026-11-19T10:00:00.000Z', [
+      { exerciseId: BENCH.id, sets: [[80, 8]] },
+    ]);
+    await seedLocal(older);
+    await seedLocal(newer);
+    const app = await openApp(`/history/${newer.session.id}`, signedInAn);
+    await deleteWorkout(user);
+    await waitFor(() => expect(historyRows()).toHaveLength(1));
+
+    await app.router.navigate('/');
+    await user.click(
+      await screen.findByRole('button', { name: 'Start freestyle' }),
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Add exercise' }),
+    );
+    await user.keyboard('bench');
+    await user.click(
+      await screen.findByRole('button', { name: new RegExp(BENCH_NAME) }),
+    );
+    const last = await screen.findByRole('note', { name: /^Last time/ });
+    expect(last.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'Last time · Nov 17 75×9',
+    );
   });
 });
