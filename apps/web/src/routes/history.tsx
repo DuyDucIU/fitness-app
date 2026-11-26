@@ -501,9 +501,7 @@ function exerciseSub(item: WorkoutExercise): string | undefined {
 }
 
 /** Chế độ sửa của một bài: số đang gõ và set đã đánh dấu xoá. */
-interface ExerciseEdit {
-  drafts: Record<string, SetDraft>;
-  removed: Set<string>;
+interface ExerciseEdit extends EditState {
   onDraftChange: (setId: string, draft: SetDraft) => void;
   onRemove: (setId: string) => void;
 }

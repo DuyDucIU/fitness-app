@@ -545,8 +545,9 @@ describe('sửa và xoá buổi cũ (UC11)', () => {
     ]);
   });
 
-  it('xoá buổi: hỏi lại, buổi rời History, buổi, bài và set thành tombstone; Undo đem buổi về, set đã xoá từ trước vẫn là đã xoá', async () => {
+  it('offline, xoá buổi: hỏi lại, buổi rời History, buổi, bài và set thành tombstone; Undo đem buổi về, set đã xoá từ trước vẫn là đã xoá', async () => {
     const user = userEvent.setup();
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     const kept = serverWorkout('2026-11-17T10:00:00.000Z', [
       { exerciseId: SQUAT.id, sets: [[100, 5]] },
     ]);
