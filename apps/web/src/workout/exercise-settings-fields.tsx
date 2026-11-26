@@ -1,6 +1,7 @@
 import type { CatalogExercise, LoadInput } from '@fitness/contract';
 import {
   type ExerciseSettings,
+  hasWeightSettings,
   LOAD_INPUTS,
   stepChoices,
 } from '@fitness/engine';
@@ -54,9 +55,7 @@ export function ExerciseSettingsFields({
 }) {
   const save = (change: Partial<ExerciseSettings>) =>
     void saveExerciseSettings(exercise, change);
-  const weighted =
-    exercise.metricType === 'weight_reps' ||
-    settings.loadInput === 'added_weight';
+  const weighted = hasWeightSettings(exercise.metricType, settings.loadInput);
   const showBar =
     withBar &&
     settings.loadInput === 'total' &&

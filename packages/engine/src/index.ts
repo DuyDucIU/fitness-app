@@ -7,6 +7,7 @@ export {
 export {
   type ExerciseSettings,
   exerciseSettings,
+  hasWeightSettings,
   stepChoices,
   stepWeight,
   WEIGHT_STEPS,

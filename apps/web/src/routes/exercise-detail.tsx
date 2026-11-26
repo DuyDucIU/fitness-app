@@ -1,3 +1,4 @@
+import { hasWeightSettings, type Metric } from '@fitness/engine';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useParams } from 'react-router';
 
@@ -23,9 +24,10 @@ import { ExerciseSettingsFields } from '@/workout/exercise-settings-fields';
 import { findLastTime } from '@/workout/last-time';
 import { useExerciseSettings } from '@/workout/session';
 
-/** "reps", "time"… cho câu "Logged as …" của bài không ghi tạ. */
-function metricText(metric: 'reps' | 'duration' | 'distance'): string {
+/** "reps", "time"… cho câu "Logged as …" của bài không có cài đặt tạ. */
+function metricText(metric: Metric): string {
   switch (metric) {
+    case 'weight_reps':
     case 'reps':
       return m.exercise_metric_reps();
     case 'duration':
@@ -78,8 +80,7 @@ export function ExerciseDetailPage() {
     .filter(Boolean)
     .join(' · ');
   const metric = exercise.metricType;
-  const weighted =
-    metric === 'weight_reps' || settings?.loadInput === 'added_weight';
+  const weighted = hasWeightSettings(metric, settings.loadInput);
   const kind = metric === 'reps' ? 'reps' : 'weight_reps';
   const changedLoad =
     lastTime && settings && lastTime.loadInput !== settings.loadInput;

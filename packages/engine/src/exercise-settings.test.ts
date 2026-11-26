@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { exerciseSettings, stepChoices, stepWeight } from './exercise-settings';
+import {
+  exerciseSettings,
+  hasWeightSettings,
+  stepChoices,
+  stepWeight,
+} from './exercise-settings';
 
 describe('exerciseSettings', () => {
   it('Given bài tạ đòn chưa chỉnh riêng, When lấy cài đặt, Then theo mặc định dụng cụ và tự chạy rest timer', () => {
@@ -91,5 +96,20 @@ describe('stepChoices', () => {
 
   it('Given bậc mặc định 4 kg của kettlebell, When lấy các mức chọn, Then chèn 4 kg đúng thứ tự', () => {
     expect(stepChoices(4)).toEqual([0.5, 1, 1.25, 2, 2.5, 4, 5, 10]);
+  });
+});
+
+describe('hasWeightSettings', () => {
+  it('Given bài tạ × reps, When hỏi có cài đặt tạ, Then có', () => {
+    expect(hasWeightSettings('weight_reps', 'total')).toBe(true);
+  });
+
+  it('Given bài chỉ reps ghi tạ đeo thêm (hít xà, chống đẩy), When hỏi, Then có bậc tạ đeo thêm', () => {
+    expect(hasWeightSettings('reps', 'added_weight')).toBe(true);
+  });
+
+  it('Given bài đo thời gian hay quãng đường của dụng cụ bodyweight, When hỏi, Then không có cài đặt tạ', () => {
+    expect(hasWeightSettings('duration', 'added_weight')).toBe(false);
+    expect(hasWeightSettings('distance', 'added_weight')).toBe(false);
   });
 });

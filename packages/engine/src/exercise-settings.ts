@@ -1,4 +1,5 @@
 import { equipmentDefaults, type LoadInput } from './equipment';
+import type { Metric } from './before-session';
 import { roundToLadder } from './ladder';
 
 /**
@@ -69,4 +70,19 @@ export function stepChoices(current: number): number[] {
   const steps: number[] = [...WEIGHT_STEPS];
   if (!steps.includes(current)) steps.push(current);
   return steps.sort((a, b) => a - b);
+}
+
+/**
+ * Bài có cài đặt tạ (bậc tạ, quy ước ghi tạ) không: bài tạ × reps, hoặc bài chỉ reps ghi tạ
+ * đeo thêm (prototypes/plans › exerciseView). Bài đo thời gian hay quãng đường thì không,
+ * kể cả khi dụng cụ bodyweight cho quy ước mặc định `added_weight`.
+ */
+export function hasWeightSettings(
+  metric: Metric,
+  loadInput: LoadInput,
+): boolean {
+  return (
+    metric === 'weight_reps' ||
+    (metric === 'reps' && loadInput === 'added_weight')
+  );
 }
