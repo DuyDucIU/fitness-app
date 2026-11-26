@@ -285,7 +285,7 @@ erDiagram
         text locale "en | vi, UI language"
         text timezone "week boundary for streak"
         bool rpe_enabled
-        text dumbbell_load_default "per_dumbbell | total, asked once"
+        text dumbbell_load_default "per_dumbbell | total, not used in MVP"
         timestamptz created_at
         timestamptz deleted_at
     }

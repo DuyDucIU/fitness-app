@@ -367,7 +367,7 @@ describe('đồng bộ cài đặt bài', () => {
       },
       pullChanges: async () => fromServer(15),
     });
-    expect(await barRadio('10 kg')).toBeChecked();
+    await waitFor(async () => expect(await barRadio('10 kg')).toBeChecked());
     expect((await db.exerciseSettings.get(BENCH.id))?.barWeightKg).toBe(10);
   });
 });

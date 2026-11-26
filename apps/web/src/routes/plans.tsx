@@ -5,7 +5,6 @@ import type {
   RoutineDay,
   RoutineExercise,
 } from '@fitness/contract';
-import { exerciseSettings } from '@fitness/engine';
 import * as React from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router';
 
@@ -1000,10 +999,8 @@ function ExerciseRow({
     false,
   );
   const metric = exercise?.metricType ?? 'weight_reps';
-  // Quy ước ghi tạ đang áp của bài (UC14); đang đọc thì theo mặc định của dụng cụ.
-  const { loadInput } =
-    useExerciseSettings(exercise) ??
-    exerciseSettings(exercise?.equipment ?? null, null);
+  // Quy ước ghi tạ đang áp của bài (UC14).
+  const { loadInput } = useExerciseSettings(exercise);
   const details = [
     exercise?.equipment && equipmentLabel(exercise.equipment),
     metric === 'weight_reps'

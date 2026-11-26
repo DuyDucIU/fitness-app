@@ -784,15 +784,17 @@ export function useOpenSession(): OpenSession | null | undefined {
 }
 
 /**
- * Cài đặt đang áp của một bài (UC14), tự cập nhật khi user chỉnh. `undefined` khi đang đọc
- * IndexedDB hoặc chưa có bài.
+ * Cài đặt đang áp của một bài (UC14), tự cập nhật khi user chỉnh. Lúc đang đọc IndexedDB
+ * (hay chưa có bài) thì là mặc định theo dụng cụ.
  */
 export function useExerciseSettings(
   exercise: Pick<CatalogExercise, 'id' | 'equipment'> | undefined,
-): ExerciseSettings | undefined {
-  return useLiveQuery(
-    async () =>
-      exercise ? readSettings(exercise.id, exercise.equipment) : undefined,
-    [exercise?.id, exercise?.equipment],
+): ExerciseSettings {
+  const equipment = exercise?.equipment ?? null;
+  return (
+    useLiveQuery(
+      async () => (exercise ? readSettings(exercise.id, equipment) : undefined),
+      [exercise?.id, equipment],
+    ) ?? exerciseSettings(equipment, null)
   );
 }

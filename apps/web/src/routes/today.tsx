@@ -1,5 +1,4 @@
 import type { RoutineDay } from '@fitness/contract';
-import { exerciseSettings } from '@fitness/engine';
 import * as React from 'react';
 import { Link } from 'react-router';
 
@@ -436,10 +435,8 @@ function DayBib({
  */
 function DayTipNote({ tip }: { tip: DayTip }) {
   const metric = tip.exercise?.metricType ?? 'weight_reps';
-  // Quy ước ghi tạ đang áp của bài (UC14); đang đọc thì theo mặc định của dụng cụ.
-  const { loadInput } =
-    useExerciseSettings(tip.exercise) ??
-    exerciseSettings(tip.exercise?.equipment ?? null, null);
+  // Quy ước ghi tạ đang áp của bài (UC14).
+  const { loadInput } = useExerciseSettings(tip.exercise);
   const { text, why } = tipText(tip.suggestion, metric, loadInput, true);
   const name = tip.exercise
     ? exerciseNames(tip.exercise, getLocale()).name

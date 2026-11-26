@@ -1,5 +1,4 @@
 import type { CatalogExercise, RoutineExercise } from '@fitness/contract';
-import { exerciseSettings } from '@fitness/engine';
 import { useLiveQuery } from 'dexie-react-hooks';
 import * as React from 'react';
 
@@ -133,11 +132,8 @@ export function ExerciseSheet({
     setDraft((d) => (d ? { ...d, ...change } : d));
 
   const metric = exercise?.metricType ?? 'weight_reps';
-  // Quy ước ghi tạ đang áp của bài (UC14); đang đọc thì theo mặc định của dụng cụ.
-  const load = (
-    useExerciseSettings(exercise) ??
-    exerciseSettings(exercise?.equipment ?? null, null)
-  ).loadInput;
+  // Quy ước ghi tạ đang áp của bài (UC14).
+  const load = useExerciseSettings(exercise).loadInput;
   const repHelp =
     metric === 'weight_reps'
       ? m.ex_rep_help_weight()
