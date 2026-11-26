@@ -48,10 +48,6 @@ export function RootScreen({
   );
 }
 
-export function ProgressPage() {
-  return <RootScreen title={m.nav_progress()} />;
-}
-
 export function MePage() {
   const state = useAuth();
   const email = ownerOf(state)?.email;
