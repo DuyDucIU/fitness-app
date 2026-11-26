@@ -41,12 +41,12 @@ describe('newRecords — e1RM (tạ × reps)', () => {
     expect(newRecords(input())).toEqual([]);
   });
 
-  it('Given 75 × 6 có e1RM bằng đúng kỷ lục 60 × 15 (cùng 90), Then không có PR', () => {
+  it('Given 80 × 6 có e1RM bằng đúng kỷ lục 72 × 10 (cùng 96), Then không có PR', () => {
     expect(
       types(
         input({
-          history: [{ loadInput: 'total', sets: [{ weight: 60, reps: 15 }] }],
-          set: { weight: 75, reps: 6 },
+          history: [{ loadInput: 'total', sets: [{ weight: 72, reps: 10 }] }],
+          set: { weight: 80, reps: 6 },
         }),
       ),
     ).toEqual([]);
@@ -90,6 +90,38 @@ describe('newRecords — e1RM (tạ × reps)', () => {
         }),
       ),
     ).toEqual([]);
+  });
+});
+
+describe('newRecords — e1RM chỉ tính cho set ≤ 12 reps', () => {
+  it('Given set 60 × 22 có e1RM 104 vượt kỷ lục, When ghi xong, Then không có PR e1RM vì quá 12 reps', () => {
+    expect(types(input({ set: { weight: 60, reps: 22 } }))).not.toContain(
+      'e1rm',
+    );
+  });
+
+  it('Given set đúng 12 reps vượt e1RM cũ, Then vẫn có PR e1RM', () => {
+    expect(types(input({ set: { weight: 75, reps: 12 } }))).toEqual(['e1rm']);
+  });
+
+  it('Given lịch sử có set 70 × 20 (e1RM 116,7), When ghi 85 × 8 (107,7), Then set quá 12 reps không làm mốc nên vẫn có PR', () => {
+    expect(
+      types(
+        input({
+          history: [
+            {
+              loadInput: 'total',
+              sets: [
+                { weight: 80, reps: 8 },
+                { weight: 80, reps: 8 },
+                { weight: 70, reps: 20 },
+              ],
+            },
+          ],
+          set: { weight: 85, reps: 8 },
+        }),
+      ),
+    ).toEqual(['e1rm']);
   });
 });
 

@@ -49,6 +49,12 @@ export function e1rm(weight: number, reps: number): number {
 
 /** Bỏ sai số dấu phẩy động: hai e1RM bằng nhau về toán không được tính là vượt. */
 const EPSILON = 1e-9;
+
+/**
+ * Số reps tối đa để e1RM còn ý nghĩa: quá mức này set thiên về sức bền, Epley ước lượng
+ * kém (như Stronglifts, cũng trần 12). Set nhiều reps hơn không lập và không làm mốc PR e1RM.
+ */
+export const E1RM_MAX_REPS = 12;
 const beats = (value: number, best: number) => value > best + EPSILON;
 
 type Complete = { weight: number | null; reps: number };
@@ -71,10 +77,12 @@ function setRecord(
   set: Complete,
 ): NewRecord | null {
   if (metric === 'weight_reps') {
-    if (set.weight === null) return null;
+    if (set.weight === null || set.reps > E1RM_MAX_REPS) return null;
     const best = Math.max(
       0,
-      ...past.map((s) => (s.weight === null ? 0 : e1rm(s.weight, s.reps))),
+      ...past
+        .filter((s) => s.reps <= E1RM_MAX_REPS)
+        .map((s) => (s.weight === null ? 0 : e1rm(s.weight, s.reps))),
     );
     const value = e1rm(set.weight, set.reps);
     return beats(value, best) ? { type: 'e1rm', value, reps: set.reps } : null;

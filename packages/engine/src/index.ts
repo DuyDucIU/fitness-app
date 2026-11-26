@@ -37,6 +37,7 @@ export {
 } from './rest';
 export { lastDayIndex, nextDayIndex, type RotationSession } from './rotation';
 export {
+  E1RM_MAX_REPS,
   e1rm,
   type NewRecord,
   newRecords,
