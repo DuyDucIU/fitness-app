@@ -189,6 +189,16 @@ describe('Progress › Training (UC19)', () => {
     expect(
       screen.getByRole('button', { name: 'Previous week' }),
     ).toBeDisabled();
+
+    // Ít cột thì trục ghi nhãn mọi tuần, không bỏ tuần nào.
+    const chart = within(
+      screen
+        .getByRole('heading', { name: /Workouts per week/ })
+        .closest('section')!,
+    ).getByRole('img');
+    for (const week of ['Oct 26', 'Nov 2', 'Nov 9', 'Nov 16']) {
+      expect(within(chart).getByText(week)).toBeInTheDocument();
+    }
   });
 
   it('số buổi theo tuần, chuyển sang theo tháng; xem dạng bảng', async () => {

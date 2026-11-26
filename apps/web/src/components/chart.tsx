@@ -3,6 +3,9 @@ import * as React from 'react';
 import { m } from '@/paraglide/messages.js';
 import { cn } from '@/lib/utils';
 
+/** Số điểm tối đa còn ghi nhãn trục ngang ở mọi điểm (khung 360px, nhãn kiểu "Nov 16"). */
+const MAX_ALL_TICKS = 6;
+
 export interface ChartPoint {
   /** Nhãn trục ngang và cột đầu của bảng, vd "Nov 16". */
   x: string;
@@ -90,7 +93,11 @@ export function Chart({
   const Y = (v: number) => padT + ih * (1 - (v - lo) / (hi - lo));
   const last = n - 1;
   const hp = points[last];
-  const xTicks = [...new Set([0, Math.floor(last / 2), last])];
+  // Ít điểm (vd 4 tuần) thì ghi nhãn mọi điểm; nhiều điểm thì chỉ đầu, giữa, cuối để không chồng chữ.
+  const xTicks =
+    n <= MAX_ALL_TICKS
+      ? points.map((_, i) => i)
+      : [...new Set([0, Math.floor(last / 2), last])];
 
   let marks: React.ReactNode;
   if (kind === 'bar') {
