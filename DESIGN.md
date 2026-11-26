@@ -455,7 +455,7 @@ Các ngày tập của routine xếp thành một ray tấm số áo vuốt ngan
 Một chuỗi dữ liệu, một điểm nhấn.
 - **Chuỗi:** đường 2px mực (khớp tròn) hoặc cột mực. Cột rộng tối đa 24px, đầu cột bo 4px, chân vuông. Tuần deload là cột `rule`.
 - **Điểm hiện tại / mới nhất:** đúng một điểm màu cam (chấm 5px viền Trắng Tyvek 2px, hoặc cột cam), luôn có nhãn giá trị Barlow 800 16px mực, vì cam chỉ đạt 2,98:1 trên Trắng Tyvek. Các chấm khác 4px mực.
-- **Lưới và trục:** đường lưới ngang 1px `rule-soft`, khoảng 3–4 vạch tròn số; nhãn trục 12px 600 mực, số đều cột. Trục ngang ghi nhãn mọi điểm khi có tối đa 6 điểm (vd 4 tuần); nhiều hơn thì chỉ điểm đầu, giữa và cuối để chữ không chồng nhau.
+- **Lưới và trục:** đường lưới ngang 1px `rule-soft`, khoảng 3–4 vạch tròn số; nhãn trục 12px 600 mực, số đều cột. Biểu đồ cột ghi nhãn trục ngang ở mọi cột khi có tối đa 6 cột (vd 4 tuần); nhiều hơn, và mọi biểu đồ đường, chỉ ghi điểm đầu, giữa và cuối để chữ không chồng nhau.
 - **Tương tác:** chạm hoặc rê hiện đường dóng mực mờ 35% và hộp mực chữ Trắng Tyvek (giá trị Barlow 16px). Mỗi biểu đồ có nút chữ "Show as table" chuyển sang bảng (đầu bảng nhãn 12px chữ hoa, gạch dưới 1.5px mực; hàng ngăn `rule-soft`; cột giá trị căn phải).
 - **Trống:** khối trống căn giữa với một câu.
 

@@ -3,7 +3,7 @@ import * as React from 'react';
 import { m } from '@/paraglide/messages.js';
 import { cn } from '@/lib/utils';
 
-/** Số điểm tối đa còn ghi nhãn trục ngang ở mọi điểm (khung 360px, nhãn kiểu "Nov 16"). */
+/** Số cột tối đa còn ghi nhãn trục ngang ở mọi cột (khung 360px, nhãn kiểu "Nov 16"). */
 const MAX_ALL_TICKS = 6;
 
 export interface ChartPoint {
@@ -95,9 +95,10 @@ export function Chart({
   const Y = (v: number) => padT + ih * (1 - (v - lo) / (hi - lo));
   const last = n - 1;
   const hp = points[last];
-  // Ít điểm (vd 4 tuần) thì ghi nhãn mọi điểm; nhiều điểm thì chỉ đầu, giữa, cuối để không chồng chữ.
+  // Ít cột (vd 4 tuần) thì ghi nhãn mọi cột; còn lại chỉ đầu, giữa, cuối để không chồng chữ.
+  // Biểu đồ đường luôn chỉ ba nhãn: nhãn đầu và cuối neo sát mép nên 6 điểm đã chồng nhau.
   const xTicks =
-    n <= MAX_ALL_TICKS
+    kind === 'bar' && n <= MAX_ALL_TICKS
       ? points.map((_, i) => i)
       : [...new Set([0, Math.floor(last / 2), last])];
 

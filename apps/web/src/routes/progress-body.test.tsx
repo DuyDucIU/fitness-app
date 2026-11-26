@@ -85,6 +85,21 @@ describe('Progress › Body (UC18)', () => {
     expect(rows[1]).toHaveTextContent('edited');
   });
 
+  it('biểu đồ đường chỉ ghi nhãn ngày đầu, giữa, cuối để chữ không chồng nhau', async () => {
+    await openBody(
+      [1, 4, 7, 10, 13, 16].map((d) =>
+        entry('weight', 74 - d / 10, `2026-11-${String(d).padStart(2, '0')}`),
+      ),
+    );
+    const chart = screen.getByRole('img', { name: /Weight/ });
+    for (const day of ['Nov 1', 'Nov 7', 'Nov 16']) {
+      expect(within(chart).getByText(day)).toBeInTheDocument();
+    }
+    for (const day of ['Nov 4', 'Nov 10', 'Nov 13']) {
+      expect(within(chart).queryByText(day)).not.toBeInTheDocument();
+    }
+  });
+
   it('nhập một lần cân mới thì lưu lên server và hiện trong danh sách', async () => {
     const { server } = await openBody();
     await userEvent.type(screen.getByLabelText('New entry · kg'), '71,8');
