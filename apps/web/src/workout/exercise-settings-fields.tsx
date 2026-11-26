@@ -38,18 +38,25 @@ const BAR_EQUIPMENT = new Set(['barbell', 'e-z curl bar']);
  * Các ô cài đặt riêng của một bài (UC08, UC14): bậc tạ, quy ước ghi tạ, trọng lượng đòn,
  * tự chạy rest timer. Mỗi lần đổi lưu ngay cả dòng qua outbox (`saveExerciseSettings`),
  * nên chỉnh được khi offline. Dùng ở menu bài trên màn ghi set và ở chi tiết bài trong thư
- * viện; màn ghi set không có ô đòn (prototypes/workout-log › exMenu).
+ * viện. Ô đòn có ở cả hai nơi (SRS UC14 bước 1), dù menu trong prototypes/workout-log không
+ * có.
  */
 export function ExerciseSettingsFields({
   exercise,
   settings,
-  withBar,
+  barLoadInput = settings.loadInput,
+  stepHelp,
   loadHelp,
 }: {
   exercise: Pick<CatalogExercise, 'id' | 'equipment' | 'metricType'>;
   settings: ExerciseSettings;
-  /** Hiện ô trọng lượng đòn (khi ghi tổng tạ với dụng cụ có đòn). */
-  withBar?: boolean;
+  /**
+   * Cách ghi tạ quyết định có ô đòn không (chỉ khi ghi tổng tạ). Trong buổi là cách ghi bài đã
+   * chụp, vì đổi cách ghi giữa buổi chỉ áp từ buổi sau; mặc định là cách ghi đang đặt.
+   */
+  barLoadInput?: LoadInput;
+  /** Hiện dòng giải thích dưới ô bậc tạ (prototypes/plans › exerciseView). */
+  stepHelp?: boolean;
   /** Dòng giải thích dưới ô quy ước ghi tạ. */
   loadHelp?: string;
 }) {
@@ -57,8 +64,7 @@ export function ExerciseSettingsFields({
     void saveExerciseSettings(exercise, change);
   const weighted = hasWeightSettings(exercise.metricType, settings.loadInput);
   const showBar =
-    withBar &&
-    settings.loadInput === 'total' &&
+    barLoadInput === 'total' &&
     exercise.equipment !== null &&
     BAR_EQUIPMENT.has(exercise.equipment);
   const bars: number[] = [...BAR_WEIGHTS];
@@ -75,7 +81,7 @@ export function ExerciseSettingsFields({
               ? m.settings_step_added()
               : m.settings_step()
           }
-          help={withBar ? m.settings_step_help() : undefined}
+          help={stepHelp ? m.settings_step_help() : undefined}
         >
           <Segmented
             aria-label={

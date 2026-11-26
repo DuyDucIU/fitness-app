@@ -648,6 +648,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                 <ExerciseSettingsFields
                   exercise={current.exercise}
                   settings={current.settings}
+                  barLoadInput={current.row.loadInput}
                   loadHelp={
                     current.settings.loadInput !== current.row.loadInput
                       ? m.settings_load_next()

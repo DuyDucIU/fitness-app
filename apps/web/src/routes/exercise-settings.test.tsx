@@ -117,6 +117,35 @@ describe('nút −/+ của ô tạ', () => {
 });
 
 describe('menu bài trên màn ghi set', () => {
+  it('đổi đòn ngay trong buổi: nút − dừng ở đòn mới, ghi cả dòng qua outbox', async () => {
+    const user = userEvent.setup();
+    await startBench(user);
+    const sheet = await openMenu(user);
+    const bar = within(sheet).getByRole('radiogroup', { name: 'Bar weight' });
+    expect(within(bar).getByRole('radio', { name: '20 kg' })).toBeChecked();
+    await user.click(within(bar).getByRole('radio', { name: '15 kg' }));
+    await user.keyboard('{Escape}');
+
+    await type(user, 'Weight (total)', '20');
+    await user.click(screen.getByRole('button', { name: 'Decrease by 5 kg' }));
+    expect(weightBox()).toHaveValue('15');
+    expect(
+      screen.getByRole('button', { name: 'Decrease by 5 kg' }),
+    ).toBeDisabled();
+    expect((await settingEvents()).at(-1)?.barWeightKg).toBe(15);
+  });
+
+  it('ô đòn theo cách ghi tạ bài đang tập đã chụp: đổi sang Per side giữa buổi vẫn còn ô đòn', async () => {
+    const user = userEvent.setup();
+    await startBench(user);
+    const sheet = await openMenu(user);
+    await user.click(within(sheet).getByRole('radio', { name: 'Per side' }));
+    await within(sheet).findByText(/applies from your next session/i);
+    expect(
+      within(sheet).getByRole('radiogroup', { name: 'Bar weight' }),
+    ).toBeInTheDocument();
+  });
+
   it('đổi bậc tạ khi offline: nút −/+ theo bậc mới, ghi cả dòng qua outbox', async () => {
     const user = userEvent.setup();
     await startBench(user);

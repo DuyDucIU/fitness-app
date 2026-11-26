@@ -149,7 +149,7 @@ export function ExerciseDetailPage() {
               <ExerciseSettingsFields
                 exercise={exercise}
                 settings={settings}
-                withBar
+                stepHelp
                 loadHelp={
                   changedLoad
                     ? m.settings_load_changed()
