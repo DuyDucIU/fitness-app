@@ -19,7 +19,7 @@ import { Navigate, useNavigate } from 'react-router';
 import { equipmentLabel, exerciseNames } from '@/catalog/display';
 import { ExercisePicker } from '@/catalog/exercise-search';
 import { AppShell, Foot, TopBar } from '@/components/app-shell';
-import { Bib, BibBand, BibPerf, BibTip } from '@/components/bib';
+import { Bib, BibBand, BibPerf, BibStub, BibTip } from '@/components/bib';
 import {
   Block,
   Row,
@@ -924,7 +924,7 @@ function ExerciseChip({
       aria-label={m.log_chip_label({ name, done, total })}
       onClick={onClick}
     >
-      <b className="numeral">{index + 1}</b>
+      <b className="font-extrabold">{index + 1}</b>
       {name}
       {progress}
     </Chip>
@@ -1292,19 +1292,22 @@ function SetBib({
           )}
           onWeight={(weight) => onDraftChange({ ...draft, weight })}
         />
+      ) : kind === 'unsupported' ||
+        mode.type === 'edit' ? null : item.lastTime ? (
+        <LastTimeStub
+          kind={kind}
+          lastTime={item.lastTime}
+          loadInput={item.row.loadInput}
+          hint={item.advice.hint && hintText(item.advice.hint, kind === 'reps')}
+        />
       ) : (
-        item.lastTime &&
-        kind !== 'unsupported' &&
-        mode.type !== 'edit' && (
-          <LastTimeStub
-            kind={kind}
-            lastTime={item.lastTime}
-            loadInput={item.row.loadInput}
-            hint={
-              item.advice.hint && hintText(item.advice.hint, kind === 'reps')
-            }
-          />
-        )
+        <>
+          <BibPerf />
+          {/* Số để trống: nhãn bên trái, lời nhắc bên phải như prototype. */}
+          <BibStub label={m.log_no_history()} value="">
+            {m.log_no_history_hint()}
+          </BibStub>
+        </>
       )}
     </section>
   );

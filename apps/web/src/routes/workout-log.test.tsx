@@ -566,13 +566,18 @@ describe('số liệu lần trước', () => {
     ]);
   });
 
-  it('bài chưa có lịch sử: không hiện lần trước', async () => {
+  it('bài chưa có lịch sử: cuống báo chưa có lịch sử thay cho lần trước', async () => {
     const user = userEvent.setup();
     await openApp('/', signedInAn);
     await startFreestyle(user);
     await addExercise(user, 'bench', /Barbell Bench Press - Medium Grip/);
 
     expect(lastTime()).toBeUndefined();
+    expect(
+      screen.getByRole('note', { name: 'No history yet' }),
+    ).toHaveTextContent(
+      'New exercise. Log your first set by feel, and next time the app will remember.',
+    );
   });
 });
 

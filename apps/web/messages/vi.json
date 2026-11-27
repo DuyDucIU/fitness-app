@@ -726,5 +726,7 @@
   "log_session_reorder_hint": "Kéo tay nắm để đổi thứ tự. Set đã ghi đi theo bài của nó.",
   "log_left_superset": "{name} đã rời superset.",
   "log_add_first_exercise": "Thêm bài đầu tiên",
-  "log_freestyle_band": "Buổi tập tự do"
+  "log_freestyle_band": "Buổi tập tự do",
+  "log_no_history": "Chưa có lịch sử",
+  "log_no_history_hint": "Bài mới. Set đầu cứ tập theo cảm giác, lần sau app sẽ nhớ."
 }
