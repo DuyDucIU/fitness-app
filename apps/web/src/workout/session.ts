@@ -347,6 +347,73 @@ export function addExercise(
   });
 }
 
+/**
+ * Thay một bài trong buổi đang mở bằng bài khác (UC09 bước 2–3). Bài mới là bài ad hoc
+ * (`routineExerciseId = null`), chụp quy ước ghi tạ đang áp của chính nó (UC14), nên "lần
+ * trước" và gợi ý tính theo lịch sử bài mới.
+ * - Bài cũ chưa ghi set: bỏ hẳn (tombstone); bài mới thế chỗ, cùng `position` và
+ *   `supersetGroup`.
+ * - Bài cũ đã ghi set: giữ bài và các set đó, rời superset; bài mới chèn ngay sau, nhận
+ *   `supersetGroup` của bài cũ, các bài sau lùi một vị trí.
+ * Trả về id của bài mới trong buổi.
+ */
+export function swapExercise(
+  sessionExerciseId: string,
+  exercise: CatalogExercise,
+): Promise<string> {
+  return db.transaction('rw', ADVICE_TABLES, async () => {
+    const old = await db.sessionExercises.get(sessionExerciseId);
+    if (!old || old.deletedAt) {
+      throw new Error(`Không có bài ${sessionExerciseId} trong buổi`);
+    }
+    const logged = await db.setLogs
+      .where('sessionExerciseId')
+      .equals(old.id)
+      .filter((s) => s.deletedAt === null)
+      .count();
+    let position = old.position;
+    if (logged === 0) {
+      await put(db.sessionExercises, 'session_exercises', {
+        ...old,
+        deletedAt: now(),
+      });
+    } else {
+      position = old.position + 1;
+      if (old.supersetGroup !== null) {
+        await put(db.sessionExercises, 'session_exercises', {
+          ...old,
+          supersetGroup: null,
+        });
+      }
+      const after = await db.sessionExercises
+        .where('sessionId')
+        .equals(old.sessionId)
+        .filter((e) => e.deletedAt === null && e.position >= position)
+        .toArray();
+      for (const row of after) {
+        await put(db.sessionExercises, 'session_exercises', {
+          ...row,
+          position: row.position + 1,
+        });
+      }
+    }
+    const row: SessionExercise = {
+      id: crypto.randomUUID(),
+      sessionId: old.sessionId,
+      exerciseId: exercise.id,
+      routineExerciseId: null,
+      loadInput: (await readSettings(exercise.id, exercise.equipment))
+        .loadInput,
+      position,
+      supersetGroup: old.supersetGroup,
+      deletedAt: null,
+    };
+    await put(db.sessionExercises, 'session_exercises', row);
+    await issueSuggestion(row, exercise, null);
+    return row.id;
+  });
+}
+
 /** Số liệu user nhập cho một set. `weight = null` với bài chỉ reps. */
 export interface SetValues {
   weight: number | null;

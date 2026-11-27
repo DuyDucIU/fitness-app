@@ -1,4 +1,9 @@
-import type { LoadInput, RoutineExercise, Suggestion } from '@fitness/contract';
+import type {
+  CatalogExercise,
+  LoadInput,
+  RoutineExercise,
+  Suggestion,
+} from '@fitness/contract';
 import {
   type LastTime,
   prefillFromLast,
@@ -8,7 +13,7 @@ import {
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router';
 
-import { equipmentLabel } from '@/catalog/display';
+import { equipmentLabel, exerciseNames } from '@/catalog/display';
 import { ExercisePicker } from '@/catalog/exercise-search';
 import { AppShell, Foot, TopBar } from '@/components/app-shell';
 import { Bib, BibBand, BibPerf, BibTip } from '@/components/bib';
@@ -54,6 +59,7 @@ import {
 import { useNow } from '@/hooks/use-now';
 import { useWakeLock } from '@/hooks/use-wake-lock';
 import { formatElapsed, formatNumber, formatShortDate } from '@/lib/format';
+import { getLocale } from '@/lib/i18n';
 import { formatSeconds } from '@/routines/display';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
@@ -67,6 +73,7 @@ import {
   logSet,
   removeExercise,
   restoreSet,
+  swapExercise,
   type OpenExercise,
   type OpenSession,
   updateSet,
@@ -153,8 +160,8 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const [chosenId, setChosenId] = React.useState<string>();
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [menuOpen, setMenuOpen] = React.useState(false);
-  // #22
-  const swapExercise = useComingSoon();
+  /** Bài đang được thay (UC09): picker mở ở chế độ thay bài cho bài này. */
+  const [swapFrom, setSwapFrom] = React.useState<OpenExercise | null>(null);
   // #23
   const regroup = useComingSoon();
   /**
@@ -326,6 +333,37 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
     }
   }
 
+  /** Mở picker ở chế độ thêm bài ad hoc. */
+  function openAdd() {
+    setSwapFrom(null);
+    setPickerOpen(true);
+  }
+
+  /** Thêm bài ad hoc vào cuối buổi, hay thay bài `swapFrom` bằng bài vừa chọn. */
+  async function pick(exercise: CatalogExercise) {
+    setEditingId(null);
+    if (!swapFrom) {
+      setChosenId(await addExercise(session.id, exercise));
+      return;
+    }
+    // Bài mới nhận các set còn chờ và thời gian nghỉ của bài cũ (hết set chờ thì như bài
+    // ad hoc); bài cũ đã ghi set thì chỉ giữ các set đó, như khi bỏ bài.
+    const old = swapFrom;
+    const left = remainingOf(old) || DEFAULT_PLANNED_SETS;
+    const restSeconds = restOf(old);
+    const id = await swapExercise(old.row.id, exercise);
+    setPlannedById((p) => ({
+      ...p,
+      [id]: left,
+      ...(old.sets.length > 0 && { [old.row.id]: old.sets.length }),
+    }));
+    setRestById((r) => ({ ...r, [id]: restSeconds }));
+    setChosenId(id);
+    toast.show(
+      m.log_swapped({ name: exerciseNames(exercise, getLocale()).name }),
+    );
+  }
+
   async function finish() {
     await finishSession(session.id);
     rest.skip();
@@ -337,7 +375,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   let dock: React.ReactNode;
   if (!current) {
     dock = (
-      <Button variant="ink" size="go" onClick={() => setPickerOpen(true)}>
+      <Button variant="ink" size="go" onClick={openAdd}>
         <PlusIcon aria-hidden />
         {m.log_add_exercise()}
       </Button>
@@ -457,7 +495,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                   onClick={() => choose(item)}
                 />
               ))}
-              <Chip dashed onClick={() => setPickerOpen(true)}>
+              <Chip dashed onClick={openAdd}>
                 <PlusIcon className="size-5" aria-hidden />
                 {m.log_add_exercise()}
               </Chip>
@@ -593,11 +631,12 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
       <ExercisePicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}
-        onPick={async (exercise) => {
-          const id = await addExercise(session.id, exercise);
-          setChosenId(id);
-          setEditingId(null);
-        }}
+        title={
+          swapFrom
+            ? m.log_swap_title({ name: exerciseName(swapFrom) })
+            : undefined
+        }
+        onPick={(exercise) => void pick(exercise)}
       />
 
       {current && (
@@ -611,7 +650,11 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                 <MenuItem
                   icon={<SwapIcon aria-hidden />}
                   sub={m.log_menu_swap_hint()}
-                  onClick={swapExercise}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setSwapFrom(current);
+                    setPickerOpen(true);
+                  }}
                 >
                   {m.log_menu_swap()}
                 </MenuItem>
