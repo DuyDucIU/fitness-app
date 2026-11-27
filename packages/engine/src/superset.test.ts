@@ -123,29 +123,23 @@ describe('leaveSuperset (UC09: bỏ một bài khỏi superset)', () => {
 });
 
 describe('swapInSuperset (UC09: thay bài trong buổi)', () => {
-  const swap = (spec: string, id: string, keepOld: boolean) =>
-    shape(
-      swapInSuperset(list(spec), id, { id: 'N', supersetGroup: null }, keepOld),
-    );
-
-  it('Given bài trong superset chưa ghi set, When thay, Then bài mới thế đúng chỗ trong nhóm', () => {
-    expect(swap('A1 B1 C', 'B', false)).toBe('[A N] C');
-  });
+  const swap = (spec: string, id: string) =>
+    shape(swapInSuperset(list(spec), id, { id: 'N', supersetGroup: null }));
 
   it('Given bài lẻ đã ghi set, When thay, Then bài mới chèn ngay sau', () => {
-    expect(swap('A B C', 'B', true)).toBe('A B N C');
+    expect(swap('A B C', 'B')).toBe('A B N C');
   });
 
   it('Given bài đầu superset đã ghi set, When thay, Then bài cũ rời nhóm, bài mới ngay sau và vào nhóm', () => {
-    expect(swap('A1 B1', 'A', true)).toBe('A [N B]');
+    expect(swap('A1 B1', 'A')).toBe('A [N B]');
   });
 
   it('Given bài cuối superset đã ghi set, When thay, Then bài cũ lên trước nhóm, bài mới thế chỗ trong nhóm', () => {
-    expect(swap('X A1 B1 C', 'B', true)).toBe('X B [A N] C');
+    expect(swap('X A1 B1 C', 'B')).toBe('X B [A N] C');
   });
 
   it('Given bài giữa superset đã ghi set, When thay, Then bài cũ lên trước nhóm, nhóm giữ thứ tự', () => {
-    expect(swap('A1 B1 C1', 'B', true)).toBe('B [A N C]');
+    expect(swap('A1 B1 C1', 'B')).toBe('B [A N C]');
   });
 });
 

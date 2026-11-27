@@ -19,7 +19,7 @@ import {
   moveExercise,
   type NewRecord,
   normalizeSupersets,
-  supersetRuns,
+  supersetOf,
   swapInSuperset,
   toggleSupersetWithNext,
 } from '@fitness/engine';
@@ -424,25 +424,24 @@ function rearrange(
 }
 
 /**
- * Chuyển một bài tới vị trí `to` (từ 0) trong buổi (UC09). Trả về `true` khi bài đang trong
- * superset mà chuyển xong thì không còn thuộc superset nào.
+ * Chuyển một bài tới vị trí `to` (từ 0) trong buổi (UC09). Trả về `true` khi bài rời superset
+ * đang ở: chuyển xong không còn chung nhóm với bài nào của nhóm cũ (kể cả khi sang nhóm khác).
  */
 export async function moveSessionExercise(
   sessionExerciseId: string,
   to: number,
 ): Promise<boolean> {
-  let grouped = false;
+  const matesIn = (rows: SessionExercise[]) =>
+    supersetOf(rows, sessionExerciseId)
+      ?.map((row) => row.id)
+      .filter((id) => id !== sessionExerciseId) ?? [];
+  let before: string[] = [];
   const rows = await rearrange(sessionExerciseId, (current) => {
-    grouped = inSuperset(current, sessionExerciseId);
+    before = matesIn(current);
     return moveExercise(current, sessionExerciseId, to);
   });
-  return grouped && !inSuperset(rows, sessionExerciseId);
-}
-
-function inSuperset(rows: SessionExercise[], id: string): boolean {
-  return supersetRuns(rows).some(
-    (run) => run.length > 1 && run.some((row) => row.id === id),
-  );
+  const after = matesIn(rows);
+  return before.length > 0 && !before.some((id) => after.includes(id));
 }
 
 /** Gộp bài với bài ngay sau thành superset, hoặc tách tại đó nếu đang cùng nhóm (UC09). */
@@ -498,7 +497,7 @@ export function swapExercise(
     const slot = { ...old, id: crypto.randomUUID() };
     const placed = await writeLayout(
       current,
-      swapInSuperset(current, old.id, slot, true),
+      swapInSuperset(current, old.id, slot),
     );
     const { position, supersetGroup } = placed.find((r) => r.id === slot.id)!;
     return putAdHoc(old.sessionId, exercise, position, supersetGroup);

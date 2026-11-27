@@ -75,6 +75,7 @@ export {
   moveExercise,
   normalizeSupersets,
   type SupersetItem,
+  supersetOf,
   supersetRuns,
   type SupersetStep,
   swapInSuperset,

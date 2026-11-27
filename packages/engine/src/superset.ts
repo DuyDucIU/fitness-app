@@ -25,6 +25,16 @@ export function supersetRuns<T extends SupersetItem>(items: T[]): T[][] {
   return runs;
 }
 
+/** Các bài của superset chứa bài `id`; `undefined`: bài lẻ hay không có trong danh sách. */
+export function supersetOf<T extends SupersetItem>(
+  items: T[],
+  id: string,
+): T[] | undefined {
+  return supersetRuns(items).find(
+    (run) => run.length > 1 && run.some((item) => item.id === id),
+  );
+}
+
 /** Số nhóm chưa bài nào dùng. */
 function unusedGroup(items: SupersetItem[]): number {
   return Math.max(0, ...items.map((item) => item.supersetGroup ?? 0)) + 1;
@@ -113,8 +123,8 @@ export function leaveSuperset<T extends SupersetItem>(
   id: string,
 ): T[] {
   const list = normalizeSupersets(items);
-  const run = supersetRuns(list).find((r) => r.some((x) => x.id === id));
-  if (!run || run.length < 2) return list;
+  const run = supersetOf(list, id);
+  if (!run) return list;
   const index = list.findIndex((x) => x.id === id);
   const first = list.indexOf(run[0]!);
   const last = list.indexOf(run.at(-1)!);
@@ -126,29 +136,22 @@ export function leaveSuperset<T extends SupersetItem>(
 }
 
 /**
- * Thay bài `oldId` bằng `added` (chưa có trong danh sách); bài mới nhận superset của bài cũ.
- * - Không giữ bài cũ (chưa ghi set): bài mới thế đúng chỗ.
- * - Giữ bài cũ (đã ghi set): bài cũ rời superset, bài mới ngay sau. Bài cũ không đứng đầu
- *   nhóm thì chuyển lên trước nhóm, bài mới thế chỗ của nó, để nhóm không bị cắt đôi.
+ * Thay bài `oldId` đã ghi set bằng `added` (chưa có trong danh sách), bài cũ ở lại buổi:
+ * bài cũ rời superset, bài mới ngay sau và nhận superset của bài cũ. Bài cũ không đứng đầu
+ * nhóm thì chuyển lên trước nhóm, bài mới thế chỗ của nó, để nhóm không bị cắt đôi. (Bài
+ * chưa ghi set thì bỏ hẳn, bài mới lấy nguyên chỗ của nó, không cần tính lại thứ tự.)
  */
 export function swapInSuperset<T extends SupersetItem>(
   items: T[],
   oldId: string,
   added: T,
-  keepOld: boolean,
 ): T[] {
   const list = normalizeSupersets(items);
   const index = list.findIndex((x) => x.id === oldId);
   const old = list[index];
   if (!old) return list;
-  const replacement = { ...added, supersetGroup: old.supersetGroup };
-  if (!keepOld) {
-    list[index] = replacement;
-    return normalizeSupersets(list);
-  }
-  const run = supersetRuns(list).find((r) => r.includes(old))!;
-  const first = list.indexOf(run[0]!);
-  list.splice(index + 1, 0, replacement);
+  const first = list.indexOf(supersetOf(list, oldId)?.[0] ?? old);
+  list.splice(index + 1, 0, { ...added, supersetGroup: old.supersetGroup });
   list.splice(index, 1);
   list.splice(first, 0, { ...old, supersetGroup: null });
   return normalizeSupersets(list);
@@ -170,8 +173,8 @@ export function afterSupersetSet(
   items: (SupersetItem & { remaining: number })[],
   loggedId: string,
 ): SupersetStep | null {
-  const run = supersetRuns(items).find((r) => r.some((x) => x.id === loggedId));
-  if (!run || run.length < 2) return null;
+  const run = supersetOf(items, loggedId);
+  if (!run) return null;
   const index = run.findIndex((x) => x.id === loggedId);
   const later = run.slice(index + 1).find((x) => x.remaining > 0);
   if (later) return { nextId: later.id, roundOver: false };

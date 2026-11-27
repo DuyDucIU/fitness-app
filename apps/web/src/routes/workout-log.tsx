@@ -10,6 +10,7 @@ import {
   prefillFromLast,
   restSecondsFor,
   stepWeight,
+  supersetOf,
   supersetRuns,
 } from '@fitness/engine';
 import * as React from 'react';
@@ -27,7 +28,7 @@ import {
   RowKey,
   RowValue,
 } from '@/components/block';
-import { Chip, ChipRow } from '@/components/chip';
+import { Chip, ChipGroup, ChipRow } from '@/components/chip';
 import { Stepper } from '@/components/controls';
 import { EmptyState } from '@/components/empty-state';
 import { Field, NumberInput } from '@/components/field';
@@ -227,16 +228,14 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const nextNo = logged.length + 1;
   const allDone = !!current && logged.length >= planned;
   // Các bài theo thứ tự, cắt thành superset và bài lẻ (UC09).
-  const runs = supersetRuns(
-    exercises.map((item) => ({
-      id: item.row.id,
-      supersetGroup: item.row.supersetGroup,
-      item,
-    })),
-  );
-  const inSuperset = runs.some(
-    (run) => run.length > 1 && run.some((x) => x.item === current),
-  );
+  const lineup = exercises.map((item) => ({
+    id: item.row.id,
+    supersetGroup: item.row.supersetGroup,
+    item,
+  }));
+  const runs = supersetRuns(lineup);
+  const superset = current && supersetOf(lineup, current.row.id);
+  const inSuperset = !!superset;
 
   // Hai bản nháp riêng, để sửa set cũ không đụng tới số của set chuẩn bị tập.
   // - Set chuẩn bị tập: điền sẵn đúng set đó của lần trước (UC07 bước 3); bài chưa có lịch sử
@@ -292,11 +291,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
         remainingOf(e) - (e === current ? 1 : 0);
       // Tập xen kẽ trong superset (UC09): sang bài kế trong nhóm, chỉ nghỉ khi hết vòng.
       const step = afterSupersetSet(
-        exercises.map((e) => ({
-          id: e.row.id,
-          supersetGroup: e.row.supersetGroup,
-          remaining: remainingAfter(e),
-        })),
+        lineup.map((x) => ({ ...x, remaining: remainingAfter(x.item) })),
         current.row.id,
       );
       // Còn set chờ tập sau set này thì nghỉ; set cuối của cả buổi thì không (prototype).
@@ -456,19 +451,30 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   // Ba nút bằng nhau: Dừng/Tiếp · +30 giây · Bỏ qua (DESIGN.md › Điều khiển nghỉ).
   const restButton = 'h-12 min-w-0 flex-1 px-2';
   // Bài tắt tự chạy rest timer: một nút bắt đầu nghỉ thay ba nút điều khiển
-  // (prototype › rest-start).
+  // (prototype › rest-start). Nút thuộc bài đang tập đã có set; trong superset thì thuộc bài
+  // ghi cuối khi vừa hết vòng, giữa vòng không có (UC09 bước 8).
+  let restOwner = current && logged.length > 0 ? current : undefined;
+  if (superset) {
+    const last = lastLogged(superset.map((x) => x.item));
+    const roundOver =
+      last &&
+      afterSupersetSet(
+        superset.map((x) => ({ ...x, remaining: remainingOf(x.item) })),
+        last.row.id,
+      )?.roundOver;
+    restOwner = roundOver ? last : undefined;
+  }
   const restStart = !rest.left &&
     !editing &&
-    current &&
-    !current.settings.restAutoStart &&
-    logged.length > 0 && (
+    restOwner &&
+    !restOwner.settings.restAutoStart && (
       <Button
         variant="rest"
         className={restButton}
-        onClick={() => rest.start(restOf(current))}
+        onClick={() => rest.start(restOf(restOwner))}
       >
         <AddRestIcon aria-hidden />
-        {m.log_rest_start({ time: formatSeconds(restOf(current)) })}
+        {m.log_rest_start({ time: formatSeconds(restOf(restOwner)) })}
       </Button>
     );
   const restControls = rest.left && !editing && (
@@ -542,7 +548,9 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
               />
             ));
             return run.length > 1 ? (
-              <SupersetChips key={run[0]!.id}>{chips}</SupersetChips>
+              <ChipGroup key={run[0]!.id} label={m.log_superset()}>
+                {chips}
+              </ChipGroup>
             ) : (
               chips[0]
             );
@@ -696,9 +704,9 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
         open={sessionOpen}
         onOpenChange={setSessionOpen}
         name={title}
-        items={exercises.map((item) => ({
-          id: item.row.id,
-          supersetGroup: item.row.supersetGroup,
+        items={lineup.map(({ id, supersetGroup, item }) => ({
+          id,
+          supersetGroup,
           name: exerciseName(item),
           done: item.sets.length,
           total: plannedOf(item),
@@ -843,6 +851,15 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   );
 }
 
+/** Bài có set ghi gần đây nhất; `undefined`: chưa bài nào ghi set. */
+function lastLogged(items: OpenExercise[]): OpenExercise | undefined {
+  const at = (item: OpenExercise) => item.sets.at(-1)?.completedAt ?? '';
+  return items
+    .filter((item) => item.sets.length > 0)
+    .sort((a, b) => at(a).localeCompare(at(b)))
+    .at(-1);
+}
+
 /** "6–8 reps" theo rep range của bài trong ngày tập; `null` khi target không có rep range. */
 function repRangeText({
   repMin,
@@ -853,28 +870,6 @@ function repRangeText({
     min: formatNumber(repMin),
     max: formatNumber(repMax),
   });
-}
-
-/**
- * Ngoặc viền đứt quanh các chip cùng superset, chú thích "SUPERSET" vắt trên mép
- * (prototype › .chip-group; DESIGN.md › Nhóm superset).
- */
-function SupersetChips({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      role="group"
-      aria-label={m.log_superset()}
-      className="relative flex flex-none gap-1 rounded-[11px] border-[1.5px] border-dashed border-ink p-[3px] [&>button]:h-9"
-    >
-      <span
-        aria-hidden
-        className="absolute -top-2.5 left-2.5 bg-ground px-1 label-caps leading-[1.4]"
-      >
-        {m.log_superset()}
-      </span>
-      {children}
-    </div>
-  );
 }
 
 /** Chip bài trong dải bài (prototype › chipHTML): số thứ tự, tên, chấm tiến độ hoặc ✓. */

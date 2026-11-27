@@ -272,6 +272,46 @@ describe('/v1/sync (e2e)', () => {
     expect(ended.endedAt?.toISOString()).toBe('2026-11-22T11:00:00.000Z');
   });
 
+  it('đổi thứ tự và superset của bài trong buổi đẩy lên bằng upsert, kéo về đúng', async () => {
+    const s = session();
+    const first = exercise(s.id, { position: 0, supersetGroup: 1 });
+    const second = exercise(s.id, { position: 1, supersetGroup: 1 });
+    await push(subA, [
+      events.session(s),
+      events.exercise(first),
+      events.exercise(second),
+    ]).expect(200);
+    const stored = () =>
+      prisma.sessionExercise.findMany({
+        where: { sessionId: s.id },
+        orderBy: { position: 'asc' },
+        select: { id: true, position: true, supersetGroup: true },
+      });
+    expect(await stored()).toEqual([
+      { id: first.id, position: 0, supersetGroup: 1 },
+      { id: second.id, position: 1, supersetGroup: 1 },
+    ]);
+
+    // Đổi chỗ hai bài rồi tách superset.
+    const moved = [
+      { ...second, position: 0, supersetGroup: null },
+      { ...first, position: 1, supersetGroup: null },
+    ];
+    await push(subA, moved.map(events.exercise)).expect(200);
+
+    expect(await stored()).toEqual([
+      { id: second.id, position: 0, supersetGroup: null },
+      { id: first.id, position: 1, supersetGroup: null },
+    ]);
+    const { changes } = await pullAll(subA, undefined, 200);
+    const pulled = changes.filter(
+      (c) =>
+        c.entity === 'session_exercises' &&
+        (c.payload.id === first.id || c.payload.id === second.id),
+    );
+    expect(pulled.map((c) => c.payload)).toEqual(expect.arrayContaining(moved));
+  });
+
   it('user chưa gọi /me: lần đẩy đầu tạo bản ghi user', async () => {
     const w = workout();
     await push(subB, w.events).expect(200);

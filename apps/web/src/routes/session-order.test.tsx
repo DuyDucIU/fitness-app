@@ -290,6 +290,39 @@ describe('superset trong buổi (UC09)', () => {
     ).toHaveTextContent('1:30');
   });
 
+  it('bài ghi cuối vòng tắt tự chạy timer: sau vòng mới có nút nghỉ, theo thời gian nghỉ của bài đó', async () => {
+    // DB bench (bài cuối nhóm) tắt tự chạy; Bench vẫn bật.
+    await db.exerciseSettings.put({
+      exerciseId: DUMBBELL_BENCH.id,
+      weightStepKg: 2.5,
+      loadInput: 'per_dumbbell',
+      barWeightKg: null,
+      restAutoStart: false,
+    });
+    const user = userEvent.setup();
+    await startPush(user);
+    await pickMenu(user, BENCH_NAME, /Superset with next exercise/);
+    await waitFor(() => expect(chips()[0]).toBe(`[${BENCH_NAME}`));
+    const restStart = () =>
+      screen.queryByRole('button', { name: /^Start .* rest$/ });
+
+    await logSet(user, 1);
+    await screen.findByRole('region', { name: DB_NAME });
+    await logSet(user, 1);
+    await screen.findByRole('region', { name: BENCH_NAME });
+
+    // Hết vòng, đang đứng ở Bench: nút nghỉ 1:30 của DB bench, timer không tự chạy.
+    expect(
+      await screen.findByRole('button', { name: 'Start 1:30 rest' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('timer', { name: 'Rest' })).toBeNull();
+
+    // Giữa vòng 2, đứng ở DB bench (đã có set, tắt tự chạy): không mời nghỉ.
+    await logSet(user, 2);
+    await screen.findByRole('region', { name: DB_NAME });
+    expect(restStart()).toBeNull();
+  });
+
   it('bỏ một trong hai bài khỏi buổi: bài còn lại hết superset', async () => {
     const user = userEvent.setup();
     await startPush(user);
@@ -443,6 +476,51 @@ describe('đổi thứ tự trong buổi (UC09)', () => {
       ['db', 0, null],
       ['squat', 1, null],
       ['bench', 2, null],
+    ]);
+  });
+
+  it('kéo một bài sang superset khác: vẫn báo bài đã rời superset cũ', async () => {
+    // Bench + DB bench là một superset; Squat + Squat thêm lần hai là superset kế.
+    const user = userEvent.setup();
+    await startPush(user);
+    const sheet = await openSessionSheet(user);
+    await user.click(
+      within(sheet).getByRole('button', { name: 'Add exercise' }),
+    );
+    await screen.findByRole('dialog', { name: 'Add an exercise' });
+    await user.keyboard('squat');
+    await user.click(
+      await screen.findByRole('button', { name: /Barbell Squat/ }),
+    );
+    await waitFor(() => expect(chips()).toHaveLength(4));
+    const again = await openSessionSheet(user);
+    const links = () =>
+      within(again).getAllByRole('button', { name: /with the next exercise$/ });
+    await user.click(links()[0]!);
+    await waitFor(() =>
+      expect(links()[0]).toHaveAttribute('aria-pressed', 'true'),
+    );
+    await user.click(links()[2]!);
+    await waitFor(() =>
+      expect(links()[2]).toHaveAttribute('aria-pressed', 'true'),
+    );
+
+    // DB bench xuống một chỗ: vào giữa hai bài Squat.
+    within(again)
+      .getByRole('button', { name: `Reorder ${DB_NAME}` })
+      .focus();
+    await user.keyboard(' ');
+    await user.keyboard('{ArrowDown}');
+    await user.keyboard(' ');
+
+    expect(
+      await screen.findByText(`${DB_NAME} left its superset.`),
+    ).toBeInTheDocument();
+    expect(await layout()).toEqual([
+      ['bench', 0, null],
+      ['squat', 1, 2],
+      ['db', 2, 2],
+      ['squat', 3, 2],
     ]);
   });
 

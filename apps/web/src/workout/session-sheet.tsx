@@ -132,16 +132,17 @@ function ExerciseOrder({
                     .join(' · ')}
                 </small>
               </span>
-              <button
-                type="button"
-                className="grid size-11 flex-none place-items-center rounded-sm disabled:opacity-25"
+              <Button
+                variant="ghost"
+                size="icon"
+                className="flex-none disabled:opacity-25"
                 aria-pressed={linked.has(item.id)}
                 aria-label={m.log_session_link({ name: item.name })}
                 disabled={i === sortable.ordered.length - 1}
                 onClick={() => onToggle(item.id)}
               >
                 <LinkIcon className="size-5" aria-hidden />
-              </button>
+              </Button>
             </div>
           </li>
         ))}
