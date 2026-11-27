@@ -19,15 +19,18 @@ export function Bib({ className, ...props }: React.ComponentProps<'section'>) {
  * Dải đầu của tấm số áo (.band): tên chữ hoa 12px, tối đa hai dòng, phần cuối bên phải
  * (`action`). Dải giữ góc vuông: góc trên do `Bib` bo và cắt, nên viền ở hai góc mỏng lại
  * như prototype. Mặc định nền cam (đang diễn ra); `open` là viền mực 2px trên nền Trắng
- * Tyvek (.band.open), vd "No routine yet", routine đang dùng.
+ * Tyvek (.band.open), vd "No routine yet", routine đang dùng; `edit` là viền mực kép trên
+ * nền Trắng Tyvek (.band.edit), khi đang sửa một buổi cũ.
  */
 export function BibBand({
   open,
+  edit,
   action,
   className,
   children,
 }: {
   open?: boolean;
+  edit?: boolean;
   action?: React.ReactNode;
   className?: string;
   children: React.ReactNode;
@@ -36,9 +39,11 @@ export function BibBand({
     <div
       className={cn(
         'flex min-h-14 items-center gap-2.5 py-1.5 pr-1 pl-4 text-ink',
-        open
-          ? 'bg-tyvek shadow-[inset_0_0_0_2px_var(--color-ink)]'
-          : 'bg-orange',
+        edit
+          ? 'bg-tyvek shadow-[inset_0_0_0_2px_var(--color-ink),inset_0_0_0_5px_var(--color-tyvek),inset_0_0_0_6px_var(--color-ink)]'
+          : open
+            ? 'bg-tyvek shadow-[inset_0_0_0_2px_var(--color-ink)]'
+            : 'bg-orange',
         className,
       )}
     >

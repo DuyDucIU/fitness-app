@@ -559,20 +559,51 @@ export function answerBackOff(
   });
 }
 
+/**
+ * Ghi số mới cho một set chưa xoá; số không đổi thì không ghi gì. Gọi trong transaction có
+ * `db.setLogs` và `db.outbox`.
+ */
+async function writeSetValues(setId: string, values: SetValues) {
+  const row = await db.setLogs.get(setId);
+  if (!row || row.deletedAt) return;
+  // Giữ nguyên đơn vị lúc ghi khi set vẫn có tạ.
+  const fields = setFields(values);
+  const next = {
+    ...row,
+    ...fields,
+    inputUnit:
+      fields.weightValue === null ? null : (row.inputUnit ?? INPUT_UNIT),
+  };
+  if (next.weightValue === row.weightValue && next.reps === row.reps) return;
+  await put(db.setLogs, 'set_logs', next);
+}
+
 /** Sửa số liệu một set trong buổi đang mở. */
 export function updateSet(setId: string, values: SetValues): Promise<void> {
-  return db.transaction('rw', db.setLogs, db.outbox, async () => {
-    const row = await db.setLogs.get(setId);
-    if (!row || row.deletedAt) return;
-    // Giữ nguyên đơn vị lúc ghi khi set vẫn có tạ.
-    const fields = setFields(values);
-    await put(db.setLogs, 'set_logs', {
-      ...row,
-      ...fields,
-      inputUnit:
-        fields.weightValue === null ? null : (row.inputUnit ?? INPUT_UNIT),
-    });
-  });
+  return db.transaction('rw', db.setLogs, db.outbox, async () =>
+    writeSetValues(setId, values),
+  );
+}
+
+/**
+ * Lưu một lần sửa buổi đã kết thúc (UC11): số mới của các set và các set bị xoá, cùng một
+ * transaction để không bao giờ lưu dở. Chỉ set có số đổi mới vào outbox; đồng bộ bằng
+ * upsert, sửa sau thắng (last-write-wins).
+ */
+export function saveSetEdits(
+  edits: { setId: string; values: SetValues }[],
+  removedSetIds: string[],
+): Promise<void> {
+  return db.transaction(
+    'rw',
+    [db.setLogs, db.outbox, db.suggestions],
+    async () => {
+      for (const { setId, values } of edits) {
+        if (!removedSetIds.includes(setId)) await writeSetValues(setId, values);
+      }
+      for (const setId of removedSetIds) await tombstoneSet(setId);
+    },
+  );
 }
 
 /**
@@ -588,20 +619,24 @@ async function backOffsCausedBy(setId: string, deleted: boolean) {
   );
 }
 
+/** Tombstone một set và back-off chưa trả lời do set gây ra. */
+async function tombstoneSet(setId: string) {
+  const row = await db.setLogs.get(setId);
+  if (!row || row.deletedAt) return;
+  const at = now();
+  for (const s of await backOffsCausedBy(setId, false)) {
+    await put(db.suggestions, 'suggestions', { ...s, deletedAt: at });
+  }
+  await put(db.setLogs, 'set_logs', { ...row, deletedAt: at });
+}
+
 /** Xoá một set (tombstone, để việc xoá cũng được đồng bộ). */
 export function deleteSet(setId: string): Promise<void> {
+  // Callback phải là hàm async: Dexie chỉ giữ transaction qua các `await` của hàm async.
   return db.transaction(
     'rw',
     [db.setLogs, db.outbox, db.suggestions],
-    async () => {
-      const row = await db.setLogs.get(setId);
-      if (!row || row.deletedAt) return;
-      const at = now();
-      for (const s of await backOffsCausedBy(setId, false)) {
-        await put(db.suggestions, 'suggestions', { ...s, deletedAt: at });
-      }
-      await put(db.setLogs, 'set_logs', { ...row, deletedAt: at });
-    },
+    async () => tombstoneSet(setId),
   );
 }
 
@@ -664,6 +699,84 @@ export function finishSession(sessionId: string): Promise<void> {
       });
     },
   );
+}
+
+/** Bảng của một buổi và các bài, set của nó. */
+const SESSION_TREE = [
+  db.workoutSessions,
+  db.sessionExercises,
+  db.setLogs,
+  db.outbox,
+];
+
+/**
+ * Bài và set của buổi có `deletedAt` đúng bằng `deletedAt` (vd `null`: các bản còn sống).
+ */
+async function sessionChildren(sessionId: string, deletedAt: string | null) {
+  const rows = await db.sessionExercises
+    .where('sessionId')
+    .equals(sessionId)
+    .toArray();
+  const sets = await db.setLogs
+    .where('sessionExerciseId')
+    .anyOf(rows.map((r) => r.id))
+    .toArray();
+  return {
+    rows: rows.filter((r) => r.deletedAt === deletedAt),
+    sets: sets.filter((s) => s.deletedAt === deletedAt),
+  };
+}
+
+/**
+ * Xoá một buổi đã kết thúc (UC11): tombstone buổi cùng mọi bài và set còn sống của nó, cùng
+ * một thời điểm, để đồng bộ được việc xoá. Gợi ý giữ nguyên: lần trả lời là thật, vẫn tính
+ * vào tỉ lệ chấp nhận; gợi ý sau này tự lấy buổi gần nhất chưa xoá làm căn cứ.
+ */
+export function deleteSession(sessionId: string): Promise<void> {
+  return db.transaction('rw', SESSION_TREE, async () => {
+    const session = await db.workoutSessions.get(sessionId);
+    if (!session || session.deletedAt || !session.endedAt) return;
+    const at = now();
+    const { rows, sets } = await sessionChildren(sessionId, null);
+    for (const set of sets) {
+      await put(db.setLogs, 'set_logs', { ...set, deletedAt: at });
+    }
+    for (const row of rows) {
+      await put(db.sessionExercises, 'session_exercises', {
+        ...row,
+        deletedAt: at,
+      });
+    }
+    await put(db.workoutSessions, 'workout_sessions', {
+      ...session,
+      deletedAt: at,
+    });
+  });
+}
+
+/**
+ * Khôi phục buổi vừa xoá (Undo): chỉ bỏ tombstone của bài và set bị xoá cùng lúc với buổi;
+ * bài hay set đã xoá từ trước vẫn giữ nguyên là đã xoá.
+ */
+export function restoreSession(sessionId: string): Promise<void> {
+  return db.transaction('rw', SESSION_TREE, async () => {
+    const session = await db.workoutSessions.get(sessionId);
+    if (!session?.deletedAt) return;
+    const { rows, sets } = await sessionChildren(sessionId, session.deletedAt);
+    await put(db.workoutSessions, 'workout_sessions', {
+      ...session,
+      deletedAt: null,
+    });
+    for (const row of rows) {
+      await put(db.sessionExercises, 'session_exercises', {
+        ...row,
+        deletedAt: null,
+      });
+    }
+    for (const set of sets) {
+      await put(db.setLogs, 'set_logs', { ...set, deletedAt: null });
+    }
+  });
 }
 
 /** Một bài trong buổi, kèm bài trong catalog và các set chưa xoá theo thứ tự ghi. */

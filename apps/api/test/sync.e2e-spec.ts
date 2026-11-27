@@ -567,6 +567,53 @@ describe('/v1/sync (e2e)', () => {
         );
       });
 
+      it('sửa và xoá buổi cũ (UC11): sửa sau thắng; tombstone buổi, bài, set đi qua pull; Undo cũng đi qua pull', async () => {
+        const sub = `${run}-uc11`;
+        const old = workout();
+        const ended = {
+          ...old.session,
+          endedAt: '2026-11-22T11:00:00.000Z',
+        };
+        await push(sub, [...old.events, events.session(ended)]).expect(200);
+        const { cursor } = await pullAll(sub);
+
+        // Sửa set hai lần (vd hai lần lưu offline đẩy cùng lúc): lần sau thắng.
+        await push(sub, [
+          events.set({ ...old.set, reps: 9 }),
+          events.set({ ...old.set, weightValue: 82.5, reps: 7 }),
+        ]).expect(200);
+        const edited = await pullAll(sub, cursor);
+        expect(edited.changes).toEqual([
+          events.set({ ...old.set, weightValue: 82.5, reps: 7 }),
+        ]);
+
+        const at = '2026-11-25T08:00:00.000Z';
+        const removed = [
+          events.set({
+            ...old.set,
+            weightValue: 82.5,
+            reps: 7,
+            deletedAt: at,
+          }),
+          events.exercise({ ...old.exercise, deletedAt: at }),
+          events.session({ ...ended, deletedAt: at }),
+        ];
+        await push(sub, removed).expect(200);
+        const deleted = await pullAll(sub, edited.cursor);
+        expect(deleted.changes).toHaveLength(3);
+        expect(deleted.changes).toEqual(expect.arrayContaining(removed));
+
+        const restored = [
+          events.session(ended),
+          events.exercise(old.exercise),
+          events.set({ ...old.set, weightValue: 82.5, reps: 7 }),
+        ];
+        await push(sub, restored).expect(200);
+        const undone = await pullAll(sub, deleted.cursor);
+        expect(undone.changes).toHaveLength(3);
+        expect(undone.changes).toEqual(expect.arrayContaining(restored));
+      });
+
       it('since: chỉ trả thay đổi sau cursor; không có gì mới thì giữ nguyên cursor', async () => {
         const { cursor } = await pullAll(sub);
         expect(cursor).toEqual(expect.any(String));

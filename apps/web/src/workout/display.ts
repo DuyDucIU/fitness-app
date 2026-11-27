@@ -1,11 +1,11 @@
-import type { LoadInput } from '@fitness/contract';
+import type { LoadInput, SetLog } from '@fitness/contract';
 import type { NewRecord, PastSet } from '@fitness/engine';
 
 import { exerciseNames } from '@/catalog/display';
 import { formatNumber } from '@/lib/format';
 import { getLocale } from '@/lib/i18n';
 import { m } from '@/paraglide/messages.js';
-import type { WorkoutExercise } from '@/workout/session';
+import type { SetValues, WorkoutExercise } from '@/workout/session';
 
 /** Cách hiển thị bài và set, dùng chung cho màn ghi buổi tập và lịch sử. */
 
@@ -15,6 +15,27 @@ export type LogKind = 'weight_reps' | 'reps' | 'unsupported';
 export function logKind(item: WorkoutExercise): LogKind {
   const metric = item.exercise?.metricType ?? 'weight_reps';
   return metric === 'weight_reps' || metric === 'reps' ? metric : 'unsupported';
+}
+
+/** Số user đang gõ cho một set; `null`: ô trống hay không đọc được. */
+export interface SetDraft {
+  weight: number | null;
+  reps: number | null;
+}
+
+export function draftFrom(set: SetLog | undefined): SetDraft {
+  return { weight: set?.weightValue ?? null, reps: set?.reps ?? null };
+}
+
+/**
+ * Số ghi được của một bản nháp, `null` khi chưa hợp lệ: reps nguyên lớn hơn 0, tạ từ 0
+ * trở lên (bài chỉ reps thì bỏ tạ). Dùng chung cho ghi set và sửa set của buổi cũ.
+ */
+export function setValuesOf(kind: LogKind, draft: SetDraft): SetValues | null {
+  const { weight, reps } = draft;
+  if (reps === null || !Number.isInteger(reps) || reps <= 0) return null;
+  if (kind === 'reps') return { weight: null, reps };
+  return weight !== null && weight >= 0 ? { weight, reps } : null;
 }
 
 export function exerciseName(item: WorkoutExercise): string {
