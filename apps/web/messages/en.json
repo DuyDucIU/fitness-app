@@ -741,5 +741,35 @@
   "exercise_not_logged": "Not logged yet",
   "exercise_not_logged_hint": "Your first set will be the starting point.",
   "exercise_not_found": "This exercise isn't on this device.",
-  "exercise_alias_remove": "Remove {alias}"
+  "exercise_alias_remove": "Remove {alias}",
+  "log_superset": "Superset",
+  "log_menu_unsuperset": "Remove from superset",
+  "log_menu_unsuperset_hint": "Train it on its own, rest after every set.",
+  "log_session": "Session",
+  "log_session_title": "Session · {name}",
+  "log_session_sets": [
+    {
+      "declarations": [
+        "input done",
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{done}/{count} set",
+        "countPlural=other": "{done}/{count} sets"
+      }
+    }
+  ],
+  "log_session_in_superset": "superset",
+  "log_session_added": "added today",
+  "log_session_link": "Superset {name} with the next exercise",
+  "log_session_reorder_hint": "Drag the handle to reorder. Logged sets stay with their exercise.",
+  "log_left_superset": "{name} left its superset.",
+  "log_add_first_exercise": "Add first exercise",
+  "log_freestyle_band": "Freestyle session",
+  "log_no_history": "No history yet",
+  "log_no_history_hint": "New exercise. Log your first set by feel, and next time the app will remember."
 }

@@ -50,7 +50,11 @@ export function MenuItem({
   ...props
 }: React.ComponentProps<'button'> & MenuItemContent) {
   return (
-    <button type="button" className={itemClass(danger, className)} {...props}>
+    <button
+      type="button"
+      className={itemClass(danger, cn('disabled:opacity-40', className))}
+      {...props}
+    >
       <Content icon={icon} sub={sub}>
         {children}
       </Content>

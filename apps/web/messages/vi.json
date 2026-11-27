@@ -713,5 +713,20 @@
   "exercise_not_logged": "Chưa ghi lần nào",
   "exercise_not_logged_hint": "Set đầu tiên sẽ là điểm xuất phát.",
   "exercise_not_found": "Bài này không có trên máy.",
-  "exercise_alias_remove": "Bỏ {alias}"
+  "exercise_alias_remove": "Bỏ {alias}",
+  "log_superset": "Superset",
+  "log_menu_unsuperset": "Bỏ khỏi superset",
+  "log_menu_unsuperset_hint": "Tập riêng bài này, nghỉ sau mỗi set.",
+  "log_session": "Cả buổi",
+  "log_session_title": "Cả buổi · {name}",
+  "log_session_sets": "{done}/{count} set",
+  "log_session_in_superset": "superset",
+  "log_session_added": "thêm hôm nay",
+  "log_session_link": "Superset {name} với bài kế",
+  "log_session_reorder_hint": "Kéo tay nắm để đổi thứ tự. Set đã ghi đi theo bài của nó.",
+  "log_left_superset": "{name} đã rời superset.",
+  "log_add_first_exercise": "Thêm bài đầu tiên",
+  "log_freestyle_band": "Buổi tập tự do",
+  "log_no_history": "Chưa có lịch sử",
+  "log_no_history_hint": "Bài mới. Set đầu cứ tập theo cảm giác, lần sau app sẽ nhớ."
 }

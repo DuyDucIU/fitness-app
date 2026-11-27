@@ -15,7 +15,13 @@ import {
   type ExerciseSettings,
   exerciseSettings,
   type LastTime,
+  leaveSuperset,
+  moveExercise,
   type NewRecord,
+  normalizeSupersets,
+  supersetOf,
+  swapInSuperset,
+  toggleSupersetWithNext,
 } from '@fitness/engine';
 import type { EntityTable, Table } from 'dexie';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -365,6 +371,95 @@ async function putAdHoc(
   return row.id;
 }
 
+/** Các bài chưa xoá của một buổi, theo vị trí. */
+async function liveRows(sessionId: string): Promise<SessionExercise[]> {
+  return (
+    await db.sessionExercises.where('sessionId').equals(sessionId).toArray()
+  )
+    .filter((e) => e.deletedAt === null)
+    .sort((a, b) => a.position - b.position);
+}
+
+/**
+ * Lưu thứ tự và superset mới của các bài (UC09): `next` là danh sách theo thứ tự mới. Thứ tự
+ * đổi (hay có bài chen vào) thì `position` đánh lại từ 0, không thì giữ nguyên; chỉ bài
+ * đổi vị trí hay đổi nhóm mới ghi và vào outbox. Bài chưa có trong `current` do nơi gọi
+ * ghi, ở vị trí trả về. Gọi trong transaction có `db.sessionExercises` và `db.outbox`;
+ * chỉ đụng tới bài của buổi, không bao giờ sửa routine.
+ */
+async function writeLayout(
+  current: SessionExercise[],
+  next: SessionExercise[],
+): Promise<SessionExercise[]> {
+  const reordered =
+    next.length !== current.length ||
+    next.some((row, i) => row.id !== current[i]?.id);
+  const placed = next.map((row, i) =>
+    reordered ? { ...row, position: i } : row,
+  );
+  const before = new Map(current.map((row) => [row.id, row]));
+  for (const row of placed) {
+    const old = before.get(row.id);
+    if (
+      old &&
+      (old.position !== row.position || old.supersetGroup !== row.supersetGroup)
+    ) {
+      await put(db.sessionExercises, 'session_exercises', row);
+    }
+  }
+  return placed;
+}
+
+/** Đổi bố cục các bài của buổi chứa bài `sessionExerciseId` theo một luật của engine. */
+function rearrange(
+  sessionExerciseId: string,
+  rule: (rows: SessionExercise[]) => SessionExercise[],
+): Promise<SessionExercise[]> {
+  return db.transaction('rw', [db.sessionExercises, db.outbox], async () => {
+    const row = await db.sessionExercises.get(sessionExerciseId);
+    if (!row || row.deletedAt) return [];
+    const current = await liveRows(row.sessionId);
+    return writeLayout(current, rule(current));
+  });
+}
+
+/**
+ * Chuyển một bài tới vị trí `to` (từ 0) trong buổi (UC09). Trả về `true` khi bài rời superset
+ * đang ở: chuyển xong không còn chung nhóm với bài nào của nhóm cũ (kể cả khi sang nhóm khác).
+ */
+export async function moveSessionExercise(
+  sessionExerciseId: string,
+  to: number,
+): Promise<boolean> {
+  const matesIn = (rows: SessionExercise[]) =>
+    supersetOf(rows, sessionExerciseId)
+      ?.map((row) => row.id)
+      .filter((id) => id !== sessionExerciseId) ?? [];
+  let before: string[] = [];
+  const rows = await rearrange(sessionExerciseId, (current) => {
+    before = matesIn(current);
+    return moveExercise(current, sessionExerciseId, to);
+  });
+  const after = matesIn(rows);
+  return before.length > 0 && !before.some((id) => after.includes(id));
+}
+
+/** Gộp bài với bài ngay sau thành superset, hoặc tách tại đó nếu đang cùng nhóm (UC09). */
+export async function toggleSuperset(sessionExerciseId: string): Promise<void> {
+  await rearrange(sessionExerciseId, (rows) =>
+    toggleSupersetWithNext(rows, sessionExerciseId),
+  );
+}
+
+/** Bỏ một bài khỏi superset của nó (UC09). */
+export async function removeFromSuperset(
+  sessionExerciseId: string,
+): Promise<void> {
+  await rearrange(sessionExerciseId, (rows) =>
+    leaveSuperset(rows, sessionExerciseId),
+  );
+}
+
 /**
  * Thay một bài trong buổi đang mở bằng bài khác (UC09 bước 2–3). Bài mới là bài ad hoc
  * (`routineExerciseId = null`), chụp quy ước ghi tạ đang áp của chính nó (UC14), nên "lần
@@ -372,7 +467,8 @@ async function putAdHoc(
  * - Bài cũ chưa ghi set: bỏ hẳn (tombstone); bài mới thế chỗ, cùng `position` và
  *   `supersetGroup`.
  * - Bài cũ đã ghi set: giữ bài và các set đó, rời superset; bài mới chèn ngay sau, nhận
- *   `supersetGroup` của bài cũ, các bài sau lùi một vị trí.
+ *   `supersetGroup` của bài cũ, các bài sau lùi một vị trí. Bài cũ không đứng đầu superset
+ *   thì chuyển lên trước nhóm, bài mới thế chỗ của nó, để nhóm vẫn liền nhau.
  * Trả về id của bài mới trong buổi.
  */
 export function swapExercise(
@@ -389,33 +485,22 @@ export function swapExercise(
       .equals(old.id)
       .filter((s) => s.deletedAt === null)
       .count();
-    let position = old.position;
     if (logged === 0) {
       await put(db.sessionExercises, 'session_exercises', {
         ...old,
         deletedAt: now(),
       });
-    } else {
-      position = old.position + 1;
-      if (old.supersetGroup !== null) {
-        await put(db.sessionExercises, 'session_exercises', {
-          ...old,
-          supersetGroup: null,
-        });
-      }
-      const after = await db.sessionExercises
-        .where('sessionId')
-        .equals(old.sessionId)
-        .filter((e) => e.deletedAt === null && e.position >= position)
-        .toArray();
-      for (const row of after) {
-        await put(db.sessionExercises, 'session_exercises', {
-          ...row,
-          position: row.position + 1,
-        });
-      }
+      return putAdHoc(old.sessionId, exercise, old.position, old.supersetGroup);
     }
-    return putAdHoc(old.sessionId, exercise, position, old.supersetGroup);
+    const current = await liveRows(old.sessionId);
+    // Chỗ giữ cho bài mới để tính thứ tự; bài thật ghi ở `putAdHoc`.
+    const slot = { ...old, id: crypto.randomUUID() };
+    const placed = await writeLayout(
+      current,
+      swapInSuperset(current, old.id, slot),
+    );
+    const { position, supersetGroup } = placed.find((r) => r.id === slot.id)!;
+    return putAdHoc(old.sessionId, exercise, position, supersetGroup);
   });
 }
 
@@ -749,6 +834,9 @@ export function removeExercise(sessionExerciseId: string): Promise<void> {
         ...row,
         deletedAt: now(),
       });
+      // Superset còn một bài thì thôi là superset.
+      const left = await liveRows(row.sessionId);
+      await writeLayout(left, normalizeSupersets(left));
     },
   );
 }
@@ -930,11 +1018,7 @@ async function readOpenSession(): Promise<OpenSession | null> {
 
 /** Đọc các bài và set của một buổi; gọi trong `useLiveQuery` để tự cập nhật. */
 export async function readWorkout(session: WorkoutSession): Promise<Workout> {
-  const rows = (
-    await db.sessionExercises.where('sessionId').equals(session.id).toArray()
-  )
-    .filter((e) => e.deletedAt === null)
-    .sort((a, b) => a.position - b.position);
+  const rows = await liveRows(session.id);
   const [catalog, sets] = await Promise.all([
     db.exercises.bulkGet(rows.map((r) => r.exerciseId)),
     db.setLogs

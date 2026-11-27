@@ -323,7 +323,7 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Actor:** Người tập
 - **Tiền điều kiện:** Đang trong một buổi tập, vừa log xong một set.
 - **Luồng chính:**
-  1. Ngay sau khi log set (UC07 bước 3), timer **tự động bắt đầu** đếm ngược theo `ROUTINE_EXERCISES.rest_seconds` (hoặc giá trị mặc định nếu bài không thuộc routine).
+  1. Ngay sau khi log set (UC07 bước 3), timer **tự động bắt đầu** đếm ngược theo `ROUTINE_EXERCISES.rest_seconds` (hoặc giá trị mặc định nếu bài không thuộc routine). Trong superset, giữa các bài của một vòng thì không nghỉ: timer chỉ bắt đầu khi hết vòng (UC09 bước 8). **Bổ sung (27/11/2026).**
   2. Hết giờ: nếu app đang mở trên màn hình, app báo bằng âm thanh và hiệu ứng hình ảnh; rung chỉ dùng trên thiết bị hỗ trợ (Android — iOS không có Vibration API).
      - Timer tính theo **mốc thời điểm kết thúc**, không đếm tick: khi app bị đưa xuống nền hoặc khoá màn hình rồi mở lại, timer hiển thị đúng thời gian còn lại. Trong lúc ở nền app không báo được (trình duyệt tạm dừng JS).
      - Trong buổi tập, app giữ màn hình sáng bằng Screen Wake Lock nếu trình duyệt hỗ trợ.
@@ -339,12 +339,17 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
 - **Luồng chính:**
   1. User chọn một bài trong session, thao tác: thay bằng bài khác / kéo đổi thứ tự (`position`) / gộp superset (`superset_group`).
   2. **Thay bài:** app tạo/gán `SESSION_EXERCISES` mới cho bài mới, **bỏ liên kết `routine_exercise_id`** với bài gốc trong routine (session exercise trở thành "ad hoc", `routine_exercise_id = null`).
-     - Bài cũ chưa ghi set: bỏ hẳn (tombstone), bài mới thế chỗ (cùng `position`, `superset_group`). Bài cũ đã ghi set: giữ bài và các set đã ghi, bỏ các set còn chờ, rời superset; bài mới chèn ngay sau (nhận `superset_group` của bài cũ), các bài sau lùi một vị trí.
+     - Bài cũ chưa ghi set: bỏ hẳn (tombstone), bài mới thế chỗ (cùng `position`, `superset_group`). Bài cũ đã ghi set: giữ bài và các set đã ghi, bỏ các set còn chờ, rời superset; bài mới chèn ngay sau (nhận `superset_group` của bài cũ), các bài sau lùi một vị trí. Bài cũ không đứng đầu superset thì chuyển lên trước nhóm và bài mới thế chỗ của nó, để nhóm vẫn liền nhau. **Bổ sung (27/11/2026).**
      - Bài mới nhận số set còn chờ của bài cũ (bài cũ hết set chờ thì 3, như bài thêm ad hoc) và thời gian nghỉ trong buổi của bài cũ (bước 6). Rep range thì không kế thừa: theo luật bài ad hoc ở Phụ lục A. **Bổ sung (27/11/2026).**
   3. Màn hình "lần trước" (UC07 bước 2) của bài mới **tính theo lịch sử của chính bài mới đó** — không kế thừa số liệu của bài đã bị thay ra.
   4. Đổi thứ tự/superset chỉ cập nhật `position`/`superset_group` của `SESSION_EXERCISES` trong buổi hiện tại, không ảnh hưởng `ROUTINE_EXERCISES` gốc.
   5. **Bỏ bài khỏi buổi:** bài chưa ghi set nào thì bỏ hẳn (tombstone `SESSION_EXERCISES.deleted_at`); bài đã ghi set thì giữ bài và các set đã ghi, chỉ bỏ các set còn chờ tập.
   6. **Thời gian nghỉ trong buổi:** user chỉnh thời gian nghỉ của một bài (±15 giây, tối thiểu 30 giây) cho buổi đang tập; chỉ là trạng thái giao diện của buổi, không sửa `ROUTINE_EXERCISES.rest_seconds`.
+  7. **Superset:** là từ hai bài liền nhau trở lên có cùng `superset_group`; nhóm còn một bài thì thôi là superset. **Bổ sung (27/11/2026).**
+     - Gộp: bài với bài ngay sau (menu bài hoặc nút mắt xích trong sheet "Session"); bài cuối buổi không có bài kế để gộp. Bài nào trong hai đã thuộc superset thì cả hai nhóm nhập làm một. Nút mắt xích đang bật thì tách nhóm tại đúng chỗ đó: mỗi bên còn từ hai bài thì vẫn là superset.
+     - "Remove from superset" ở menu bài chỉ bỏ bài đó: đang ở giữa nhóm thì bài chuyển ra ngay sau nhóm, các bài còn lại vẫn là superset.
+     - Đổi thứ tự: kéo bài ra khỏi nhóm thì bài rời nhóm (có thông báo); thả một bài vào giữa hai bài của một superset thì bài đó nhập nhóm.
+  8. **Tập xen kẽ:** ghi một set của bài trong superset thì sang bài sau trong nhóm còn set chờ, chưa nghỉ. Không còn bài sau thì hết vòng: về bài đầu nhóm còn set chờ và bắt đầu nghỉ theo thời gian nghỉ và cài đặt tự chạy timer của bài vừa ghi; cả nhóm hết set chờ thì ở lại bài đó. Bài ghi cuối vòng tắt tự chạy timer thì hết vòng mới hiện nút bắt đầu nghỉ theo thời gian nghỉ của bài đó; giữa vòng không hiện. **Bổ sung (27/11/2026).**
 - **Hậu điều kiện:** Buổi tập phản ánh đúng bài/thứ tự thực tế đã tập, độc lập với routine gốc.
 
 #### UC10 — Kết thúc và đồng bộ buổi tập

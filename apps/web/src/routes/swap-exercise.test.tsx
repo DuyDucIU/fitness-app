@@ -12,6 +12,7 @@ import { AN, clearDb } from '@/auth/testing';
 import { BENCH, CATALOG, DUMBBELL_BENCH, SQUAT } from '@/catalog/testing';
 import { db } from '@/db/db';
 import { openApp } from '@/test/open-app';
+import { openExercisePicker } from '@/test/open-picker';
 
 const signedInAn = {
   stored: { kind: 'session', user: AN },
@@ -283,8 +284,7 @@ describe('thay bài giữa buổi (UC09)', () => {
     const user = userEvent.setup();
     await startPush(user);
 
-    await user.click(screen.getByRole('button', { name: 'Add exercise' }));
-    await screen.findByRole('dialog', { name: 'Add an exercise' });
+    await openExercisePicker(user);
     await user.keyboard('squat');
     await user.click(
       await screen.findByRole('button', { name: /Barbell Squat/ }),

@@ -69,3 +69,15 @@ export {
   type RecordSession,
   type RecordSet,
 } from './records';
+export {
+  afterSupersetSet,
+  leaveSuperset,
+  moveExercise,
+  normalizeSupersets,
+  type SupersetItem,
+  supersetOf,
+  supersetRuns,
+  type SupersetStep,
+  swapInSuperset,
+  toggleSupersetWithNext,
+} from './superset';
