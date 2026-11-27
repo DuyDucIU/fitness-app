@@ -329,22 +329,40 @@ export function addExercise(
       .where('sessionId')
       .equals(sessionId)
       .toArray();
-    const row: SessionExercise = {
-      id: crypto.randomUUID(),
+    return putAdHoc(
       sessionId,
-      exerciseId: exercise.id,
-      routineExerciseId: null,
-      loadInput: (await readSettings(exercise.id, exercise.equipment))
-        .loadInput,
-      position: Math.max(-1, ...existing.map((e) => e.position)) + 1,
-      supersetGroup: null,
-      deletedAt: null,
-    };
-    await put(db.sessionExercises, 'session_exercises', row);
-    // Bài ad hoc: rep range lấy từ lần tập gần nhất có rep range (SRS Phụ lục A).
-    await issueSuggestion(row, exercise, null);
-    return row.id;
+      exercise,
+      Math.max(-1, ...existing.map((e) => e.position)) + 1,
+      null,
+    );
   });
+}
+
+/**
+ * Ghi một bài ad hoc (`routineExerciseId = null`) vào buổi ở `position`, chụp quy ước ghi tạ
+ * đang áp của bài (UC14) và đưa ra gợi ý trước buổi của nó. Gọi trong transaction có
+ * `ADVICE_TABLES`. Trả về id của bài trong buổi.
+ */
+async function putAdHoc(
+  sessionId: string,
+  exercise: CatalogExercise,
+  position: number,
+  supersetGroup: number | null,
+): Promise<string> {
+  const row: SessionExercise = {
+    id: crypto.randomUUID(),
+    sessionId,
+    exerciseId: exercise.id,
+    routineExerciseId: null,
+    loadInput: (await readSettings(exercise.id, exercise.equipment)).loadInput,
+    position,
+    supersetGroup,
+    deletedAt: null,
+  };
+  await put(db.sessionExercises, 'session_exercises', row);
+  // Bài ad hoc: rep range lấy từ lần tập gần nhất có rep range (SRS Phụ lục A).
+  await issueSuggestion(row, exercise, null);
+  return row.id;
 }
 
 /**
@@ -397,20 +415,7 @@ export function swapExercise(
         });
       }
     }
-    const row: SessionExercise = {
-      id: crypto.randomUUID(),
-      sessionId: old.sessionId,
-      exerciseId: exercise.id,
-      routineExerciseId: null,
-      loadInput: (await readSettings(exercise.id, exercise.equipment))
-        .loadInput,
-      position,
-      supersetGroup: old.supersetGroup,
-      deletedAt: null,
-    };
-    await put(db.sessionExercises, 'session_exercises', row);
-    await issueSuggestion(row, exercise, null);
-    return row.id;
+    return putAdHoc(old.sessionId, exercise, position, old.supersetGroup);
   });
 }
 

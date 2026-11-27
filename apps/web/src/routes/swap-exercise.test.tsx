@@ -243,20 +243,21 @@ describe('thay bài giữa buổi (UC09)', () => {
   it('bài chưa ghi set: bài cũ bỏ hẳn (tombstone), bài mới thế chỗ với đủ số set chờ', async () => {
     const user = userEvent.setup();
     await startPush(user);
-    await user.click(
-      screen.getByRole('button', { name: /^Dumbbell Bench Press,/ }),
-    );
 
-    await swapTo(user, 'Dumbbell Bench Press', 'squat', /Barbell Squat/);
+    await swapTo(user, BENCH_NAME, 'squat', /Barbell Squat/);
 
     await screen.findByRole('region', { name: 'Barbell Squat' });
+    // Squat nhận cả 4 set chờ của Bench (không phải 3 như bài thêm mới).
     expect(chips()).toEqual([
-      `${BENCH_NAME}, 0 of 4 sets`,
-      'Barbell Squat, 0 of 3 sets',
+      'Barbell Squat, 0 of 4 sets',
+      'Dumbbell Bench Press, 0 of 3 sets',
     ]);
     // Bài mới chưa có lịch sử: không có lần trước, không kế thừa tạ hay rep range của bài cũ.
     expect(screen.queryByRole('note', { name: /^Last time/ })).toBeNull();
-    expect(screen.queryByText(/8–12 reps/)).toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Weight (total)' })).toHaveValue(
+      '',
+    );
+    expect(screen.queryByText(/6–8 reps/)).toBeNull();
 
     const rows = await openRows(true);
     expect(
@@ -268,9 +269,9 @@ describe('thay bài giữa buổi (UC09)', () => {
       ]),
     ).toEqual(
       expect.arrayContaining([
-        [BENCH.id, BENCH_ROW, 0, false],
-        [DUMBBELL_BENCH.id, DB_BENCH_ROW, 1, true],
-        [SQUAT.id, null, 1, false],
+        [BENCH.id, BENCH_ROW, 0, true],
+        [SQUAT.id, null, 0, false],
+        [DUMBBELL_BENCH.id, DB_BENCH_ROW, 1, false],
       ]),
     );
     expect(rows).toHaveLength(3);
