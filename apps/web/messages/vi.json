@@ -688,6 +688,8 @@
   "settings_auto_rest": "Tự chạy đồng hồ nghỉ sau mỗi set",
   "log_menu_swap": "Thay bài",
   "log_menu_swap_hint": "Máy đang có người? Đổi sang bài khác. Lịch sử theo bài mới.",
+  "log_swap_title": "Thay {name} bằng…",
+  "log_swapped": "Đã thay bằng {name}. Số lần trước giờ lấy theo bài này.",
   "log_menu_superset": "Superset với bài kế",
   "log_menu_superset_hint": "Tập xen kẽ, chỉ nghỉ sau mỗi vòng.",
   "log_menu_reorder": "Đổi thứ tự bài",

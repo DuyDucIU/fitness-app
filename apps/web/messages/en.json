@@ -716,6 +716,8 @@
   "settings_auto_rest": "Start rest timer after each set",
   "log_menu_swap": "Swap exercise",
   "log_menu_swap_hint": "Machine taken? Switch to another one. History follows the new exercise.",
+  "log_swap_title": "Swap {name} for…",
+  "log_swapped": "Swapped to {name}. Last-time numbers now come from this exercise.",
   "log_menu_superset": "Superset with next exercise",
   "log_menu_superset_hint": "Alternate sets, rest only after each round.",
   "log_menu_reorder": "Reorder exercises",
