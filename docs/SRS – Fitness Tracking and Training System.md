@@ -346,7 +346,7 @@ Cắt scope ngày 15/10/2026: bốn nhóm dưới đây dời khỏi MVP. Đặc
   5. **Bỏ bài khỏi buổi:** bài chưa ghi set nào thì bỏ hẳn (tombstone `SESSION_EXERCISES.deleted_at`); bài đã ghi set thì giữ bài và các set đã ghi, chỉ bỏ các set còn chờ tập.
   6. **Thời gian nghỉ trong buổi:** user chỉnh thời gian nghỉ của một bài (±15 giây, tối thiểu 30 giây) cho buổi đang tập; chỉ là trạng thái giao diện của buổi, không sửa `ROUTINE_EXERCISES.rest_seconds`.
   7. **Superset:** là từ hai bài liền nhau trở lên có cùng `superset_group`; nhóm còn một bài thì thôi là superset. **Bổ sung (27/11/2026).**
-     - Gộp: bài với bài ngay sau (menu bài hoặc nút mắt xích trong sheet "Session"); bài cuối buổi không có bài kế để gộp. Nút mắt xích đang bật thì tách nhóm tại chỗ đó.
+     - Gộp: bài với bài ngay sau (menu bài hoặc nút mắt xích trong sheet "Session"); bài cuối buổi không có bài kế để gộp. Bài nào trong hai đã thuộc superset thì cả hai nhóm nhập làm một. Nút mắt xích đang bật thì tách nhóm tại đúng chỗ đó: mỗi bên còn từ hai bài thì vẫn là superset.
      - "Remove from superset" ở menu bài chỉ bỏ bài đó: đang ở giữa nhóm thì bài chuyển ra ngay sau nhóm, các bài còn lại vẫn là superset.
      - Đổi thứ tự: kéo bài ra khỏi nhóm thì bài rời nhóm (có thông báo); thả một bài vào giữa hai bài của một superset thì bài đó nhập nhóm.
   8. **Tập xen kẽ:** ghi một set của bài trong superset thì sang bài sau trong nhóm còn set chờ, chưa nghỉ. Không còn bài sau thì hết vòng: về bài đầu nhóm còn set chờ và bắt đầu nghỉ theo thời gian nghỉ và cài đặt tự chạy timer của bài vừa ghi; cả nhóm hết set chờ thì ở lại bài đó. Bài ghi cuối vòng tắt tự chạy timer thì hết vòng mới hiện nút bắt đầu nghỉ theo thời gian nghỉ của bài đó; giữa vòng không hiện. **Bổ sung (27/11/2026).**
