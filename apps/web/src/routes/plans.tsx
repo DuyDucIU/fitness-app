@@ -23,12 +23,12 @@ import {
   AlertIcon,
   ChevronIcon,
   EditIcon,
-  GripIcon,
   PlayIcon,
   PlusIcon,
   SearchIcon,
   TrashIcon,
 } from '@/components/icons';
+import { ReorderHint } from '@/components/reorder-hint';
 import { useSortable } from '@/components/sortable';
 import { SyncPill } from '@/components/sync-pill';
 import { useComingSoon } from '@/hooks/use-coming-soon';
@@ -93,16 +93,6 @@ function useExerciseLookup() {
       },
     };
   }, [catalog]);
-}
-
-/** Dòng gợi ý dưới danh sách kéo thả, kèm biểu tượng tay nắm (.reorder-hint). */
-function ReorderHint({ id, children }: { id: string; children: string }) {
-  return (
-    <Note id={id} className="mt-2! flex items-center gap-1.5">
-      <GripIcon className="size-4 flex-none" aria-hidden />
-      {children}
-    </Note>
-  );
 }
 
 const libraryRow = (count: number | undefined) => (

@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import { useAnnounce } from '@/components/toast-context';
 import { GripIcon } from '@/components/icons';
+import { useAnnounce } from '@/components/toast-context';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
 
@@ -16,11 +16,50 @@ const reduceMotion = () =>
   typeof matchMedia === 'function' &&
   matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/** Kéo tới cách mép vùng cuộn chừng này thì danh sách tự cuộn. */
+const EDGE = 56;
+
+/** Số pixel cuộn mỗi khung hình khi ngón tay ở `y`: càng sát mép càng nhanh, giữa vùng là 0. */
+function edgeSpeed(y: number, { top, bottom }: DOMRect) {
+  if (y < top + EDGE) return -Math.ceil((top + EDGE - y) / 5);
+  if (y > bottom - EDGE) return Math.ceil((y - (bottom - EDGE)) / 5);
+  return 0;
+}
+
+/** Đặt hàng đang kéo theo ngón tay và trượt các hàng khác nhường chỗ. */
+function place(d: Drag) {
+  const dy = d.y - d.y0 + (d.scroller.scrollTop - d.scrollTop0);
+  d.nodes[d.from].style.transform = `translateY(${dy}px)`;
+  const start = d.rects[d.from];
+  const mid = start.top + start.height / 2 + dy;
+  let to = 0;
+  d.rects.forEach((rect, i) => {
+    if (i !== d.from && mid > rect.top + rect.height / 2) to++;
+  });
+  d.to = to;
+  d.nodes.forEach((node, i) => {
+    if (i === d.from) return;
+    const shift =
+      d.from < to && i > d.from && i <= to
+        ? -d.height
+        : d.from > to && i >= to && i < d.from
+          ? d.height
+          : 0;
+    node.style.transform = shift ? `translateY(${shift}px)` : '';
+  });
+}
+
 interface Drag {
   id: number;
   from: number;
   to: number;
   y0: number;
+  /** Toạ độ ngón tay mới nhất. */
+  y: number;
+  /** Mốc cuộn tối đa lúc bắt đầu kéo: hàng đang kéo không làm vùng cuộn dài thêm mãi. */
+  maxScroll: number;
+  /** Khung hình tự cuộn đang chờ; 0: không cuộn. */
+  frame: number;
   scrollTop0: number;
   height: number;
   rects: DOMRect[];
@@ -34,8 +73,10 @@ interface Drag {
  * với viền inset mực, các hàng khác trượt nhường chỗ. Bàn phím: Space nhấc/thả, ↑/↓ di
  * chuyển, Esc huỷ.
  *
- * Thứ tự mới chỉ gửi đi một lần khi thả (`onCommit`); trong lúc chờ, danh sách hiện thứ tự
- * mới. `onCommit` lỗi thì quay về thứ tự từ `items`.
+ * Kéo tới sát mép vùng cuộn (màn hình hay thân sheet) thì danh sách tự cuộn.
+ *
+ * Thứ tự mới chỉ gửi đi một lần khi thả (`onCommit`, kèm mục vừa được chuyển); trong lúc
+ * chờ, danh sách hiện thứ tự mới. `onCommit` lỗi thì quay về thứ tự từ `items`.
  */
 export function useSortable<T extends { id: string }>({
   items,
@@ -45,7 +86,7 @@ export function useSortable<T extends { id: string }>({
   items: T[];
   /** Tên mục để đọc cho trình đọc màn hình. */
   name: (item: T) => string;
-  onCommit: (ids: string[]) => Promise<unknown>;
+  onCommit: (ids: string[], movedId: string) => Promise<unknown>;
 }) {
   const announce = useAnnounce();
   const [order, setOrder] = React.useState<string[] | null>(null);
@@ -76,17 +117,40 @@ export function useSortable<T extends { id: string }>({
     focusId.current = null;
   });
 
-  const commit = (ids: string[]) => {
+  const commit = (ids: string[], movedId: string) => {
     setOrder(ids);
-    void onCommit(ids).finally(() => setOrder(null));
+    void onCommit(ids, movedId).finally(() => setOrder(null));
   };
 
-  const nodes = () =>
-    [
-      ...(listRef.current?.querySelectorAll<HTMLElement>(
-        ':scope > [data-sort-item]',
-      ) ?? []),
-    ];
+  React.useEffect(
+    () => () => {
+      if (drag.current) cancelAnimationFrame(drag.current.frame);
+    },
+    [],
+  );
+
+  function autoScroll() {
+    const d = drag.current;
+    if (!d) return;
+    const speed = edgeSpeed(d.y, d.scroller.getBoundingClientRect());
+    const next = Math.max(
+      0,
+      Math.min(d.maxScroll, d.scroller.scrollTop + speed),
+    );
+    if (next === d.scroller.scrollTop) {
+      d.frame = 0;
+      return;
+    }
+    d.scroller.scrollTop = next;
+    place(d);
+    d.frame = requestAnimationFrame(autoScroll);
+  }
+
+  const nodes = () => [
+    ...(listRef.current?.querySelectorAll<HTMLElement>(
+      ':scope > [data-sort-item]',
+    ) ?? []),
+  ];
 
   function onPointerDown(event: React.PointerEvent, index: number) {
     if (event.button > 0 || held) return;
@@ -100,7 +164,7 @@ export function useSortable<T extends { id: string }>({
       // jsdom và vài trình duyệt cũ không có pointer capture.
     }
     const scroller =
-      list.closest<HTMLElement>('main') ??
+      list.closest<HTMLElement>('main, [data-slot="sheet-body"]') ??
       (document.scrollingElement as HTMLElement);
     const rects = all.map((node) => node.getBoundingClientRect());
     drag.current = {
@@ -108,6 +172,9 @@ export function useSortable<T extends { id: string }>({
       from: index,
       to: index,
       y0: event.clientY,
+      y: event.clientY,
+      maxScroll: scroller.scrollHeight - scroller.clientHeight,
+      frame: 0,
       scrollTop0: scroller.scrollTop,
       height: rects[index].height,
       rects,
@@ -132,31 +199,16 @@ export function useSortable<T extends { id: string }>({
     const d = drag.current;
     if (!d || event.pointerId !== d.id) return;
     event.preventDefault();
-    const dy = event.clientY - d.y0 + (d.scroller.scrollTop - d.scrollTop0);
-    d.nodes[d.from].style.transform = `translateY(${dy}px)`;
-    const start = d.rects[d.from];
-    const mid = start.top + start.height / 2 + dy;
-    let to = 0;
-    d.rects.forEach((rect, i) => {
-      if (i !== d.from && mid > rect.top + rect.height / 2) to++;
-    });
-    d.to = to;
-    d.nodes.forEach((node, i) => {
-      if (i === d.from) return;
-      const shift =
-        d.from < to && i > d.from && i <= to
-          ? -d.height
-          : d.from > to && i >= to && i < d.from
-            ? d.height
-            : 0;
-      node.style.transform = shift ? `translateY(${shift}px)` : '';
-    });
+    d.y = event.clientY;
+    place(d);
+    if (!d.frame) autoScroll();
   }
 
   function onPointerEnd(event: React.PointerEvent) {
     const d = drag.current;
     if (!d || event.pointerId !== d.id) return;
     drag.current = null;
+    cancelAnimationFrame(d.frame);
     d.nodes.forEach((node) => {
       node.style.transform = '';
       node.style.transition = '';
@@ -164,7 +216,10 @@ export function useSortable<T extends { id: string }>({
     setDragging(null);
     if (d.from === d.to) return;
     const next = moved(ordered, d.from, d.to);
-    commit(next.map((item) => item.id));
+    commit(
+      next.map((item) => item.id),
+      next[d.to].id,
+    );
     announce(
       m.sort_moved({
         name: name(next[d.to]),
@@ -186,7 +241,11 @@ export function useSortable<T extends { id: string }>({
       } else {
         setHeld(null);
         announce(m.sort_dropped({ n: index + 1 }));
-        if (index !== held.start) commit(ordered.map((x) => x.id));
+        if (index !== held.start)
+          commit(
+            ordered.map((x) => x.id),
+            held.id,
+          );
         else setOrder(null);
       }
     } else if (held && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {

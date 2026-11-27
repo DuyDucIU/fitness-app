@@ -20,6 +20,7 @@ import { AN, clearDb } from '@/auth/testing';
 import { BENCH, CATALOG, PUSH_UP } from '@/catalog/testing';
 import { db } from '@/db/db';
 import { openApp } from '@/test/open-app';
+import { openExercisePicker } from '@/test/open-picker';
 
 const signedInAn = {
   stored: { kind: 'session', user: AN },
@@ -49,8 +50,7 @@ async function startFreestyle(user: User) {
 
 /** Thêm bài qua picker bằng cách gõ tìm. */
 async function addExercise(user: User, query: string, name: RegExp) {
-  await user.click(screen.getByRole('button', { name: 'Add exercise' }));
-  await screen.findByRole('dialog', { name: 'Add an exercise' });
+  await openExercisePicker(user);
   await user.keyboard(query);
   await user.click(await screen.findByRole('button', { name }));
   // Bài vừa thêm thành bài hiện tại: tấm số áo mang tên bài.

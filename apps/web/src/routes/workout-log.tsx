@@ -5,10 +5,12 @@ import type {
   Suggestion,
 } from '@fitness/contract';
 import {
+  afterSupersetSet,
   type LastTime,
   prefillFromLast,
   restSecondsFor,
   stepWeight,
+  supersetRuns,
 } from '@fitness/engine';
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router';
@@ -71,9 +73,12 @@ import {
   deleteSet,
   finishSession,
   logSet,
+  moveSessionExercise,
   removeExercise,
+  removeFromSuperset,
   restoreSet,
   swapExercise,
+  toggleSuperset,
   type OpenExercise,
   type OpenSession,
   updateSet,
@@ -93,6 +98,7 @@ import {
   setValuesOf,
 } from '@/workout/display';
 import { ExerciseSettingsFields } from '@/workout/exercise-settings-fields';
+import { SessionSheet } from '@/workout/session-sheet';
 import { unlockRestAlarm } from '@/workout/rest-alarm';
 import { backOffText, hintText, tipText } from '@/workout/suggestion-text';
 import { backOffParams } from '@/workout/suggestions';
@@ -101,7 +107,8 @@ import { type RestTimerState, useRestTimer } from '@/workout/rest-timer';
 /**
  * Màn ghi buổi tập (prototypes/workout-log): buổi theo ngày tập có sẵn các bài với số set,
  * rep range và thời gian nghỉ theo target (UC06); tập tự do thì thêm bài từ catalog. Ghi /
- * sửa / xoá set, kết thúc buổi. Đọc buổi đang mở từ IndexedDB nên reload hay mở lại app
+ * sửa / xoá set, đổi thứ tự và superset (UC09), kết thúc buổi. Đọc buổi đang mở từ
+ * IndexedDB nên reload hay mở lại app
  * vẫn tiếp tục được; không có buổi nào đang mở thì về Today.
  */
 export function WorkoutLogPage() {
@@ -162,8 +169,8 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   /** Bài đang được thay (UC09): picker mở ở chế độ thay bài cho bài này. */
   const [swapFrom, setSwapFrom] = React.useState<OpenExercise | null>(null);
-  // #23
-  const regroup = useComingSoon();
+  /** Sheet "Session": đổi thứ tự, superset, thêm bài (UC09). */
+  const [sessionOpen, setSessionOpen] = React.useState(false);
   /**
    * Thời gian nghỉ (giây) user chỉnh cho từng bài trong buổi ở menu bài; chỉ là trạng thái
    * giao diện của buổi, không sửa `rest_seconds` của routine (SRS UC09).
@@ -219,6 +226,17 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
   const editingNo = editing ? logged.indexOf(editing) + 1 : 0;
   const nextNo = logged.length + 1;
   const allDone = !!current && logged.length >= planned;
+  // Các bài theo thứ tự, cắt thành superset và bài lẻ (UC09).
+  const runs = supersetRuns(
+    exercises.map((item) => ({
+      id: item.row.id,
+      supersetGroup: item.row.supersetGroup,
+      item,
+    })),
+  );
+  const inSuperset = runs.some(
+    (run) => run.length > 1 && run.some((x) => x.item === current),
+  );
 
   // Hai bản nháp riêng, để sửa set cũ không đụng tới số của set chuẩn bị tập.
   // - Set chuẩn bị tập: điền sẵn đúng set đó của lần trước (UC07 bước 3); bài chưa có lịch sử
@@ -270,10 +288,21 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
     } else {
       // Mở khoá âm báo ngay trong cú bấm, trước mọi `await` (iOS cần cử chỉ của user).
       unlockRestAlarm();
-      // Còn set chờ tập sau set này thì nghỉ; set cuối của cả buổi thì không (prototype).
-      const restAfter = exercises.some(
-        (e) => remainingOf(e) - (e === current ? 1 : 0) > 0,
+      const remainingAfter = (e: OpenExercise) =>
+        remainingOf(e) - (e === current ? 1 : 0);
+      // Tập xen kẽ trong superset (UC09): sang bài kế trong nhóm, chỉ nghỉ khi hết vòng.
+      const step = afterSupersetSet(
+        exercises.map((e) => ({
+          id: e.row.id,
+          supersetGroup: e.row.supersetGroup,
+          remaining: remainingAfter(e),
+        })),
+        current.row.id,
       );
+      // Còn set chờ tập sau set này thì nghỉ; set cuối của cả buổi thì không (prototype).
+      const restAfter =
+        (step?.roundOver ?? true) &&
+        exercises.some((e) => remainingAfter(e) > 0);
       const { backOff, records } = await logSet(
         current.row.id,
         values,
@@ -287,6 +316,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
       // Set kế tiếp (thứ tự nextNo tính từ 0) theo lần trước, không có thì giữ số vừa ghi;
       // có back-off thì lấy mức tạ của back-off.
       setNextDraft(withBackOff(prefillAt(current, nextNo) ?? values, backOff));
+      if (step) setChosenId(step.nextId);
       // PR tạm (UC17): dải số áo báo tên bài và số mới; loại PR nằm ở hàng set và lời đọc.
       const [record] = records;
       const saved = m.log_set_saved({ n: nextNo });
@@ -330,6 +360,22 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
     } else {
       await removeExercise(current.row.id);
       setChosenId(undefined);
+    }
+  }
+
+  /**
+   * Đổi thứ tự hay superset không đổi bài đang tập, kể cả khi bài đó chưa được chọn tay
+   * (đang là bài đầu còn set chờ).
+   */
+  function keepCurrent() {
+    if (current) setChosenId(current.row.id);
+  }
+
+  async function move(id: string, to: number) {
+    keepCurrent();
+    const item = exercises.find((e) => e.row.id === id);
+    if ((await moveSessionExercise(id, to)) && item) {
+      toast.show(m.log_left_superset({ name: exerciseName(item) }));
     }
   }
 
@@ -377,7 +423,7 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
     dock = (
       <Button variant="ink" size="go" onClick={openAdd}>
         <PlusIcon aria-hidden />
-        {m.log_add_exercise()}
+        {m.log_add_first_exercise()}
       </Button>
     );
   } else if (editing) {
@@ -480,27 +526,35 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
       }
       foot={<Foot controls={restControls || restStart} dock={dock} />}
     >
+      <nav aria-label={m.log_exercises_label()}>
+        {/* Chừa chỗ phía trên cho chú thích "SUPERSET" vắt trên mép ngoặc. */}
+        <ChipRow className="pt-3">
+          {runs.map((run) => {
+            const chips = run.map(({ id, item }) => (
+              <ExerciseChip
+                key={id}
+                index={exercises.indexOf(item)}
+                name={exerciseName(item)}
+                done={item.sets.length}
+                total={plannedOf(item)}
+                current={item === current}
+                onClick={() => choose(item)}
+              />
+            ));
+            return run.length > 1 ? (
+              <SupersetChips key={run[0]!.id}>{chips}</SupersetChips>
+            ) : (
+              chips[0]
+            );
+          })}
+          <Chip dashed onClick={() => setSessionOpen(true)}>
+            <PlansIcon className="size-5" aria-hidden />
+            {m.log_session()}
+          </Chip>
+        </ChipRow>
+      </nav>
       {current ? (
         <>
-          <nav aria-label={m.log_exercises_label()}>
-            <ChipRow>
-              {exercises.map((item, i) => (
-                <ExerciseChip
-                  key={item.row.id}
-                  index={i}
-                  name={exerciseName(item)}
-                  done={item.sets.length}
-                  total={plannedOf(item)}
-                  current={item === current}
-                  onClick={() => choose(item)}
-                />
-              ))}
-              <Chip dashed onClick={openAdd}>
-                <PlusIcon className="size-5" aria-hidden />
-                {m.log_add_exercise()}
-              </Chip>
-            </ChipRow>
-          </nav>
           <SetBib
             item={current}
             kind={kind}
@@ -623,10 +677,43 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
         </>
       ) : (
         <Bib>
-          <BibBand open>{title}</BibBand>
-          <EmptyState stat={0}>{m.log_empty()}</EmptyState>
+          <BibBand open>{workout.day ? title : m.log_freestyle_band()}</BibBand>
+          <EmptyState
+            stat={0}
+            action={
+              <Button variant="ink" onClick={openAdd}>
+                <PlusIcon aria-hidden />
+                {m.log_add_exercise()}
+              </Button>
+            }
+          >
+            {m.log_empty()}
+          </EmptyState>
         </Bib>
       )}
+
+      <SessionSheet
+        open={sessionOpen}
+        onOpenChange={setSessionOpen}
+        name={title}
+        items={exercises.map((item) => ({
+          id: item.row.id,
+          supersetGroup: item.row.supersetGroup,
+          name: exerciseName(item),
+          done: item.sets.length,
+          total: plannedOf(item),
+          adHoc: item.row.routineExerciseId === null,
+        }))}
+        onMove={move}
+        onToggle={(id) => {
+          keepCurrent();
+          void toggleSuperset(id);
+        }}
+        onAdd={() => {
+          setSessionOpen(false);
+          openAdd();
+        }}
+      />
 
       <ExercisePicker
         open={pickerOpen}
@@ -660,12 +747,31 @@ function WorkoutLog({ workout }: { workout: OpenSession }) {
                 </MenuItem>
                 <MenuItem
                   icon={<LinkIcon aria-hidden />}
-                  sub={m.log_menu_superset_hint()}
-                  onClick={regroup}
+                  sub={
+                    inSuperset
+                      ? m.log_menu_unsuperset_hint()
+                      : m.log_menu_superset_hint()
+                  }
+                  // Bài cuối buổi không có bài kế để gộp.
+                  disabled={!inSuperset && current === exercises.at(-1)}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    keepCurrent();
+                    const change = inSuperset
+                      ? removeFromSuperset
+                      : toggleSuperset;
+                    void change(current.row.id);
+                  }}
                 >
-                  {m.log_menu_superset()}
+                  {inSuperset ? m.log_menu_unsuperset() : m.log_menu_superset()}
                 </MenuItem>
-                <MenuItem icon={<PlansIcon aria-hidden />} onClick={regroup}>
+                <MenuItem
+                  icon={<PlansIcon aria-hidden />}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setSessionOpen(true);
+                  }}
+                >
                   {m.log_menu_reorder()}
                 </MenuItem>
               </Menu>
@@ -749,6 +855,28 @@ function repRangeText({
   });
 }
 
+/**
+ * Ngoặc viền đứt quanh các chip cùng superset, chú thích "SUPERSET" vắt trên mép
+ * (prototype › .chip-group; DESIGN.md › Nhóm superset).
+ */
+function SupersetChips({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      role="group"
+      aria-label={m.log_superset()}
+      className="relative flex flex-none gap-1 rounded-[11px] border-[1.5px] border-dashed border-ink p-[3px] [&>button]:h-9"
+    >
+      <span
+        aria-hidden
+        className="absolute -top-2.5 left-2.5 bg-ground px-1 label-caps leading-[1.4]"
+      >
+        {m.log_superset()}
+      </span>
+      {children}
+    </div>
+  );
+}
+
 /** Chip bài trong dải bài (prototype › chipHTML): số thứ tự, tên, chấm tiến độ hoặc ✓. */
 function ExerciseChip({
   index,
@@ -765,6 +893,14 @@ function ExerciseChip({
   current: boolean;
   onClick: () => void;
 }) {
+  // Dải chip tự cuộn chip hiện tại vào tầm nhìn (DESIGN.md › Trong buổi tập).
+  const ref = React.useRef<HTMLButtonElement>(null);
+  React.useEffect(() => {
+    // jsdom không có `scrollIntoView`.
+    if (current)
+      ref.current?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+    // `index` đổi khi đổi thứ tự: chip hiện tại dời chỗ.
+  }, [current, index]);
   let progress: React.ReactNode = null;
   if (done > 0 && done >= total) {
     progress = (
@@ -787,6 +923,7 @@ function ExerciseChip({
   }
   return (
     <Chip
+      ref={ref}
       current={current}
       aria-current={current ? 'true' : undefined}
       aria-label={m.log_chip_label({ name, done, total })}
